@@ -7,13 +7,15 @@ description: Use when planning, reviewing, or producing Japan-market product lis
 
 ## Distribution
 
-This is a **standalone distribution**. It includes a validated snapshot of the generic listing workflow plus Japan market, localization, channel, claim-review, and QA rules. Team users install and invoke only `japan-listing-demo`.
+This is a **standalone distribution**. It includes a validated snapshot of the generic listing workflow plus Japan market, localization, channel, claim-review, frontend-reference, and QA rules. Team users install and invoke only `japan-listing-demo`.
 
 The upstream source is recorded in `core/manifest.yaml` for maintainers. It is not a runtime dependency.
 
 ## Core principle
 
 Build one evidence-governed Product Truth and Product Strategy, then adapt them to the requested Japan market, locale, channel, category, offer, and page targets. A country label is not a consumer persona or product-category playbook.
+
+When the output is a **channel-native demo**, do not design the channel shell from memory. Verify the current consumer-facing frontend first, lock a Primary Reference, and reproduce the evidenced channel structure before inserting project content.
 
 ## Execution control
 
@@ -55,6 +57,8 @@ After the user approves a stage or sends a Transition Command, treat that stage 
 
 Full end-to-end autonomous execution is **not the default**. Use **Autonomous Mode** only when the user explicitly asks to skip stage checkpoints for the current request, for example: “这次不用每一步等我，直接做到最终 Demo”. Autonomous Mode applies only to that request and does not change the default behavior of future work.
 
+Autonomous Mode does not waive evidence gates. A channel-native demo still requires a Channel Frontend Reference Pack and `FRONTEND_FIDELITY_GATE`.
+
 ## Configuration
 
 Keep these fields separate:
@@ -83,14 +87,19 @@ output: project-defined
 5. Use `references/ja-jp-localization.md` only when the requested consumer locale is `ja-JP`.
 6. Load exactly one primary Japan channel profile, plus confirmed retailer or campaign constraints.
 7. Verify current channel rules, editable slots, account capabilities, content ownership, and mobile behavior before locking modules.
-8. Treat competitor pages as evidence of competitor execution, not proof of current account access or consumer preference.
-9. Keep laws, platform rules, certifications, pricing, availability, service terms, and volatile capabilities in `PENDING CLAIM` until authoritative evidence supports release.
-10. Keep reusable Japan rules category-neutral. Product-category conclusions belong in `core/profiles/categories/_template.md`-based project overlays or current Project Evidence.
-11. AI may create environments and concept backgrounds. Product geometry, UI, packaging, ports, controls, accessories, and functional proof require real assets or explicit provisional labels.
-12. Every module must pass the Visual Evidence Matrix: `message → visual subject → evidence object → asset`.
-13. Preserve Page Boundary Matrix, Review Mode, Consumer Mode, Mobile QA, and asset-path QA.
-14. Keep confidential brand, product, price, design, approval, and unreleased information outside this public repository.
-15. Apply the Execution control rules above: checkpoint after each numbered stage by default; obey Transition Commands immediately; enforce the Retry Budget on repeated artifact problems.
+8. Keep **Platform Capability** evidence separate from **Frontend Visual** evidence. Official rules do not substitute for current consumer-facing frontend visual evidence.
+9. When a channel-native demo is requested, read `references/channel-native-demo.md`, ask whether the user has a preferred **Reference URL** / ASIN / retailer page / store page / screenshot set, and build a **Channel Frontend Reference Pack**.
+10. A user-provided current frontend reference is the candidate **Primary Reference** unless a concrete limitation is explained. If none is provided, research 1–3 current comparable consumer-facing pages and recommend a Primary Reference at the Stage 5.5 checkpoint.
+11. Treat competitor pages as evidence of competitor execution, not proof of current account access or consumer preference. A competitor page may be a frontend reference only for the specific shell evidence it visibly supports.
+12. Run `FRONTEND_FIDELITY_GATE` immediately before native Demo Assembly. If it fails, deliver only a clearly named **Content Review Demo**; do not fabricate or label an invented shell as a channel-native demo.
+13. Keep laws, platform rules, certifications, pricing, availability, service terms, and volatile capabilities in `PENDING CLAIM` until authoritative evidence supports release.
+14. Keep reusable Japan rules category-neutral. Product-category conclusions belong in `core/profiles/categories/_template.md`-based project overlays or current Project Evidence.
+15. AI may create environments and concept backgrounds. Product geometry, UI, packaging, ports, controls, accessories, and functional proof require real assets or explicit provisional labels.
+16. Every module must pass the Visual Evidence Matrix: `message → visual subject → evidence object → asset`.
+17. Preserve Page Boundary Matrix, Review Mode, Consumer Mode, Mobile QA, asset-path QA, and channel frontend fidelity QA.
+18. Review Mode is an overlay only. It must not redesign or distort the verified Consumer Mode channel layout.
+19. Keep confidential brand, product, price, design, approval, and unreleased information outside this public repository.
+20. Apply the Execution control rules above: checkpoint after each numbered stage by default; obey Transition Commands immediately; enforce the Retry Budget on repeated artifact problems.
 
 ## Execution order
 
@@ -104,13 +113,13 @@ Read the bundled core and only the Japan files needed for the project:
 4 Consumer Strategy
 4.2 Japan Market & Localization Enrichment
 5 Message Architecture
-5.5 Verified Channel Template Mapping
+5.5 Channel Template & Frontend Mapping
 6 Channel-specific Listing IA
 6.5 Asset Intake & Audit
 7 Channel Slot / Module Planning
 7.5 Visual Production Brief
 8 Visual Production + Visual Evidence QA
-9 Interactive Demo Assembly
+9 Channel-native Demo Assembly
 10 Final QA + Claim Gate + Review Mode
 ```
 
@@ -132,6 +141,7 @@ Always read:
 
 Read conditionally:
 
+- `references/channel-native-demo.md` whenever a channel-native frontend demo is requested;
 - `core/localization.md` and `references/ja-jp-localization.md` when locale work is required;
 - one file under `profiles/channels/` for the selected primary channel;
 - `core/profiles/categories/_template.md` when creating a project-specific category overlay.
@@ -150,7 +160,14 @@ Before declaring the workflow complete, produce:
 - Channel Slot / Module Plan;
 - Visual Production Brief and Visual Evidence Matrix;
 - interactive demo or production-ready module specification;
-- Product, Claim, Channel, Japan/Locale, Visual, Mobile, Technical, and Review Mode QA results.
+- Product, Claim, Channel, Japan/Locale, Visual, Mobile, Technical, Frontend Fidelity, and Review Mode QA results.
+
+When a channel-native demo is requested, also produce:
+
+- Platform Capability Map;
+- **Channel Frontend Reference Pack** with Primary Reference, desktop/mobile evidence, ownership, and fidelity status;
+- `FRONTEND_FIDELITY_GATE` result;
+- either a verified channel-native demo or a clearly labeled **Content Review Demo** fallback.
 
 ## Quality gate
 
