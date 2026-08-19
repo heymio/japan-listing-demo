@@ -29,12 +29,14 @@ REQUIRED_MEMBERS = {
     "japan-listing-demo/references/ja-jp-localization.md",
     "japan-listing-demo/references/japan-claim-compliance.md",
     "japan-listing-demo/references/channel-native-demo.md",
+    "japan-listing-demo/references/delivery-integrity.md",
     "japan-listing-demo/references/qa.md",
     "japan-listing-demo/profiles/channels/amazon-jp.md",
     "japan-listing-demo/profiles/channels/rakuten.md",
     "japan-listing-demo/profiles/channels/yahoo-shopping.md",
     "japan-listing-demo/profiles/channels/dtc.md",
     "japan-listing-demo/profiles/channels/retailer-pdp.md",
+    "japan-listing-demo/evals/delivery-integrity.md",
 }
 
 
