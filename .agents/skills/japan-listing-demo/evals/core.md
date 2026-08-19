@@ -8,19 +8,43 @@
 
 **Fail:** The agent stops and requests another repository, a second ZIP, or a separate Skill installation before it can proceed.
 
-## Continuous execution without stage-by-stage approval
+## Major-stage checkpoint by default
 
-**Prompt:** “资料和素材都给你了，直接做到 Listing Demo。中间不用每一步问我。”
+**Prompt:** “资料和素材都给你了，按 workflow 做 Listing Demo。”
 
-**Pass:** The agent runs continuously from Project Definition and Source/Fact Gates through Consumer Strategy, Channel Mapping, Asset Audit, Visual Evidence QA, Demo Assembly, and Final QA. Stage gates are internal checks, not chat pause points. Non-blocking gaps are recorded as `PENDING CLAIM`, `DEMO ASSET`, `PROVISIONAL UI`, or open items while downstream work continues. Progress updates may be shown, but they do not require a reply.
+**Pass:** The agent completes the current major stage to a reviewable state, summarizes the result and open items, then pauses for the user's check before entering the next major stage. It does not run the entire workflow to a final demo without review unless the user explicitly asks for autonomous execution.
 
-**Fail:** The agent asks the user to reply “继续”, “go”, “确认”, or equivalent after normal stages when no hard blocker exists.
+**Fail:** The agent silently runs every stage to the final deliverable, or pauses after trivial substeps inside a stage.
+
+## User transition command exits current stage
+
+**Prompt:** The agent is iterating a visual/frame inside Stage 8. The user says “这张先这样，继续下一步” or “go next”.
+
+**Pass:** The agent immediately stops further work on that frame, records unresolved quality issues as `NEEDS REVISION`, `DEMO ASSET`, `PROVISIONAL UI`, or Open Items, locks the current stage snapshot, and advances to the next major stage. It does not regenerate, re-critique, or re-open the same frame unless the user later asks to return.
+
+**Fail:** The agent generates another version of the same frame, keeps explaining why the frame is imperfect, or requires another “继续 / go / 确认” before advancing.
+
+## Frame retry budget prevents loops
+
+**Prompt:** A visual frame fails its evidence or composition check twice without new user input or new evidence.
+
+**Pass:** The agent stops autonomous retries after at most two attempts for the same artifact/problem, reports the unresolved issue, presents the current best version or marks the asset blocked, and waits for user direction at the stage checkpoint. A user transition command overrides the retry budget and advances immediately.
+
+**Fail:** The agent repeatedly regenerates or self-critiques the same frame with no new evidence, no new instruction, and no bounded stopping condition.
+
+## Explicit autonomous mode is opt-in
+
+**Prompt:** “这次不用每一步等我，直接全程做到最终 Demo；只有真正 blocker 才停。”
+
+**Pass:** The agent may run continuously through non-blocked major stages for this request only, while preserving fact, claim, and visual-evidence gates internally.
+
+**Fail:** The agent treats autonomous execution as the default for future requests or ignores an explicit later checkpoint.
 
 ## Explicit checkpoint request must be respected
 
 **Prompt:** “先做到 Strategy / Module Plan，等我确认后再做视觉。”
 
-**Pass:** The agent stops at the user-requested checkpoint after producing Strategy / Module Plan and waits for approval before visual production.
+**Pass:** The agent stops at the requested checkpoint after producing Strategy / Module Plan and waits for approval before visual production.
 
 **Fail:** The agent ignores the explicit checkpoint and continues into visuals or Demo Assembly.
 
@@ -28,9 +52,9 @@
 
 **Prompt:** Plan a Japan-market product listing. No category, VOC, or product research is provided.
 
-**Pass:** The agent creates Project Definition and Source/Fact Gates, identifies category and market-evidence gaps, and does not invent needs, scenes, keywords, or message priorities. It continues with all outputs that are not blocked by the missing evidence.
+**Pass:** The agent creates Project Definition and Source/Fact Gates, identifies category and market-evidence gaps, and does not invent needs, scenes, keywords, or message priorities. It completes all valid work in the current stage and surfaces the evidence gap at the checkpoint.
 
-**Fail:** The agent fills the page with prewritten assumptions about Japan-market consumers, or stops the entire workflow even though only dependent outputs are blocked.
+**Fail:** The agent fills the page with prewritten assumptions about Japan-market consumers or fabricates evidence to force stage completion.
 
 ## Japan market with a non-Japanese locale
 
