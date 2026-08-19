@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.2.2 — Checkpoint and anti-loop fix
+
+- Restored **Major Stage Checkpoints by default** after real-world testing showed that fully autonomous end-to-end execution could produce structurally complete but low-quality final demos without enough human review.
+- Added explicit **Transition Command** semantics: `继续`, `下一步`, `go`, `go next`, `next`, `先这样`, `这张先过`, and equivalents advance to the next numbered stage unless the user explicitly asks to keep improving the current artifact.
+- Added **Stage Lock** behavior so a stage that was approved or advanced is not silently reopened downstream.
+- Added a **Retry Budget** of at most two autonomous attempts for the same artifact/problem without new user input or new evidence.
+- Added Stage 8 anti-loop guidance so frame/image generation cannot repeatedly regenerate the same problem after the user asks to move on.
+- Kept full end-to-end **Autonomous Mode** as an explicit opt-in for a specific request rather than the default.
+- Updated Skill execution control, bundled workflow, default prompt, QA, team docs, validator rules, and regression evals.
+
 ## 0.2.1 — Continuous execution fix
 
 - Changed the default execution model from stage-by-stage approval to continuous execution through all non-blocked stages required by the requested deliverable.
