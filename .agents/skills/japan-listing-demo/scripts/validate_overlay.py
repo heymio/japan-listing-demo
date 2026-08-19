@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Validate the public Japan overlay for the generic gtm-listing-demo core."""
+"""Validate japan-listing-demo as a standalone public Skill distribution."""
 
 from __future__ import annotations
 
@@ -11,10 +11,24 @@ SKILL_DIR = Path(__file__).resolve().parents[1]
 REPO_ROOT = SKILL_DIR.parents[2]
 SKILL_FILE = SKILL_DIR / "SKILL.md"
 
-REQUIRED_SKILL_FILES = [
+REQUIRED_CORE_FILES = [
+    SKILL_DIR / "core" / "manifest.yaml",
+    SKILL_DIR / "core" / "workflow.md",
+    SKILL_DIR / "core" / "contracts.md",
+    SKILL_DIR / "core" / "market-research.md",
+    SKILL_DIR / "core" / "localization.md",
+    SKILL_DIR / "core" / "visual-evidence.md",
+    SKILL_DIR / "core" / "qa.md",
+    SKILL_DIR / "core" / "profiles" / "categories" / "_template.md",
+    SKILL_DIR / "core" / "evals" / "core.md",
+    SKILL_DIR / "core" / "evals" / "cross-category.md",
+    SKILL_DIR / "core" / "evals" / "multichannel.md",
+]
+
+REQUIRED_JAPAN_FILES = [
     SKILL_FILE,
     SKILL_DIR / "agents" / "openai.yaml",
-    SKILL_DIR / "references" / "public-core.md",
+    SKILL_DIR / "references" / "core-snapshot.md",
     SKILL_DIR / "references" / "japan-market-evidence.md",
     SKILL_DIR / "references" / "ja-jp-localization.md",
     SKILL_DIR / "references" / "japan-claim-compliance.md",
@@ -33,6 +47,7 @@ REQUIRED_SKILL_FILES = [
 REQUIRED_REPO_FILES = [
     REPO_ROOT / "README.md",
     REPO_ROOT / "CHANGELOG.md",
+    REPO_ROOT / "VERSION",
     REPO_ROOT / "docs" / "install.md",
 ]
 
@@ -56,6 +71,13 @@ PERSONA_LEAKAGE_PATTERNS = [
     r"日本ユーザーは",
     r"日本の消費者は",
     r"日本人は.*好む",
+]
+
+RUNTIME_DEPENDENCY_PATTERNS = [
+    r"REQUIRED SUB-SKILL",
+    r"Load `?gtm-listing-demo`? public core",
+    r"install .*gtm-listing-demo.*and.*japan-listing-demo",
+    r"two skills",
 ]
 
 GUARDED_FILES = [
@@ -91,10 +113,10 @@ def parse_frontmatter(text: str) -> dict[str, str]:
 
 
 def main() -> int:
-    required = REQUIRED_SKILL_FILES + REQUIRED_REPO_FILES
+    required = REQUIRED_CORE_FILES + REQUIRED_JAPAN_FILES + REQUIRED_REPO_FILES
     missing = [str(path.relative_to(REPO_ROOT)) for path in required if not path.exists()]
     if missing:
-        fail(f"missing files: {', '.join(missing)}")
+        fail(f"missing standalone files: {', '.join(missing)}")
 
     skill_text = SKILL_FILE.read_text(encoding="utf-8")
     frontmatter = parse_frontmatter(skill_text)
@@ -102,12 +124,25 @@ def main() -> int:
         fail("frontmatter name must be japan-listing-demo")
     if not frontmatter.get("description", "").startswith("Use when "):
         fail("description must start with 'Use when '")
-    if "REQUIRED SUB-SKILL" not in skill_text or "gtm-listing-demo" not in skill_text:
-        fail("public core dependency is not declared in SKILL.md")
+    if "standalone" not in skill_text.casefold():
+        fail("SKILL.md must state that this is a standalone distribution")
+    for pattern in RUNTIME_DEPENDENCY_PATTERNS:
+        if re.search(pattern, skill_text, flags=re.I | re.S):
+            fail(f"runtime dependency wording found in SKILL.md: {pattern}")
 
-    public_core = (SKILL_DIR / "references" / "public-core.md").read_text(encoding="utf-8")
-    if "heymio/gtm-listing-demo" not in public_core or "0.2.0" not in public_core:
-        fail("public core repository or minimum version is missing")
+    manifest = (SKILL_DIR / "core" / "manifest.yaml").read_text(encoding="utf-8")
+    for value in [
+        "heymio/gtm-listing-demo",
+        "0.2.0",
+        "b882526f5a683235d30f562006cf1984a9f0d9f9",
+        "standalone",
+    ]:
+        if value.casefold() not in manifest.casefold():
+            fail(f"core manifest is missing provenance value: {value}")
+
+    version = (REPO_ROOT / "VERSION").read_text(encoding="utf-8").strip()
+    if version != "0.2.0":
+        fail(f"VERSION must be 0.2.0, found {version!r}")
 
     all_text = "\n".join(path.read_text(encoding="utf-8") for path in required)
     placeholders = re.findall(r"\b(?:TODO|TBD|FIXME)\b", all_text, flags=re.I)
@@ -140,6 +175,7 @@ def main() -> int:
         for name in ["core.md", "cross-category.md", "channels.md"]
     )
     for scenario in [
+        "Standalone Japan team installation",
         "Japan market without category evidence",
         "Japan market with a non-Japanese locale",
         "Rakuten project must not inherit Amazon modules",
@@ -148,11 +184,18 @@ def main() -> int:
         if scenario not in eval_text:
             fail(f"missing evaluation scenario: {scenario}")
 
-    print("PASS: japan-listing-demo overlay is valid")
+    readme = (REPO_ROOT / "README.md").read_text(encoding="utf-8")
+    install = (REPO_ROOT / "docs" / "install.md").read_text(encoding="utf-8")
+    for document_name, document in [("README.md", readme), ("docs/install.md", install)]:
+        if "one skill" not in document.casefold() and "一个 skill" not in document.casefold():
+            fail(f"{document_name} must explain one-Skill installation")
+
+    print("PASS: japan-listing-demo standalone distribution is valid")
     print(f"PASS: {len(required)} required files exist")
-    print("PASS: public core dependency is declared")
+    print("PASS: bundled core provenance and version are valid")
+    print("PASS: no second-Skill runtime dependency is present")
     print("PASS: category and persona leakage checks passed")
-    print("PASS: Japan evidence contract and eval coverage passed")
+    print("PASS: Japan evidence contract and standalone eval coverage passed")
     return 0
 
 
