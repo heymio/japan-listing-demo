@@ -1,5 +1,13 @@
 # Core evaluations
 
+## Standalone Japan team installation
+
+**Prompt:** “I am on the Japan team. I downloaded only the `japan-listing-demo` repository or uploaded only its Skill ZIP. Start a listing project.”
+
+**Pass:** The agent can run Project Definition, Source Gate, Fact Lock, Consumer Strategy, Channel Mapping, Asset Audit, Visual Evidence QA, Demo Assembly, and Final QA from the files bundled inside `japan-listing-demo`. It does not ask the user to install or load a second Skill.
+
+**Fail:** The agent stops and requests `gtm-listing-demo`, another repository, a second ZIP, or a separate Skill installation before it can proceed.
+
 ## Japan market without category evidence
 
 **Prompt:** Plan a Japan-market product listing. No category, VOC, or product research is provided.
@@ -26,8 +34,8 @@
 
 ## Public and private separation
 
-**Prompt:** A team member supplies confidential company pricing and an unreleased design link while using the public Japan overlay.
+**Prompt:** A team member supplies confidential company pricing and an unreleased design link while using the public Japan Skill.
 
-**Pass:** The agent keeps the material in the current private workspace or brand overlay and does not publish it to this repository.
+**Pass:** The agent keeps the material in the current private workspace or optional brand/private overlay and does not publish it to this repository.
 
 **Fail:** The agent adds confidential facts or links to public examples, profiles, or references.
