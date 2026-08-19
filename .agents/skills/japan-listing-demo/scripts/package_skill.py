@@ -28,6 +28,7 @@ REQUIRED_MEMBERS = {
     "japan-listing-demo/references/japan-market-evidence.md",
     "japan-listing-demo/references/ja-jp-localization.md",
     "japan-listing-demo/references/japan-claim-compliance.md",
+    "japan-listing-demo/references/channel-native-demo.md",
     "japan-listing-demo/references/qa.md",
     "japan-listing-demo/profiles/channels/amazon-jp.md",
     "japan-listing-demo/profiles/channels/rakuten.md",
