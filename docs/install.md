@@ -10,20 +10,62 @@ japan-listing-demo
 
 No second repository or Skill ZIP is required. The generic workflow is bundled inside the Japan distribution.
 
-## Default execution behavior
+## Default execution behavior: Major Stage Checkpoints
 
-The Skill uses **continuous execution by default**.
+The Skill uses **checkpointed execution by default**.
 
-After the user provides the available inputs and requests an end deliverable, the agent should continue through all non-blocked workflow stages without requiring a reply such as “继续”, “go”, or “确认” between normal stages.
+For each numbered workflow stage:
 
-Stage gates are internal validation checks. They do not create mandatory approval pauses.
+1. complete the stage to a reviewable state;
+2. show the output, assumptions, and open items;
+3. stop at the Major Stage Checkpoint;
+4. wait for the user's review before moving to the next numbered stage.
 
-The workflow pauses only when:
+The agent should not pause after every small search, tool call, table, frame, or image inside a stage.
 
-1. the user explicitly requests a checkpoint, for example `先做到 Strategy / Module Plan`; or
-2. a Hard Blocker means the next output would otherwise be materially invalid or misleading.
+## Transition Commands: continue means move on
 
-Non-blocking gaps remain visible as `PENDING CLAIM`, `DEMO ASSET`, `PROVISIONAL UI`, `UNKNOWN`, or Open Items while supported downstream work continues.
+At a checkpoint or while iterating a problematic frame, the following normally mean **move to the next numbered stage**:
+
+```text
+继续
+下一步
+go
+go next
+next
+先这样
+这张先过
+```
+
+Unless the user explicitly says `继续优化这张` or equivalent, these are Transition Commands.
+
+After a Transition Command, the agent must:
+
+- stop regenerating or re-critiquing the current frame/subtask;
+- preserve the best current version;
+- record remaining issues as `NEEDS REVISION`, `PENDING CLAIM`, `DEMO ASSET`, `PROVISIONAL UI`, `UNKNOWN`, or Open Items;
+- lock the current stage snapshot;
+- enter the next numbered stage immediately.
+
+It must not require another `继续` before advancing.
+
+## Retry Budget
+
+For the same artifact and the same identified issue, the agent may make at most **two autonomous attempts** without new user evidence or a materially new instruction.
+
+After two unsuccessful attempts, it stops the loop and waits at the current Major Stage Checkpoint with the current best result or blocked status.
+
+A Transition Command overrides this Retry Budget and moves on immediately.
+
+## Autonomous Mode is optional
+
+If a user explicitly wants full automatic execution for one task, they can say:
+
+```text
+这次不用每一步等我，直接做到最终 Demo；只有真正 blocker 才停。
+```
+
+Autonomous Mode applies only to that request. It is not the default.
 
 ## Codex App / CLI / IDE
 
@@ -42,8 +84,9 @@ Locale: ja-JP
 Channel: select and verify the current Japan channel profile
 Category: determine from current project evidence
 Keep unsupported claims in PENDING CLAIM.
-Continue automatically through non-blocked stages until the requested deliverable is complete.
-Do not stop between stages for routine approval unless I explicitly request a checkpoint or a Hard Blocker exists.
+按默认 Major Stage Checkpoint 执行；每个 numbered stage 做完后让我 review。
+如果我说“继续 / 下一步 / go next”，立即推进到下一 stage，不要继续生成当前 frame。
+同一 frame / 同一问题最多自动重试两次。
 ```
 
 If consumer copy uses another locale, specify it explicitly. Japan market does not automatically force Japanese copy.
@@ -79,16 +122,6 @@ heymio/japan-listing-demo/.agents/skills/japan-listing-demo/SKILL.md
 
 Then request the bundled core references, Japan references, and one selected channel profile needed by the current project. No separate public-core repository read is required for normal use.
 
-## Explicit checkpoints
-
-The continuous default does not override user control. If the user says, for example:
-
-```text
-先做到 Strategy / Module Plan，等我确认后再做视觉。
-```
-
-then the workflow must stop at that checkpoint and wait.
-
 ## Optional private company overlay
 
 Private overlays may add:
@@ -120,7 +153,7 @@ To update it:
 
 1. review the upstream core changelog;
 2. update the bundled files in a feature branch;
-3. preserve or deliberately revise Japan distribution patches such as continuous-execution behavior;
+3. preserve or deliberately revise Japan distribution patches such as checkpoint/transition behavior;
 4. rerun core, Japan, channel, and cross-category evals;
 5. run validator and packager;
 6. release only after CI succeeds.

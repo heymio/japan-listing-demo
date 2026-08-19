@@ -17,22 +17,43 @@ Build one evidence-governed Product Truth and Product Strategy, then adapt them 
 
 ## Execution control
 
-**Continuous execution by default.** When the user asks for an end deliverable such as a strategy, module plan, visual plan, or Listing Demo, continue automatically through all non-blocked stages needed to reach that deliverable.
+**Checkpointed execution by default.** Complete one numbered workflow stage to a reviewable state, present the stage output and open items, then stop at a **Major Stage Checkpoint** for the user's review before entering the next numbered stage.
 
-A **Gate is not a pause point**. Source Gate, Fact Gate, Strategy review, Channel Capability checks, Visual Evidence QA, and other gates are internal validation checkpoints. Report their status when useful, but do not stop and wait for a reply after a normal stage.
+A checkpoint applies to major workflow stages, not every trivial subtask. Within the current stage, finish the planned analysis or reviewable batch without asking permission after every search, table, frame, or tool call.
 
-Do not ask the user to reply “继续”, “go”, “确认”, “可以继续”, or an equivalent approval phrase merely to enter the next stage.
+### Transition Command
 
-Progress updates are non-blocking. The agent may state what has been completed and what comes next, then continue automatically in the same workflow unless a pause condition applies.
+Treat an explicit user command such as `继续`, `下一步`, `go`, `go next`, `next`, `先这样`, `这张先过`, or equivalent wording as a **Transition Command** unless the user explicitly says to keep improving the current artifact.
 
-Non-blocking gaps do not stop the project. Record them as `PENDING CLAIM`, `DEMO ASSET`, `PROVISIONAL UI`, `UNKNOWN`, or Open Items and continue every downstream output that remains valid.
+When a Transition Command is received:
 
-Pause only when one of these applies:
+1. stop further retries, regeneration, self-critique, or polishing of the current stage immediately;
+2. preserve the best current result;
+3. mark unresolved quality or evidence issues as `NEEDS REVISION`, `PENDING CLAIM`, `DEMO ASSET`, `PROVISIONAL UI`, `UNKNOWN`, or Open Items as appropriate;
+4. lock the current stage snapshot for downstream use;
+5. enter the next numbered workflow stage;
+6. do not reopen the prior stage unless the user explicitly asks to return or new authoritative evidence invalidates the locked result.
 
-1. **Explicit checkpoint:** the user explicitly asks to stop at a stage, review point, or deliverable before continuing.
-2. **Hard Blocker:** continuing would make the next output materially invalid or misleading because a critical decision cannot be resolved from available evidence. Examples include conflicting authoritative facts required by the next output, an unresolved channel/offer/page-target choice that changes the page architecture, or missing real product/UI evidence where a substitute would falsely represent the product.
+A Transition Command has higher priority than the stage's normal completeness preference. Never fabricate missing evidence merely to make a stage look complete.
 
-A normal review opportunity is not a Hard Blocker. If the user has not requested a checkpoint, produce a reviewable snapshot and continue automatically.
+### Retry Budget and anti-loop rule
+
+For the same artifact and the same identified problem, the agent may make **at most two autonomous attempts** without new user input or new evidence. After the Retry Budget is exhausted:
+
+- stop regenerating or re-critiquing the same artifact;
+- show the current best result or mark the artifact blocked;
+- explain the unresolved issue briefly;
+- wait at the current Major Stage Checkpoint for user direction.
+
+If the user gives a Transition Command at any time, the Retry Budget is irrelevant: advance immediately. A new instruction that materially changes the goal, evidence, or creative direction may start a new attempt budget.
+
+### Stage Lock
+
+After the user approves a stage or sends a Transition Command, treat that stage as locked. Downstream work may reference its open items, but must not silently re-run or redesign the locked stage. Reopen it only on explicit user request or when new authoritative evidence creates a material conflict.
+
+### Autonomous Mode is opt-in
+
+Full end-to-end autonomous execution is **not the default**. Use **Autonomous Mode** only when the user explicitly asks to skip stage checkpoints for the current request, for example: “这次不用每一步等我，直接做到最终 Demo”. Autonomous Mode applies only to that request and does not change the default behavior of future work.
 
 ## Configuration
 
@@ -69,7 +90,7 @@ output: project-defined
 12. Every module must pass the Visual Evidence Matrix: `message → visual subject → evidence object → asset`.
 13. Preserve Page Boundary Matrix, Review Mode, Consumer Mode, Mobile QA, and asset-path QA.
 14. Keep confidential brand, product, price, design, approval, and unreleased information outside this public repository.
-15. Apply the Execution control rules above: normal gates do not require user approval, while explicit user checkpoints must be respected.
+15. Apply the Execution control rules above: checkpoint after each numbered stage by default; obey Transition Commands immediately; enforce the Retry Budget on repeated artifact problems.
 
 ## Execution order
 
@@ -93,7 +114,7 @@ Read the bundled core and only the Japan files needed for the project:
 10 Final QA + Claim Gate + Review Mode
 ```
 
-Execute this sequence continuously until the requested deliverable is reached, except for an explicit checkpoint or Hard Blocker.
+Default behavior: execute the current numbered stage, stop at its Major Stage Checkpoint, and wait for review. Enter the next numbered stage only after approval or a Transition Command. Autonomous Mode may skip these pauses only when explicitly requested for the current task.
 
 ## Files to read
 

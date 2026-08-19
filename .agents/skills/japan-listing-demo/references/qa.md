@@ -10,13 +10,15 @@
 
 ## Execution Flow QA
 
-- **Continuous execution by default** is active when the user asks for an end deliverable.
-- A normal Gate is not a pause point; Source Gate, Fact Gate, Strategy review, Channel Capability checks, Visual Evidence QA, and similar checks do not require a user reply before the next valid stage.
-- Progress updates are informational and do not wait for “继续”, “go”, “确认”, “可以继续”, or equivalent approval.
-- Non-blocking gaps are tracked as `PENDING CLAIM`, `DEMO ASSET`, `PROVISIONAL UI`, `UNKNOWN`, or Open Items while supported downstream work continues.
-- The workflow pauses for a Hard Blocker only when continuing would materially invalidate or misrepresent the next output.
-- An explicit user checkpoint is always respected. If the user asks to stop at Strategy / Module Plan, visual production does not begin until approval.
-- Batch visual work does not pause after every asset unless the user explicitly requests per-asset review.
+- **Checkpointed execution by default** is active.
+- Every numbered workflow stage ends at a **Major Stage Checkpoint** unless the user explicitly opts into Autonomous Mode for the current request.
+- The agent completes a useful batch inside the current stage and does not pause after every minor search, tool call, frame, or image.
+- A user Transition Command such as `继续`, `下一步`, `go`, `go next`, `next`, `先这样`, or `这张先过` stops further current-stage iteration and advances immediately unless the user explicitly asks to keep improving the current artifact.
+- After a Transition Command, the prior stage is locked. Unresolved items are recorded as `NEEDS REVISION`, `PENDING CLAIM`, `DEMO ASSET`, `PROVISIONAL UI`, `UNKNOWN`, or Open Items instead of being silently regenerated.
+- The same artifact/problem has a Retry Budget of at most two autonomous attempts without new user input or new evidence.
+- After the Retry Budget is exhausted, the workflow stops the retry loop and waits at the current checkpoint with the best available result or blocked status.
+- A Transition Command overrides the Retry Budget; the agent must not require a second `继续` before entering the next stage.
+- Final QA may flag earlier locked-stage issues but does not silently reopen them.
 
 ## Configuration QA
 
@@ -68,6 +70,7 @@ When `locale.id: ja-JP`:
 - Product, packaging, UI, controls, interfaces, and functional proof use approved real assets or explicit provisional labels.
 - Environment, casting, props, and interactions are project-specific and approved.
 - Text remains readable and correctly localized on mobile.
+- Visual-quality failure does not trigger an unbounded regeneration loop; retry and transition rules are enforced.
 
 ## Technical and review-mode QA
 

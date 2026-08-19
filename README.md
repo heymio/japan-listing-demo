@@ -18,18 +18,41 @@ Invoke:
 $japan-listing-demo
 ```
 
-## Continuous execution by default
+## Checkpointed execution by default
 
-The Skill is designed to run continuously from the available inputs to the deliverable requested by the user.
+The Skill uses **Major Stage Checkpoints** by default.
 
-Normal workflow gates are internal validation checkpoints, not chat pause points. The agent may report progress, but it should continue automatically without asking for “继续”, “go”, or “确认” after every stage.
+It completes one numbered workflow stage, presents the reviewable result and open items, and waits for the user's check before entering the next numbered stage. It does **not** run the entire workflow to a final Demo unless the user explicitly opts into Autonomous Mode.
 
-The workflow pauses only when:
+Within the current stage, the agent should finish a useful batch rather than pausing after every minor search, tool call, frame, or image.
 
-- the user explicitly requests a checkpoint, such as “先做到 Strategy / Module Plan”; or
-- a Hard Blocker makes the next output materially invalid or misleading.
+### Moving to the next stage
 
-Non-blocking gaps remain visible as `PENDING CLAIM`, `DEMO ASSET`, `PROVISIONAL UI`, `UNKNOWN`, or Open Items while valid downstream work continues.
+When the user says `继续`, `下一步`, `go`, `go next`, `next`, `先这样`, `这张先过`, or equivalent wording, that is a **Transition Command** unless the user explicitly asks to keep improving the current artifact.
+
+A Transition Command means:
+
+- stop retrying or regenerating the current frame/subtask;
+- keep the best current version;
+- mark unresolved items as `NEEDS REVISION`, `PENDING CLAIM`, `DEMO ASSET`, `PROVISIONAL UI`, `UNKNOWN`, or Open Items;
+- lock the current stage snapshot;
+- move to the next numbered stage immediately.
+
+The agent must not require a second “继续” after the user has already asked to move on.
+
+### Anti-loop Retry Budget
+
+For the same artifact and the same identified problem, the agent gets at most **two autonomous attempts** without new user input or new evidence. After that it must stop regenerating, show the current best result or blocked status, and wait at the stage checkpoint.
+
+If the user says `下一步` or equivalent, the Retry Budget is bypassed and the workflow advances immediately.
+
+### Autonomous Mode
+
+End-to-end continuous execution is opt-in only for the current request. Example:
+
+```text
+这次不用每一步等我，直接做到最终 Demo；只有真正 blocker 才停。
+```
 
 ## Included capabilities
 
@@ -91,11 +114,11 @@ Prompt:
 
 ```text
 Use the standalone japan-listing-demo Skill.
-Confirm Project Definition, Source Gate, Fact Lock, selected Japan channel profile, and Market Evidence Registry first.
+按默认 checkpoint workflow 执行：每个 numbered stage 做完后给我 review，再进入下一步。
+如果我说“继续 / 下一步 / go next”，立即锁定当前 stage 并推进，不要继续重做当前 frame。
+同一个 frame / 同一个问题最多自动重试两次。
 Do not infer category needs or Japan consumer preferences without current project evidence.
 Keep unsupported claims in PENDING CLAIM.
-Continue automatically through all non-blocked stages until the requested deliverable is complete.
-Do not stop for routine stage approval unless I explicitly request a checkpoint or a Hard Blocker exists.
 ```
 
 ## Skill layout
@@ -146,7 +169,7 @@ See [`docs/install.md`](docs/install.md).
 
 ## Version
 
-`0.2.1`
+`0.2.2`
 
 ## License
 
