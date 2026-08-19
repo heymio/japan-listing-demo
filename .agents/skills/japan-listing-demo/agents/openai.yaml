@@ -1,0 +1,8 @@
+interface:
+  display_name: "Japan Listing Demo"
+  short_description: "Japan-market overlay for the multi-market GTM listing workflow"
+  brand_color: "#BC002D"
+  default_prompt: "Use the public gtm-listing-demo core together with japan-listing-demo. Keep category conclusions evidence-led, separate market from locale and channel, verify current Japan channel capabilities, and keep unsupported claims in PENDING CLAIM."
+
+policy:
+  allow_implicit_invocation: true
