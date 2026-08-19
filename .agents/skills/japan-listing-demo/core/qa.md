@@ -21,6 +21,24 @@
 - Module counts, fields, image rules, and interactions match current channel documentation.
 - Platform-generated areas are not designed as brand-controlled content.
 - Comparisons match real offer or product relationships.
+- Platform Capability evidence is distinct from Frontend Visual evidence when a channel-native demo is requested.
+
+## Frontend Fidelity QA
+
+For any deliverable intended to resemble a real consumer-facing channel page:
+
+- a current Primary Reference is identified;
+- the user was asked whether they had a preferred reference before native demo assembly;
+- current consumer-facing visual evidence supports the material shell and section order;
+- desktop structure is verified;
+- mobile/app-web structure is verified or explicitly scoped out;
+- brand-controlled and platform/retailer-controlled regions are separated;
+- project content maps only to verified regions;
+- Review Mode overlays do not change the Consumer Mode shell;
+- internal IA/module/status labels are absent from Consumer Mode page chrome;
+- `FRONTEND_FIDELITY_GATE` passes before the result is named a channel-native PDP/demo.
+
+If fidelity evidence is insufficient, use a clearly named `Content Review Demo` instead of inventing a native shell.
 
 ## Market and locale QA
 
@@ -42,7 +60,7 @@ For every module or tab:
 
 ## Mobile and Technical QA
 
-- Gallery, tabs, carousel, hotspot, storyboard or video, comparison, Q&A, variants, and review mode work on desktop and mobile.
+- Gallery, tabs, carousel, hotspot, storyboard or video, comparison, Q&A, variants, and review mode work on desktop and mobile when those interactions belong to the verified target channel.
 - Asset references resolve.
 - Standalone HTML has no unintended local dependencies.
 - ZIP archives preserve relative paths.
@@ -52,7 +70,7 @@ For every module or tab:
 
 ## Review Mode QA
 
-Review mode shows module type, status, open claim, provisional asset, and internal notes.
+Review mode shows module type, status, open claim, provisional asset, and internal notes without changing the underlying verified Consumer Mode geometry.
 
 Consumer mode hides internal terms, placeholder commercial data, module labels, claim gates, and review-only explanations while remaining semantically complete.
 
