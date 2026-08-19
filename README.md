@@ -18,6 +18,19 @@ Invoke:
 $japan-listing-demo
 ```
 
+## Continuous execution by default
+
+The Skill is designed to run continuously from the available inputs to the deliverable requested by the user.
+
+Normal workflow gates are internal validation checkpoints, not chat pause points. The agent may report progress, but it should continue automatically without asking for “继续”, “go”, or “确认” after every stage.
+
+The workflow pauses only when:
+
+- the user explicitly requests a checkpoint, such as “先做到 Strategy / Module Plan”; or
+- a Hard Blocker makes the next output materially invalid or misleading.
+
+Non-blocking gaps remain visible as `PENDING CLAIM`, `DEMO ASSET`, `PROVISIONAL UI`, `UNKNOWN`, or Open Items while valid downstream work continues.
+
 ## Included capabilities
 
 - Project Definition, Source Gate, and Fact Lock
@@ -26,7 +39,7 @@ $japan-listing-demo
 - Channel-specific slot and module planning
 - Asset Manifest and Visual Evidence Matrix
 - Visual-production briefs and interactive review demos
-- Claim, Japan-market, locale, channel, mobile, technical, and Review Mode QA
+- Claim, Japan-market, locale, channel, mobile, technical, Execution Flow, and Review Mode QA
 - `ja-JP` localization guidance
 - Japan channel profiles for:
   - Amazon.co.jp
@@ -81,6 +94,8 @@ Use the standalone japan-listing-demo Skill.
 Confirm Project Definition, Source Gate, Fact Lock, selected Japan channel profile, and Market Evidence Registry first.
 Do not infer category needs or Japan consumer preferences without current project evidence.
 Keep unsupported claims in PENDING CLAIM.
+Continue automatically through all non-blocked stages until the requested deliverable is complete.
+Do not stop for routine stage approval unless I explicitly request a checkpoint or a Hard Blocker exists.
 ```
 
 ## Skill layout
@@ -125,13 +140,13 @@ A company may add a separate private brand overlay for confidential product fact
 
 ## Maintenance
 
-The bundled core snapshot is sourced from `heymio/gtm-listing-demo` v0.2.0, commit `b882526f5a683235d30f562006cf1984a9f0d9f9`. This provenance is for maintainers only and creates no runtime dependency.
+The bundled core snapshot is sourced from `heymio/gtm-listing-demo` v0.2.0, commit `b882526f5a683235d30f562006cf1984a9f0d9f9`, with distribution-level execution-control patches documented in the Japan Skill. This provenance is for maintainers only and creates no runtime dependency.
 
 See [`docs/install.md`](docs/install.md).
 
 ## Version
 
-`0.2.0`
+`0.2.1`
 
 ## License
 

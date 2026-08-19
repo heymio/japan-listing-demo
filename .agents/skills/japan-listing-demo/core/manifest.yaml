@@ -1,4 +1,5 @@
 distribution: standalone
+distribution_version: 0.2.1
 upstream:
   repository: heymio/gtm-listing-demo
   version: 0.2.0
@@ -12,9 +13,17 @@ snapshot_scope:
   - qa
   - category-template
   - core-evals
+distribution_patches:
+  - id: continuous-execution-v0.2.1
+    purpose: treat normal workflow gates as internal checks and continue automatically to the user-requested deliverable unless an explicit checkpoint or Hard Blocker applies
+    files:
+      - core/workflow.md
+      - SKILL.md
+      - agents/openai.yaml
 update_policy:
   - review upstream changelog
   - update snapshot in a feature branch
+  - preserve or deliberately revise documented distribution patches
   - run standalone, Japan, channel, and cross-category evals
   - release only after CI passes
 runtime_dependency: none

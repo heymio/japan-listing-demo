@@ -2,7 +2,7 @@ interface:
   display_name: "Japan Listing Demo"
   short_description: "Standalone Japan-market listing strategy and visual-demo workflow"
   brand_color: "#BC002D"
-  default_prompt: "Use the standalone japan-listing-demo Skill. Confirm market, locale, channel, category, offer, and page targets separately; build Source and Fact Gates before strategy; verify current Japan channel capabilities; require direct visual evidence; and keep unsupported claims in PENDING CLAIM."
+  default_prompt: "Use the standalone japan-listing-demo Skill. Confirm market, locale, channel, category, offer, and page targets separately; build Source and Fact Gates before strategy; verify current Japan channel capabilities; require direct visual evidence; keep unsupported claims in PENDING CLAIM; continue automatically through non-blocked stages to the requested deliverable; do not stop between stages for routine approval unless the user explicitly requests a checkpoint or a Hard Blocker exists."
 
 policy:
   allow_implicit_invocation: true

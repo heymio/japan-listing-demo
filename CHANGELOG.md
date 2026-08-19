@@ -1,5 +1,17 @@
 # Changelog
 
+## 0.2.1 — Continuous execution fix
+
+- Changed the default execution model from stage-by-stage approval to continuous execution through all non-blocked stages required by the requested deliverable.
+- Defined workflow gates as internal validation checkpoints rather than mandatory chat pause points.
+- Added explicit Hard Blocker and user-requested checkpoint rules.
+- Added non-blocking progress-update behavior and prohibited routine “继续 / go / 确认” prompts between normal stages.
+- Replaced the Stage 4 `Human Review Gate` with a `Reviewable Strategy Snapshot` that remains reviewable without forcing a pause.
+- Added batch visual-production guidance so the workflow does not stop after every asset unless per-asset review is explicitly requested.
+- Added regression evals for continuous execution and explicit checkpoints.
+- Added Execution Flow QA and validator checks for the new behavior.
+- Updated README, installation guidance, default prompt, and version metadata.
+
 ## 0.2.0 — Standalone distribution
 
 - Bundled a version-locked generic workflow snapshot inside the Japan Skill.
