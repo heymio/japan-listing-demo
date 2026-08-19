@@ -1,0 +1,22 @@
+{
+  "schema_version": "0.1",
+  "verified_at": "2026-08-19",
+  "channels": {
+    "amazon-jp": {
+      "enhanced_content": {
+        "basic": {
+          "max_modules": 5,
+          "source_type": "amazon_seller_central_help",
+          "source_reference": "G202102930",
+          "notes": "Current known Basic A+ detail-page module budget. Reverify before changing this packaged policy."
+        },
+        "premium": {
+          "max_modules": 7,
+          "source_type": "amazon_seller_central_help",
+          "source_reference": "G202102930",
+          "notes": "Current known Premium A+ detail-page module budget. Brand Story is a separate detail-page section and is not counted as one of these Premium A+ modules."
+        }
+      }
+    }
+  }
+}
