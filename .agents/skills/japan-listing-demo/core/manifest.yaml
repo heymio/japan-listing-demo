@@ -1,5 +1,5 @@
 distribution: standalone
-distribution_version: 0.2.4
+distribution_version: 0.2.5
 upstream:
   repository: heymio/gtm-listing-demo
   version: 0.2.0
@@ -46,10 +46,27 @@ distribution_patches:
       - references/qa.md
       - profiles/channels/amazon-jp.md
       - evals/delivery-integrity.md
+  - id: executable-gates-v0.2.5
+    purpose: prevent self-certified PASS by computing module-budget, approval-provenance, module-origin, transform-authorization, asset-slot, and parity gates from a machine-readable Project State Manifest
+    files:
+      - core/workflow.md
+      - core/contracts.md
+      - core/manifest.yaml
+      - SKILL.md
+      - agents/openai.yaml
+      - references/executable-gates.md
+      - profiles/channels/amazon-jp.md
+      - data/channel-policy-limits.json
+      - templates/project-state.example.json
+      - scripts/validate_project_state.py
+      - scripts/selftest_project_state_validator.py
+      - scripts/validate_overlay.py
+      - scripts/package_skill.py
+      - evals/executable-gates.md
 update_policy:
   - review upstream changelog
   - update snapshot in a feature branch
   - preserve or deliberately revise documented distribution patches
-  - run standalone, Japan, channel, cross-category, frontend-fidelity, and delivery-integrity evals
+  - run standalone, Japan, channel, cross-category, frontend-fidelity, delivery-integrity, and executable-gate evals
   - release only after CI passes
 runtime_dependency: none

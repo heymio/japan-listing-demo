@@ -4,13 +4,13 @@
 
 ## One repository, one ZIP, one Skill
 
-Japan-team users need only this repository or its packaged ZIP:
+Japan-team users install and invoke only:
 
 ```text
 japan-listing-demo
 ```
 
-They do not install a separate generic core. The validated core workflow is bundled under `.agents/skills/japan-listing-demo/core/`.
+No second generic-core Skill is required.
 
 Invoke:
 
@@ -20,11 +20,7 @@ $japan-listing-demo
 
 ## Checkpointed execution by default
 
-The Skill uses **Major Stage Checkpoints** by default.
-
-It completes one numbered workflow stage, emits a **Stage Completion Manifest**, presents the reviewable result and open items, and waits for the user's check before entering the next numbered stage.
-
-The Stage Completion Manifest distinguishes:
+The Skill uses **Major Stage Checkpoints** by default. Each numbered stage ends with a truthful **Stage Completion Manifest**:
 
 ```text
 planned
@@ -37,218 +33,129 @@ open items
 STAGE_STATUS = COMPLETE / PARTIAL / BLOCKED
 ```
 
-A completed subset does not make the whole stage complete.
+A completed subset does not make a stage complete.
 
-### Moving to the next stage
+When the user says `继续 / 下一步 / go / next / 先这样`, the Skill stops current retries, locks the real stage status, and advances. The same artifact/problem has at most two autonomous retries without new evidence or direction.
 
-When the user says `继续`, `下一步`, `go`, `go next`, `next`, `先这样`, `这张先过`, or equivalent wording, that is a **Transition Command** unless the user explicitly asks to keep improving the current artifact.
+## Delivery integrity
 
-A Transition Command means:
+The Skill prevents common downstream drift through:
 
-- stop retrying or regenerating the current frame/subtask;
-- keep the best current version;
-- record unresolved items;
-- lock the real Stage Completion Manifest status;
-- move to the next numbered stage immediately.
+- **Asset Readiness Preflight**;
+- stable approved Asset IDs;
+- **Asset-to-Slot Contract**;
+- separate `CONTENT_COVERAGE` and `MODULE_FIT_GATE`;
+- interaction planning before production;
+- `DIFFERENTIATOR_PROOF_GATE`;
+- Change Impact Map for targeted `REOPEN`;
+- planned-to-implemented parity checks.
 
-A `PARTIAL` stage stays `PARTIAL`; advancing does not turn it into `COMPLETE`.
+Approved assets must not be silently replaced by assets from another slot class. A material crop, recomposition, background change, or role change creates a derivative with provenance.
 
-### Anti-loop Retry Budget
+## Executable gates: no self-certified PASS
 
-For the same artifact and same identified problem, the agent gets at most **two autonomous attempts** without new user input or new evidence.
+Critical structural gates use a machine-readable **Project State Manifest** and an **external validator**.
 
-## Delivery integrity: don't leak, substitute, or fake completion
-
-The Skill reads `references/delivery-integrity.md` and enforces the following controls.
-
-### Asset Readiness Preflight
-
-Stage 1 records which asset classes later work will require, which are already received, which are missing, and when they become blocking. Critical product/UI/channel evidence should not be discovered missing only at visual or Demo Assembly stage.
-
-### Approved Asset Registry
-
-Once an asset is approved, it receives a stable **Asset ID** with canonical source, dimensions/aspect, page/offer scope, allowed slots, approval status, derivative provenance, and transform rule.
-
-Approved assets are stable downstream inputs. A material crop, recomposition, text/background change, or role change creates a derivative with a new Asset ID and approval status.
-
-### Asset-to-Slot Contract
-
-Every final slot/module binds to a required Asset ID, page/offer, dimensions/aspect, crop/transform rule, interaction, and ownership.
-
-Run:
+Start from:
 
 ```text
+.agents/skills/japan-listing-demo/templates/project-state.example.json
+```
+
+Validate with:
+
+```bash
+python .agents/skills/japan-listing-demo/scripts/validate_project_state.py path/to/project-state.json --json
+```
+
+The external validator computes:
+
+```text
+CHANNEL_MODULE_BUDGET_GATE
+APPROVAL_PROVENANCE_GATE
+MODULE_ORIGIN_GATE
+TRANSFORM_AUTH_GATE
 ASSET_SLOT_GATE
-```
-
-before final adaptation and Demo Assembly.
-
-The workflow must not silently substitute a Gallery asset with an enhanced-content asset, or vice versa, merely because the crop appears to fit.
-
-### Coverage and native module fit are separate
-
-Run both:
-
-```text
-CONTENT_COVERAGE
-MODULE_FIT_GATE
-```
-
-A plan can cover all required topics and still have the wrong native module architecture.
-
-The workflow must not take independent static boards and mechanically convert them into carousel/slides during Demo Assembly. Carousel, hotspot, video, comparison, accordion, or other interaction logic is planned in Stage 7 and Stage 7.5 before production.
-
-### P0 differentiator visual proof
-
-Run:
-
-```text
-DIFFERENTIATOR_PROOF_GATE
-```
-
-Visualizable P0 purchase reasons should have direct visual proof, or an explicitly approved alternative proof strategy. Generic attractive lifestyle imagery is not enough by itself.
-
-### Planned-to-Implemented parity
-
-Before a demo is called complete, run:
-
-```text
 DELIVERY_PARITY_GATE
 ```
 
-It compares the locked plan against actual implementation for slot/module, interaction, source Asset IDs, dimensions/aspect, message coverage, page/offer ownership, and channel region.
+Agent-authored fields such as `declared_gate_results` are ignored.
 
-A working HTML file does not prove parity.
-
-### Change control
-
-If newer authoritative evidence invalidates an earlier locked assumption, build a **Change Impact Map** and classify downstream work:
+If validator execution is unavailable, applicable executable gates remain:
 
 ```text
-UNAFFECTED
-REVIEW
-INVALIDATED
-REOPEN
+UNVERIFIED
 ```
 
-Preserve unaffected work and reopen only impacted stages/items.
+The agent must not manually self-certify PASS.
+
+### Locked module plans
+
+Stage 7 creates one locked module plan with stable module IDs, native module type, interaction, Asset IDs, approval stage, and canonical `plan_hash`.
+
+Stage 9 must consume the exact plan hash. It cannot add a module, change static to carousel, remove a planned module, or retrofit interaction and then rewrite the plan retroactively.
+
+### Approval provenance
+
+A `LOCKED` asset requires either:
+
+- a matching user approval event bound to the current asset hash; or
+- exact SHA-256 recovery of a previously locked asset.
+
+Filename similarity or visual resemblance is not exact recovery. A found file may remain `RECOVERED_UNAPPROVED` until valid provenance exists.
+
+A deterministic crop is still a transform. Material derivatives require transform authorization and `TRANSFORM_AUTH_GATE`.
+
+## Amazon.co.jp executable module limit
+
+The packaged channel-policy file contains the current machine-enforced A+ ceilings used by this Skill version:
+
+```text
+Basic A+   5 modules
+Premium A+ 7 modules
+```
+
+Brand Story is handled separately from the Premium A+ module budget.
+
+Before an Amazon A+ module plan is locked, `CHANNEL_MODULE_BUDGET_GATE` compares the packaged ceiling, the current project/account limit, and the planned module count.
+
+Content-topic count is not module count. Multiple messages must be packed into the verified native module budget rather than creating one module per topic.
 
 ## Channel-native demos require frontend references
 
-A channel capability map is not enough to make a native-looking demo. Before generating an Amazon.co.jp, Rakuten, Yahoo! Shopping, retailer, or DTC **channel-native demo**, the workflow must establish the current **consumer-facing frontend**.
+A Platform Capability Map is not enough to generate a native-looking page.
 
-At Stage 5.5 the agent must:
+At Stage 5.5, the Skill must:
 
-1. verify **Platform Capability**;
-2. ask whether the user has a preferred current **Reference URL**, ASIN, retailer/store page, approved design-system reference, or screenshot set;
-3. if supplied, use it as the candidate **Primary Reference**;
-4. if none is supplied, research 1–3 current comparable consumer-facing pages and recommend one Primary Reference;
-5. visually inspect/capture material desktop/mobile shell, section order, interactions, and ownership;
+1. verify current platform/account capability;
+2. ask whether the user has a preferred current **Reference URL**, ASIN, retailer/store page, design-system reference, screenshot set, or PDF;
+3. use a valid user reference as candidate Primary Reference;
+4. otherwise research 1–3 current consumer-facing references;
+5. visually inspect material desktop/mobile shell, section order, interactions, and ownership;
 6. produce a **Channel Frontend Reference Pack**.
 
 **Official rules do not substitute for frontend visual evidence.**
 
-Immediately before Stage 9, the Skill runs:
-
-```text
-FRONTEND_FIDELITY_GATE
-```
-
-If it fails, the allowed fallback is:
+Immediately before Stage 9, run `FRONTEND_FIDELITY_GATE`. If it fails, the fallback must be named:
 
 ```text
 Content Review Demo
 ```
 
-The Skill must not invent generic marketplace chrome or custom branded navigation and label it a channel-native PDP/demo.
+The Skill must not invent marketplace chrome and call it a channel-native PDP/demo.
 
-## Included capabilities
-
-- Project Definition, Source Gate, and Fact Lock
-- Asset Readiness Preflight
-- Consumer Strategy and Market Evidence Registry
-- Page Boundary Matrix and Message Architecture
-- Platform Capability Map
-- Channel Frontend Reference Pack and Frontend Fidelity Gate
-- Approved Asset Registry and Asset-to-Slot Contract
-- `CONTENT_COVERAGE` and `MODULE_FIT_GATE`
-- Visual Evidence Matrix and `DIFFERENTIATOR_PROOF_GATE`
-- `DELIVERY_PARITY_GATE`
-- Stage Completion Manifest and Change Impact Map
-- channel-specific slot/module planning and interactive review demos
-- Claim, Japan-market, locale, channel, frontend-fidelity, mobile, technical, delivery-integrity, Execution Flow, and Review Mode QA
-- `ja-JP` localization guidance
-- Japan channel profiles for Amazon.co.jp, Rakuten, Yahoo! Shopping, DTC, and retailer PDPs
-
-## Evidence boundary
-
-This repository does not assume a product category, fixed Japan consumer persona, predefined needs/scenes/keywords, one marketplace template, or private company facts.
-
-Actual strategy comes from:
-
-```text
-category
-× channel
-× audience
-× offer
-× current project evidence
-```
-
-Actual channel-native shell comes from:
-
-```text
-current channel capability evidence
-+
-current consumer-facing frontend visual evidence
-+
-locked Primary Reference
-```
-
-## Quick start
-
-```yaml
-market:
-  country: JP
-locale:
-  id: ja-JP
-channel:
-  type: amazon-jp
-category: project-defined
-offer: project-defined
-page_targets:
-  - single
-output:
-  - strategy
-  - module-plan
-  - interactive-demo
-```
-
-Prompt:
+## Quick-start prompt
 
 ```text
 Use the standalone japan-listing-demo Skill.
-按默认 checkpoint workflow 执行：每个 numbered stage 做完后给我 Stage Completion Manifest 和 review，再进入下一步。
-如果我说“继续 / 下一步 / go next”，立即锁定当前真实状态并推进，不要继续重做当前 frame。
-同一个 frame / 同一个问题最多自动重试两次。
-提前做 Asset Readiness Preflight；已通过的素材必须用稳定 Asset ID 绑定到正确 slot，不能把别的模块素材裁一裁就替换。
-CONTENT_COVERAGE 和 MODULE_FIT_GATE 分开检查；不要在 Demo 阶段把静态图机械切成 slide/carousel。
-Demo 前跑 ASSET_SLOT_GATE、DIFFERENTIATOR_PROOF_GATE、DELIVERY_PARITY_GATE。
-如果最终要生成 channel-native Demo，在 Stage 5.5 先问我是否有参考链接 / ASIN / 页面截图；没有的话自己研究 1–3 个当前参考并让我确认 Primary Reference。
-FRONTEND_FIDELITY_GATE 通过前不要生成或命名为原生渠道 PDP Demo。
-```
-
-## Skill layout
-
-```text
-.agents/skills/japan-listing-demo/
-├── SKILL.md
-├── core/
-├── references/
-│   ├── channel-native-demo.md
-│   └── delivery-integrity.md
-├── profiles/channels/
-├── evals/
-└── scripts/
+按默认 Major Stage Checkpoint 执行；每个 numbered stage 给我 Stage Completion Manifest。
+如果我说“继续 / 下一步 / go next”，立即推进，不要继续重做当前 frame；同一问题最多自动重试两次。
+提前做 Asset Readiness Preflight；已通过素材用稳定 Asset ID 绑定 slot。
+CONTENT_COVERAGE 与 MODULE_FIT_GATE 分开检查，不要在 Demo 阶段把静态图机械切成 slide/carousel。
+维护 Project State Manifest，并使用 external validator 计算 CHANNEL_MODULE_BUDGET_GATE / APPROVAL_PROVENANCE_GATE / MODULE_ORIGIN_GATE / TRANSFORM_AUTH_GATE / ASSET_SLOT_GATE / DELIVERY_PARITY_GATE。
+不要相信或生成 declared_gate_results；validator 不能运行时保持 UNVERIFIED。
+如果要生成 channel-native Demo，Stage 5.5 先问我是否有参考 URL / ASIN / 页面截图；没有则研究 1–3 个当前参考并让我确认 Primary Reference。
+FRONTEND_FIDELITY_GATE 通过前不要把内容 Review 页面叫原生渠道 PDP Demo。
 ```
 
 ## Validation and packaging
@@ -258,7 +165,7 @@ python .agents/skills/japan-listing-demo/scripts/validate_overlay.py
 python .agents/skills/japan-listing-demo/scripts/package_skill.py
 ```
 
-Output:
+The package output is:
 
 ```text
 dist/japan-listing-demo.skill.zip
@@ -266,17 +173,11 @@ dist/japan-listing-demo.skill.zip
 
 ## Optional private use
 
-A company may add a separate private brand overlay for confidential product facts, pricing, claims, Figma links, approvals, or unreleased assets. That overlay is optional; public Japan-team use remains one Skill.
-
-## Maintenance
-
-The bundled core snapshot is sourced from `heymio/gtm-listing-demo` v0.2.0, commit `b882526f5a683235d30f562006cf1984a9f0d9f9`, with distribution-level execution-control, channel-frontend, and delivery-integrity patches documented in the Japan Skill. This provenance is for maintainers only and creates no runtime dependency.
-
-See [`docs/install.md`](docs/install.md).
+Private brand overlays may add confidential product facts, pricing, claims, design links/assets, account capabilities, and approvals. Public Japan-team use remains one Skill.
 
 ## Version
 
-`0.2.4`
+`0.2.5`
 
 ## License
 

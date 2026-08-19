@@ -30,6 +30,7 @@ REQUIRED_MEMBERS = {
     "japan-listing-demo/references/japan-claim-compliance.md",
     "japan-listing-demo/references/channel-native-demo.md",
     "japan-listing-demo/references/delivery-integrity.md",
+    "japan-listing-demo/references/executable-gates.md",
     "japan-listing-demo/references/qa.md",
     "japan-listing-demo/profiles/channels/amazon-jp.md",
     "japan-listing-demo/profiles/channels/rakuten.md",
@@ -37,6 +38,11 @@ REQUIRED_MEMBERS = {
     "japan-listing-demo/profiles/channels/dtc.md",
     "japan-listing-demo/profiles/channels/retailer-pdp.md",
     "japan-listing-demo/evals/delivery-integrity.md",
+    "japan-listing-demo/evals/executable-gates.md",
+    "japan-listing-demo/data/channel-policy-limits.json",
+    "japan-listing-demo/templates/project-state.example.json",
+    "japan-listing-demo/scripts/validate_project_state.py",
+    "japan-listing-demo/scripts/selftest_project_state_validator.py",
 }
 
 
