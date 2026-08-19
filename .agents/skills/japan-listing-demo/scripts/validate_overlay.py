@@ -33,6 +33,7 @@ REQUIRED_JAPAN_FILES = [
     SKILL_DIR / "references" / "ja-jp-localization.md",
     SKILL_DIR / "references" / "japan-claim-compliance.md",
     SKILL_DIR / "references" / "channel-native-demo.md",
+    SKILL_DIR / "references" / "delivery-integrity.md",
     SKILL_DIR / "references" / "qa.md",
     SKILL_DIR / "profiles" / "channels" / "amazon-jp.md",
     SKILL_DIR / "profiles" / "channels" / "rakuten.md",
@@ -42,6 +43,7 @@ REQUIRED_JAPAN_FILES = [
     SKILL_DIR / "evals" / "core.md",
     SKILL_DIR / "evals" / "cross-category.md",
     SKILL_DIR / "evals" / "channels.md",
+    SKILL_DIR / "evals" / "delivery-integrity.md",
     SKILL_DIR / "scripts" / "package_skill.py",
 ]
 
@@ -87,6 +89,7 @@ GUARDED_FILES = [
     SKILL_DIR / "references" / "ja-jp-localization.md",
     SKILL_DIR / "references" / "japan-claim-compliance.md",
     SKILL_DIR / "references" / "channel-native-demo.md",
+    SKILL_DIR / "references" / "delivery-integrity.md",
     SKILL_DIR / "references" / "qa.md",
     SKILL_DIR / "profiles" / "channels" / "amazon-jp.md",
     SKILL_DIR / "profiles" / "channels" / "rakuten.md",
@@ -142,8 +145,8 @@ def main() -> int:
             fail(f"core manifest is missing provenance value: {value}")
 
     version = (REPO_ROOT / "VERSION").read_text(encoding="utf-8").strip()
-    if version != "0.2.3":
-        fail(f"VERSION must be 0.2.3, found {version!r}")
+    if version != "0.2.4":
+        fail(f"VERSION must be 0.2.4, found {version!r}")
 
     all_text = "\n".join(path.read_text(encoding="utf-8") for path in required)
     placeholders = re.findall(r"\b(?:TODO|TBD|FIXME)\b", all_text, flags=re.I)
@@ -173,7 +176,7 @@ def main() -> int:
 
     eval_text = "\n".join(
         (SKILL_DIR / "evals" / name).read_text(encoding="utf-8")
-        for name in ["core.md", "cross-category.md", "channels.md"]
+        for name in ["core.md", "cross-category.md", "channels.md", "delivery-integrity.md"]
     )
     for scenario in [
         "Standalone Japan team installation",
@@ -191,6 +194,15 @@ def main() -> int:
         "Frontend Fidelity Gate blocks invented channel shells",
         "Channel-native demo shell comes from reference evidence",
         "Non-Amazon channel-native demos use the same reference contract",
+        "Stage Completion Manifest blocks false completion",
+        "Approved asset cannot be silently replaced downstream",
+        "Asset-to-Slot Contract rejects cross-slot asset leakage",
+        "Topic coverage does not prove module fit",
+        "Native interaction is planned before production",
+        "Planned-to-Implemented Parity Gate catches missing interaction",
+        "P0 differentiator requires visual proof",
+        "Asset Readiness Preflight happens before late visual discovery",
+        "Authoritative change reopens only impacted work",
         "Category conclusions must not leak across projects",
     ]:
         if scenario not in eval_text:
@@ -200,7 +212,7 @@ def main() -> int:
     openai_yaml = (SKILL_DIR / "agents" / "openai.yaml").read_text(encoding="utf-8")
     execution_policy = "\n".join([skill_text, workflow, openai_yaml]).casefold()
     if "continuous execution by default" in execution_policy:
-        fail("continuous execution must not be the default in v0.2.3")
+        fail("continuous execution must not be the default in v0.2.4")
     for phrase in [
         "checkpointed execution by default",
         "major stage checkpoint",
@@ -232,6 +244,24 @@ def main() -> int:
     if "official rules do not substitute" not in frontend_policy:
         fail("must state that official platform rules do not substitute for frontend visual evidence")
 
+    delivery = (SKILL_DIR / "references" / "delivery-integrity.md").read_text(encoding="utf-8")
+    delivery_policy = "\n".join([skill_text, workflow, openai_yaml, delivery, amazon_profile]).casefold()
+    for phrase in [
+        "stage completion manifest",
+        "asset readiness preflight",
+        "asset-to-slot contract",
+        "approved asset",
+        "asset_slot_gate",
+        "module_fit_gate",
+        "content_coverage",
+        "delivery_parity_gate",
+        "differentiator_proof_gate",
+        "change impact map",
+        "reopen",
+    ]:
+        if phrase not in delivery_policy:
+            fail(f"delivery-integrity policy is missing: {phrase}")
+
     readme = (REPO_ROOT / "README.md").read_text(encoding="utf-8")
     install = (REPO_ROOT / "docs" / "install.md").read_text(encoding="utf-8")
     for document_name, document in [("README.md", readme), ("docs/install.md", install)]:
@@ -244,6 +274,8 @@ def main() -> int:
             fail(f"{document_name} must explain transition commands")
         if "frontend" not in doc or "reference" not in doc:
             fail(f"{document_name} must explain frontend reference research before channel-native demos")
+        if "stage completion manifest" not in doc or "asset-to-slot" not in doc:
+            fail(f"{document_name} must explain delivery completeness and asset binding")
 
     print("PASS: japan-listing-demo standalone distribution is valid")
     print(f"PASS: {len(required)} required files exist")
@@ -252,6 +284,7 @@ def main() -> int:
     print("PASS: category and persona leakage checks passed")
     print("PASS: checkpointed execution, transition command, and anti-loop eval coverage passed")
     print("PASS: channel frontend reference and fidelity-gate coverage passed")
+    print("PASS: delivery completeness, asset binding, module fit, differentiator proof, and change-control coverage passed")
     return 0
 
 
