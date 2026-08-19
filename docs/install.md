@@ -57,6 +57,45 @@ After two unsuccessful attempts, it stops the loop and waits at the current Majo
 
 A Transition Command overrides this Retry Budget and moves on immediately.
 
+## Channel-native demo frontend reference workflow
+
+When the requested deliverable is intended to look like a real Amazon.co.jp, Rakuten, Yahoo! Shopping, retailer, or DTC frontend, the Skill must not generate the shell from memory.
+
+At Stage 5.5 it performs two separate research tracks:
+
+### Platform Capability
+
+Verify current editable regions, account capabilities, module/component access, limits, content ownership, policies, and mobile constraints from authoritative sources and the actual account/retailer/CMS context when available.
+
+### Frontend Visual Reference
+
+Before native demo assembly, the agent asks whether the user has a preferred current **Reference URL**, ASIN, retailer/store page, approved design-system reference, screenshot set, or PDF capture.
+
+- If supplied, it becomes the candidate **Primary Reference**.
+- If none is supplied, the agent researches 1–3 current comparable consumer-facing pages and recommends one Primary Reference.
+- It visually inspects/captures the material desktop/mobile shell, section order, interactions, and brand/platform ownership.
+- It outputs a **Channel Frontend Reference Pack** and frontend fidelity status.
+
+**Official rules do not substitute for frontend visual evidence.** A platform document can confirm capabilities, but it does not prove the exact current consumer-facing layout.
+
+If a live page is blocked, the agent follows the normal Retry Budget, then asks for screenshots/PDF or uses an explicitly identified secondary reference for gaps. It must not invent the missing channel shell.
+
+## Frontend Fidelity Gate
+
+Immediately before Stage 9, the Skill runs `FRONTEND_FIDELITY_GATE`.
+
+A channel-native demo requires a locked Primary Reference plus material consumer-facing evidence for the shell, section order, ownership boundaries, and required desktop/mobile behavior.
+
+If the gate fails, the Skill may produce:
+
+```text
+Content Review Demo
+```
+
+It must not call that fallback an Amazon PDP Demo, Rakuten native page, retailer-native PDP, or another channel-native demo.
+
+When the gate passes, Stage 9 reproduces the verified channel shell first and then inserts approved project content into verified brand-controlled regions. Review Mode is an overlay only and must not change the Consumer Mode layout.
+
 ## Autonomous Mode is optional
 
 If a user explicitly wants full automatic execution for one task, they can say:
@@ -65,7 +104,7 @@ If a user explicitly wants full automatic execution for one task, they can say:
 这次不用每一步等我，直接做到最终 Demo；只有真正 blocker 才停。
 ```
 
-Autonomous Mode applies only to that request. It is not the default.
+Autonomous Mode applies only to that request. It is not the default, and it does not bypass the Channel Frontend Reference Pack or Frontend Fidelity Gate.
 
 ## Codex App / CLI / IDE
 
@@ -87,6 +126,8 @@ Keep unsupported claims in PENDING CLAIM.
 按默认 Major Stage Checkpoint 执行；每个 numbered stage 做完后让我 review。
 如果我说“继续 / 下一步 / go next”，立即推进到下一 stage，不要继续生成当前 frame。
 同一 frame / 同一问题最多自动重试两次。
+如果要生成 channel-native Demo，Stage 5.5 先问我是否有参考 URL / ASIN / 页面截图；没有的话你自己研究 1–3 个当前参考并让我确认 Primary Reference。
+FRONTEND_FIDELITY_GATE 通过前不要把内容 Review 页面叫作原生渠道 PDP Demo。
 ```
 
 If consumer copy uses another locale, specify it explicitly. Japan market does not automatically force Japanese copy.
@@ -120,7 +161,7 @@ Ask the conversation to read this repository's Skill:
 heymio/japan-listing-demo/.agents/skills/japan-listing-demo/SKILL.md
 ```
 
-Then request the bundled core references, Japan references, and one selected channel profile needed by the current project. No separate public-core repository read is required for normal use.
+Then request the bundled core references, Japan references, selected channel profile, and `references/channel-native-demo.md` when a native frontend demo is requested. No separate public-core repository read is required for normal use.
 
 ## Optional private company overlay
 
@@ -153,7 +194,7 @@ To update it:
 
 1. review the upstream core changelog;
 2. update the bundled files in a feature branch;
-3. preserve or deliberately revise Japan distribution patches such as checkpoint/transition behavior;
-4. rerun core, Japan, channel, and cross-category evals;
+3. preserve or deliberately revise Japan distribution patches such as checkpoint/transition and channel-frontend behavior;
+4. rerun core, Japan, channel, cross-category, and frontend-fidelity evals;
 5. run validator and packager;
 6. release only after CI succeeds.
