@@ -7,7 +7,7 @@ description: Use when planning, reviewing, or producing Japan-market product lis
 
 ## Distribution
 
-This is a **standalone distribution**. It includes a validated snapshot of the generic listing workflow plus Japan market, localization, channel, claim-review, frontend-reference, delivery-integrity, and QA rules. Team users install and invoke only `japan-listing-demo`.
+This is a **standalone distribution**. It includes a validated snapshot of the generic listing workflow plus Japan market, localization, channel, claim-review, frontend-reference, delivery-integrity, executable-gate, and QA rules. Team users install and invoke only `japan-listing-demo`.
 
 The upstream source is recorded in `core/manifest.yaml` for maintainers. It is not a runtime dependency.
 
@@ -18,6 +18,8 @@ Build one evidence-governed Product Truth and Product Strategy, then adapt them 
 When the output is a **channel-native demo**, do not design the channel shell from memory. Verify the current consumer-facing frontend first, lock a Primary Reference, and reproduce the evidenced channel structure before inserting project content.
 
 Do not treat a polished partial artifact as a complete stage. Do not silently replace approved assets downstream. Content coverage, native module fit, visual proof strength, and implemented parity are separate checks.
+
+Critical structural gates must not be self-certified by the same agent that authored the state. Read `references/executable-gates.md`, maintain a machine-readable **Project State Manifest**, and use the bundled **external validator** to compute executable gate results.
 
 ## Execution control
 
@@ -35,7 +37,7 @@ When a Transition Command is received:
 
 1. stop further retries, regeneration, self-critique, or polishing of the current stage immediately;
 2. preserve the best current result;
-3. mark unresolved quality or evidence issues as `NEEDS REVISION`, `PENDING CLAIM`, `DEMO ASSET`, `PROVISIONAL UI`, `UNKNOWN`, or Open Items as appropriate;
+3. mark unresolved quality or evidence issues as `NEEDS REVISION`, `PENDING CLAIM`, `DEMO ASSET`, `PROVISIONAL UI`, `UNKNOWN`, `UNVERIFIED`, or Open Items as appropriate;
 4. finalize the Stage Completion Manifest with its real status;
 5. lock the current stage snapshot for downstream use;
 6. enter the next numbered workflow stage;
@@ -64,9 +66,9 @@ Do not ignore new evidence because a stage was locked, and do not restart the wh
 
 ### Autonomous Mode is opt-in
 
-Full end-to-end autonomous execution is **not the default**. Use **Autonomous Mode** only when the user explicitly asks to skip stage checkpoints for the current request, for example: “这次不用每一步等我，直接做到最终 Demo”. Autonomous Mode applies only to that request and does not change the default behavior of future work.
+Full end-to-end autonomous execution is **not the default**. Use **Autonomous Mode** only when the user explicitly asks to skip stage checkpoints for the current request. Autonomous Mode applies only to that request and does not change the default behavior of future work.
 
-Autonomous Mode does not waive evidence gates or delivery-integrity gates. A channel-native demo still requires a Channel Frontend Reference Pack and `FRONTEND_FIDELITY_GATE`.
+Autonomous Mode does not waive evidence, delivery-integrity, approval-provenance, executable, claim, asset-slot, module-fit, parity, or frontend-fidelity gates.
 
 ## Configuration
 
@@ -91,36 +93,41 @@ output: project-defined
 
 1. Start with Project Definition, Source Gate, and Fact Gate using the bundled files under `core/`.
 2. Always read `references/delivery-integrity.md` and use Stage Completion Manifest, Asset Readiness Preflight, approved-asset/slot binding, module-fit, differentiator-proof, parity, and change-control rules.
-3. Keep `market`, `locale`, `channel`, `category`, `offer`, and `page_targets` separate.
-4. Do not infer needs, preferences, scenes, keywords, visual settings, or message priorities from `JP` alone.
-5. Build a Market Evidence Registry from current category-, channel-, audience-, offer-, and project-specific evidence.
-6. Use `references/ja-jp-localization.md` only when the requested consumer locale is `ja-JP`.
-7. Load exactly one primary Japan channel profile, plus confirmed retailer or campaign constraints.
-8. Verify current channel rules, editable slots, account capabilities, content ownership, and mobile behavior before locking modules.
-9. Keep **Platform Capability** evidence separate from **Frontend Visual** evidence. Official rules do not substitute for current consumer-facing frontend visual evidence.
-10. When a channel-native demo is requested, read `references/channel-native-demo.md`, ask whether the user has a preferred **Reference URL** / ASIN / retailer page / store page / screenshot set, and build a **Channel Frontend Reference Pack**.
-11. A user-provided current frontend reference is the candidate **Primary Reference** unless a concrete limitation is explained. If none is provided, research 1–3 current comparable consumer-facing pages and recommend a Primary Reference at the Stage 5.5 checkpoint.
-12. Treat competitor pages as evidence of competitor execution, not proof of current account access or consumer preference. A competitor page may be a frontend reference only for the specific shell evidence it visibly supports.
-13. Run `FRONTEND_FIDELITY_GATE` immediately before native Demo Assembly. If it fails, deliver only a clearly named **Content Review Demo**; do not fabricate or label an invented shell as a channel-native demo.
-14. Create an **Asset Readiness Preflight** in Stage 1 for asset classes the current project is expected to need. Do not wait until visual/demo stages to discover critical evidence is missing.
-15. Build an **Approved Asset Registry** with stable Asset IDs. Approved assets are stable downstream inputs; material transformations or role changes create a derivative with provenance and a new Asset ID.
-16. Build an **Asset-to-Slot Contract** and run `ASSET_SLOT_GATE`. Do not substitute assets across gallery/enhanced-content/offer/page roles merely because they fit visually.
-17. Evaluate `CONTENT_COVERAGE` and `MODULE_FIT_GATE` separately. Full topic coverage does not prove that a carousel, hotspot, video, comparison, or other native module is the right structure.
-18. Do not mechanically convert independent static boards into carousel/slides during Demo Assembly. Native interaction logic and content packing must be planned in Stage 7 and Stage 7.5.
-19. Run `DIFFERENTIATOR_PROOF_GATE` for visualizable P0 purchase reasons. Attractive generic lifestyle imagery does not substitute for direct proof.
-20. Before a demo is called complete, run `DELIVERY_PARITY_GATE` against the locked plan for module/slot, interaction, Asset IDs, dimensions/aspect, coverage, page/offer ownership, and channel region.
-21. Keep laws, platform rules, certifications, pricing, availability, service terms, and volatile capabilities in `PENDING CLAIM` until authoritative evidence supports release.
-22. Keep reusable Japan rules category-neutral. Product-category conclusions belong in `core/profiles/categories/_template.md`-based project overlays or current Project Evidence.
-23. AI may create environments and concept backgrounds. Product geometry, UI, packaging, ports, controls, accessories, and functional proof require real assets or explicit provisional labels.
-24. Every module must pass the Visual Evidence Matrix: `message → visual subject → evidence object → asset`.
-25. Preserve Page Boundary Matrix, Review Mode, Consumer Mode, Mobile QA, asset-path QA, channel frontend fidelity QA, and delivery-integrity QA.
-26. Review Mode is an overlay only. It must not redesign or distort the verified Consumer Mode channel layout.
-27. Keep confidential brand, product, price, design, approval, and unreleased information outside this public repository.
-28. Apply the Execution control rules above: checkpoint after each numbered stage by default; obey Transition Commands immediately; enforce the Retry Budget on repeated artifact problems; do not turn `PARTIAL` into `COMPLETE`.
+3. Always read `references/executable-gates.md` for work that locks modules/assets or assembles a demo. Maintain one **Project State Manifest** and run `scripts/validate_project_state.py` for executable gates.
+4. Keep `market`, `locale`, `channel`, `category`, `offer`, and `page_targets` separate.
+5. Do not infer needs, preferences, scenes, keywords, visual settings, or message priorities from `JP` alone.
+6. Build a Market Evidence Registry from current category-, channel-, audience-, offer-, and project-specific evidence.
+7. Use `references/ja-jp-localization.md` only when the requested consumer locale is `ja-JP`.
+8. Load exactly one primary Japan channel profile, plus confirmed retailer or campaign constraints.
+9. Verify current channel rules, editable slots, account capabilities, content ownership, and mobile behavior before locking modules.
+10. Keep **Platform Capability** evidence separate from **Frontend Visual** evidence. Official rules do not substitute for current consumer-facing frontend visual evidence.
+11. When a channel-native demo is requested, read `references/channel-native-demo.md`, ask whether the user has a preferred **Reference URL** / ASIN / retailer page / store page / screenshot set, and build a **Channel Frontend Reference Pack**.
+12. A user-provided current frontend reference is the candidate **Primary Reference** unless a concrete limitation is explained. If none is provided, research 1–3 current comparable consumer-facing pages and recommend a Primary Reference at the Stage 5.5 checkpoint.
+13. Treat competitor pages as evidence of competitor execution, not proof of current account access or consumer preference. A competitor page may be a frontend reference only for the specific shell evidence it visibly supports.
+14. Run `FRONTEND_FIDELITY_GATE` immediately before native Demo Assembly. If it fails, deliver only a clearly named **Content Review Demo**; do not fabricate or label an invented shell as a channel-native demo.
+15. Create an **Asset Readiness Preflight** in Stage 1 for asset classes the current project is expected to need. Do not wait until visual/demo stages to discover critical evidence is missing.
+16. Build an **Approved Asset Registry** with stable Asset IDs. Approved assets are stable downstream inputs; material transformations or role changes create a derivative with provenance and a new Asset ID.
+17. A `LOCKED` asset in the Project State Manifest must pass `APPROVAL_PROVENANCE_GATE`: either a matching user approval event binds to the current asset hash, or exact recovery proves the same prior locked SHA-256. Filename similarity or visual resemblance is not exact recovery.
+18. Build an **Asset-to-Slot Contract** and run `ASSET_SLOT_GATE`. Do not substitute assets across gallery/enhanced-content/offer/page roles merely because they fit visually.
+19. Material crop/recomposition/role-change derivatives require explicit transform provenance and `TRANSFORM_AUTH_GATE`. “Deterministic crop” is not authorization.
+20. Evaluate `CONTENT_COVERAGE` and `MODULE_FIT_GATE` separately. Full topic coverage does not prove that a carousel, hotspot, video, comparison, or other native module is the right structure.
+21. Do not mechanically convert independent static boards into carousel/slides during Demo Assembly. Native interaction logic and content packing must be planned in Stage 7 and Stage 7.5.
+22. Lock Stage 7 module architecture into `locked_module_plan` with a canonical `plan_hash`. Stage 9 must consume the exact hash. It may not add, delete, or change module type/interaction and then retroactively rewrite the plan.
+23. Run `CHANNEL_MODULE_BUDGET_GATE` from packaged channel policy limits before locking a module plan. A project manifest may use a lower limit, but cannot raise the packaged executable ceiling by self-declaration.
+24. Run `MODULE_ORIGIN_GATE` during Stage 9. Every implemented module must originate in the exact locked module plan; unplanned modules or interaction/type drift fail.
+25. Run `DIFFERENTIATOR_PROOF_GATE` for visualizable P0 purchase reasons. Attractive generic lifestyle imagery does not substitute for direct proof.
+26. Before a demo is called complete, run `DELIVERY_PARITY_GATE` against the locked plan for module/slot, interaction, Asset IDs, dimensions/aspect, coverage, page/offer ownership, and channel region.
+27. Ignore agent-authored PASS fields such as `declared_gate_results`. Executable PASS is produced only by the **external validator**.
+28. If the runtime cannot execute the Project State validator, applicable executable gates remain `UNVERIFIED`. The agent must not manually convert them to PASS.
+29. Keep laws, platform rules, certifications, pricing, availability, service terms, and volatile capabilities in `PENDING CLAIM` until authoritative evidence supports release.
+30. Keep reusable Japan rules category-neutral. Product-category conclusions belong in project/category evidence, not country defaults.
+31. AI may create environments and concept backgrounds. Product geometry, UI, packaging, ports, controls, accessories, and functional proof require real assets or explicit provisional labels.
+32. Every module must pass the Visual Evidence Matrix: `message → visual subject → evidence object → asset`.
+33. Preserve Page Boundary Matrix, Review Mode, Consumer Mode, Mobile QA, asset-path QA, channel frontend fidelity QA, delivery-integrity QA, and executable-gate results.
+34. Review Mode is an overlay only. It must not redesign or distort the verified Consumer Mode channel layout.
+35. Keep confidential brand, product, price, design, approval, and unreleased information outside this public repository.
 
 ## Execution order
-
-Read the bundled core and only the Japan files needed for the project:
 
 ```text
 0 Project Definition
@@ -130,13 +137,13 @@ Read the bundled core and only the Japan files needed for the project:
 4 Consumer Strategy
 4.2 Japan Market & Localization Enrichment
 5 Message Architecture
-5.5 Channel Template & Frontend Mapping
+5.5 Channel Template & Frontend Mapping + Channel Capability State
 6 Channel-specific Listing IA
-6.5 Asset Intake & Approved Asset Registry
-7 Channel Slot / Module Planning + Asset-to-Slot Contract
-7.5 Visual Production Brief
+6.5 Asset Intake + Approved Asset Registry + Approval Provenance
+7 Channel Slot / Module Planning + Asset-to-Slot Contract + Module Budget Validation
+7.5 Visual Production Brief + Transform Authorization
 8 Visual Production + Visual Evidence / Differentiator Proof QA
-9 Channel-native Demo Assembly + Asset/Parity Gates
+9 Channel-native Demo Assembly + Module Origin / Asset / Parity Validation
 10 Final QA + Claim Gate + Review Mode
 ```
 
@@ -153,6 +160,7 @@ Always read:
 - `core/visual-evidence.md`
 - `core/qa.md`
 - `references/delivery-integrity.md`
+- `references/executable-gates.md`
 - `references/japan-market-evidence.md`
 - `references/japan-claim-compliance.md`
 - `references/qa.md`
@@ -176,15 +184,16 @@ Before declaring the workflow complete, produce:
 - Page Target / Product Boundary Matrix;
 - Message Architecture and Message-to-Slot Matrix;
 - Approved Asset Registry, Asset Manifest, and Asset Gap Analysis;
-- Asset-to-Slot Contract and `ASSET_SLOT_GATE` result;
+- Asset-to-Slot Contract;
 - Channel Slot / Module Plan;
 - `CONTENT_COVERAGE` and `MODULE_FIT_GATE` results;
 - Visual Production Brief, Visual Evidence Matrix, Differentiator Proof Matrix, and `DIFFERENTIATOR_PROOF_GATE` result;
+- **Project State Manifest**;
+- external-validator results for applicable executable gates: `CHANNEL_MODULE_BUDGET_GATE`, `APPROVAL_PROVENANCE_GATE`, `MODULE_ORIGIN_GATE`, `TRANSFORM_AUTH_GATE`, `ASSET_SLOT_GATE`, `DELIVERY_PARITY_GATE`;
 - interactive demo or production-ready module specification;
-- `DELIVERY_PARITY_GATE` result;
 - Stage Completion Manifest for every completed/advanced numbered stage;
 - Change Impact Map whenever authoritative evidence invalidated locked work;
-- Product, Claim, Channel, Japan/Locale, Visual, Mobile, Technical, Frontend Fidelity, Delivery Integrity, and Review Mode QA results.
+- Product, Claim, Channel, Japan/Locale, Visual, Mobile, Technical, Frontend Fidelity, Delivery Integrity, Executable Gate, and Review Mode QA results.
 
 When a channel-native demo is requested, also produce:
 
@@ -200,6 +209,12 @@ Run:
 ```bash
 python .agents/skills/japan-listing-demo/scripts/validate_overlay.py
 python .agents/skills/japan-listing-demo/scripts/package_skill.py
+```
+
+For a project state:
+
+```bash
+python .agents/skills/japan-listing-demo/scripts/validate_project_state.py path/to/project-state.json --json
 ```
 
 When revising this Skill, rerun the scenarios under both `core/evals/` and `evals/`.
