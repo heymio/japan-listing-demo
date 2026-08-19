@@ -14,6 +14,7 @@ jobs:
           python-version: "3.12"
       - run: python .agents/skills/japan-listing-demo/scripts/validate_overlay.py
       - run: python .agents/skills/japan-listing-demo/scripts/package_skill.py
+      - run: python -m zipfile -l dist/japan-listing-demo.skill.zip
       - uses: actions/upload-artifact@v4
         with:
           name: japan-listing-demo-skill

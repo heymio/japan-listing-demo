@@ -77,7 +77,7 @@ RUNTIME_DEPENDENCY_PATTERNS = [
     r"REQUIRED SUB-SKILL",
     r"Load `?gtm-listing-demo`? public core",
     r"install .*gtm-listing-demo.*and.*japan-listing-demo",
-    r"two skills",
+    r"install both",
 ]
 
 GUARDED_FILES = [
@@ -105,10 +105,9 @@ def parse_frontmatter(text: str) -> dict[str, str]:
         fail("SKILL.md is missing YAML frontmatter")
     values: dict[str, str] = {}
     for line in match.group(1).splitlines():
-        if ":" not in line:
-            continue
-        key, value = line.split(":", 1)
-        values[key.strip()] = value.strip()
+        if ":" in line:
+            key, value = line.split(":", 1)
+            values[key.strip()] = value.strip()
     return values
 
 

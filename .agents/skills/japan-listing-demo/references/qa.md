@@ -1,10 +1,12 @@
-# Japan overlay QA
+# Japan standalone QA
 
-## Dependency QA
+## Distribution QA
 
-- Public `gtm-listing-demo` core version 0.2.0 or later is loaded.
-- The selected public-core contracts and current Project Definition are available.
-- This overlay does not duplicate or silently modify the public core.
+- The bundled core manifest, workflow, contracts, evidence, QA, category template, and core evals are present.
+- The repository and Skill ZIP can run without loading or installing a second Skill.
+- Team-facing instructions mention one repository, one ZIP, and one invocation.
+- Upstream provenance is recorded for maintainers but not exposed as a runtime requirement.
+- Optional private overlays remain optional and separate.
 
 ## Configuration QA
 
@@ -51,7 +53,7 @@ When `locale.id: ja-JP`:
 
 ## Visual QA
 
-- Every module passes the public core Visual Evidence Matrix.
+- Every module passes the bundled core Visual Evidence Matrix.
 - The visual subject and evidence object directly support the message.
 - Product, packaging, UI, controls, interfaces, and functional proof use approved real assets or explicit provisional labels.
 - Environment, casting, props, and interactions are project-specific and approved.

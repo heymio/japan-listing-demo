@@ -1,44 +1,51 @@
 # japan-listing-demo
 
-`japan-listing-demo` is a public Japan-market overlay for the generic [`gtm-listing-demo`](https://github.com/heymio/gtm-listing-demo) workflow.
+`japan-listing-demo` is a **standalone public Skill** for turning product evidence into Japan-market listing strategy, channel-specific content architecture, visual briefs, and interactive review demos.
 
-It adds Japan-specific market-evidence, localization, channel, claim-review, and QA layers without hard-coding one product category, company, or marketplace.
+## One repository, one ZIP, one Skill
 
-## What this repository is
+Japan-team users need only this repository or its packaged ZIP:
 
 ```text
-gtm-listing-demo public core
-        +
-japan-listing-demo public overlay
-        +
-optional brand/private overlay
-        +
-current project evidence
+japan-listing-demo
 ```
 
-Use the public core for Source Gate, Fact Lock, Consumer Strategy, page boundaries, message architecture, visual evidence, interactive demos, and final QA.
+They do not install a separate generic core. The validated core workflow is bundled under `.agents/skills/japan-listing-demo/core/`.
 
-Use this repository when the target market is Japan and the project needs:
+Invoke:
 
-- Japan market-evidence governance;
-- deeper `ja-JP` localization QA;
-- Japan channel profiles;
-- Japan claim and compliance verification queues;
-- Japan-specific regression tests;
-- a reusable public Skill package for ChatGPT or Codex.
+```text
+$japan-listing-demo
+```
 
-## What it does not contain
+## Included capabilities
 
-This repository does **not** assume:
+- Project Definition, Source Gate, and Fact Lock
+- Consumer Strategy and Market Evidence Registry
+- Page Boundary Matrix and Message Architecture
+- Channel-specific slot and module planning
+- Asset Manifest and Visual Evidence Matrix
+- Visual-production briefs and interactive review demos
+- Claim, Japan-market, locale, channel, mobile, technical, and Review Mode QA
+- `ja-JP` localization guidance
+- Japan channel profiles for:
+  - Amazon.co.jp
+  - Rakuten
+  - Yahoo! Shopping
+  - Japan DTC product pages
+  - Japan retailer PDPs
+
+## Evidence boundary
+
+This repository does not assume:
 
 - a product category;
 - a fixed Japan consumer persona;
-- predefined user needs or scenes;
-- a universal keyword list;
+- predefined needs, scenes, or keywords;
 - one marketplace or page template;
 - private company facts, pricing, claims, designs, or approvals.
 
-Actual needs, barriers, search language, visual direction, and message priority must come from:
+Actual strategy comes from:
 
 ```text
 category
@@ -47,27 +54,6 @@ category
 × offer
 × current project evidence
 ```
-
-## Dependency
-
-Required public core:
-
-```text
-heymio/gtm-listing-demo
-version 0.2.0 or later
-```
-
-Install or load the public core before using this overlay.
-
-## Built-in Japan channel profiles
-
-- Amazon.co.jp
-- Rakuten
-- Yahoo! Shopping
-- Japan DTC product pages
-- Japan retailer PDPs
-
-Each profile requires current account, template, policy, and editable-slot verification. A previous page or competitor implementation is not proof of current capability.
 
 ## Quick start
 
@@ -88,11 +74,11 @@ output:
   - interactive-demo
 ```
 
-Then ask:
+Prompt:
 
 ```text
-Use the gtm-listing-demo public core together with japan-listing-demo.
-First confirm Project Definition, Source Gate, Fact Lock, selected Japan channel profile, and Market Evidence Registry.
+Use the standalone japan-listing-demo Skill.
+Confirm Project Definition, Source Gate, Fact Lock, selected Japan channel profile, and Market Evidence Registry first.
 Do not infer category needs or Japan consumer preferences without current project evidence.
 Keep unsupported claims in PENDING CLAIM.
 ```
@@ -102,53 +88,50 @@ Keep unsupported claims in PENDING CLAIM.
 ```text
 .agents/skills/japan-listing-demo/
 ├── SKILL.md
-├── agents/
-│   └── openai.yaml
+├── core/
+│   ├── manifest.yaml
+│   ├── workflow.md
+│   ├── contracts.md
+│   ├── market-research.md
+│   ├── localization.md
+│   ├── visual-evidence.md
+│   ├── qa.md
+│   ├── profiles/categories/_template.md
+│   └── evals/
 ├── references/
-│   ├── public-core.md
-│   ├── japan-market-evidence.md
-│   ├── ja-jp-localization.md
-│   ├── japan-claim-compliance.md
-│   └── qa.md
-├── profiles/
-│   └── channels/
+├── profiles/channels/
 ├── evals/
 └── scripts/
 ```
 
-## Validation
+## Validation and packaging
 
 ```bash
 python .agents/skills/japan-listing-demo/scripts/validate_overlay.py
 python .agents/skills/japan-listing-demo/scripts/package_skill.py
 ```
 
-The package command creates:
+Output:
 
 ```text
 dist/japan-listing-demo.skill.zip
 ```
 
-GitHub Actions runs the validator, builds the ZIP, and uploads it as an artifact.
+The packager verifies that the ZIP contains the bundled core and all Japan runtime files.
 
-## Installation
+## Optional private use
+
+A company may add a separate private brand overlay for confidential product facts, pricing, claims, Figma links, approvals, or unreleased assets. That overlay is optional; public Japan-team use remains one Skill.
+
+## Maintenance
+
+The bundled core snapshot is sourced from `heymio/gtm-listing-demo` v0.2.0, commit `b882526f5a683235d30f562006cf1984a9f0d9f9`. This provenance is for maintainers only and creates no runtime dependency.
 
 See [`docs/install.md`](docs/install.md).
 
-For ChatGPT Personal Skills, install both:
-
-1. `gtm-listing-demo`
-2. `japan-listing-demo`
-
-For confidential company work, add a separate private overlay rather than publishing private data here.
-
 ## Version
 
-Current release target:
-
-```text
-0.1.0
-```
+`0.2.0`
 
 ## License
 

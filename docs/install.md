@@ -1,31 +1,27 @@
 # japan-listing-demo installation and use
 
-## Dependency
+## Team installation: one Skill
 
-This overlay requires the public core:
+Japan-team users install only:
 
 ```text
-heymio/gtm-listing-demo
-version 0.2.0 or later
+japan-listing-demo
 ```
 
-Install or load the public core first.
+No second repository or Skill ZIP is required. The generic workflow is bundled inside the Japan distribution.
 
 ## Codex App / CLI / IDE
 
-Open both repositories in the working environment, or install both Skills in the supported Skill directory.
-
-Invoke the public core and overlay explicitly:
+Open or clone this repository, then invoke:
 
 ```text
-$gtm-listing-demo
 $japan-listing-demo
 ```
 
 Recommended prompt:
 
 ```text
-Use gtm-listing-demo together with japan-listing-demo.
+Use the standalone japan-listing-demo Skill.
 Market: JP
 Locale: ja-JP
 Channel: select and verify the current Japan channel profile
@@ -33,9 +29,19 @@ Category: determine from current project evidence
 Keep unsupported claims in PENDING CLAIM.
 ```
 
-If the consumer locale is not Japanese, set the requested locale explicitly. The overlay must not force `ja-JP` solely because the market is Japan.
+If consumer copy uses another locale, specify it explicitly. Japan market does not automatically force Japanese copy.
 
-## Build the Skill ZIP
+## ChatGPT Personal Skills
+
+Where Personal Skills are available, upload one ZIP:
+
+```text
+dist/japan-listing-demo.skill.zip
+```
+
+After installation, invoke only `japan-listing-demo`.
+
+## Build the ZIP
 
 From the repository root:
 
@@ -44,48 +50,21 @@ python .agents/skills/japan-listing-demo/scripts/validate_overlay.py
 python .agents/skills/japan-listing-demo/scripts/package_skill.py
 ```
 
-Output:
-
-```text
-dist/japan-listing-demo.skill.zip
-```
-
-## ChatGPT Personal Skills
-
-Where Personal Skills are available, install both ZIP files:
-
-1. `gtm-listing-demo.skill.zip`
-2. `japan-listing-demo.skill.zip`
-
-The Japan package is an overlay and does not contain a second copy of the public core.
-
-Suggested invocation:
-
-```text
-Use the gtm-listing-demo public core and japan-listing-demo overlay.
-Confirm market, locale, channel, category, offer, and page targets separately.
-Build the Market Evidence Registry before drawing Japan-specific consumer conclusions.
-```
+The package command verifies required core and Japan files before succeeding.
 
 ## GitHub-connected ChatGPT without Personal Skills
 
-Ask the conversation to read:
+Ask the conversation to read this repository's Skill:
 
 ```text
-Public core:
-heymio/gtm-listing-demo/.agents/skills/gtm-listing-demo/SKILL.md
-
-Japan overlay:
 heymio/japan-listing-demo/.agents/skills/japan-listing-demo/SKILL.md
 ```
 
-Then request only the references and channel profile needed for the current project.
+Then request the bundled core references, Japan references, and one selected channel profile needed by the current project. No separate public-core repository read is required for normal use.
 
-Reading repository files in one conversation is not the same as installing a Personal Skill.
+## Optional private company overlay
 
-## Private company work
-
-Use a separate private brand overlay for:
+Private overlays may add:
 
 - confidential product evidence;
 - price and SKU decisions;
@@ -94,25 +73,26 @@ Use a separate private brand overlay for:
 - internal channel access;
 - approval and review rules.
 
-Precedence should be:
+Recommended precedence:
 
 ```text
 current user request
 > current approved project evidence
-> private brand overlay
-> japan-listing-demo
-> gtm-listing-demo public core
+> optional private brand overlay
+> standalone japan-listing-demo
+> older project material
 ```
 
 Do not copy confidential material into this public repository.
 
-## Maintenance
+## Maintainer-only core updates
 
-After changing the overlay:
+The bundled snapshot records its source in `core/manifest.yaml`.
 
-```bash
-python .agents/skills/japan-listing-demo/scripts/validate_overlay.py
-python .agents/skills/japan-listing-demo/scripts/package_skill.py
-```
+To update it:
 
-Rerun the scenarios under `evals/` and test at least two different Japan channels before increasing the minimum public-core version.
+1. review the upstream core changelog;
+2. update the bundled files in a feature branch;
+3. rerun core, Japan, channel, and cross-category evals;
+4. run validator and packager;
+5. release only after CI succeeds.

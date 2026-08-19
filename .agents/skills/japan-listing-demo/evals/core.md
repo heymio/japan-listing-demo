@@ -6,7 +6,7 @@
 
 **Pass:** The agent can run Project Definition, Source Gate, Fact Lock, Consumer Strategy, Channel Mapping, Asset Audit, Visual Evidence QA, Demo Assembly, and Final QA from the files bundled inside `japan-listing-demo`. It does not ask the user to install or load a second Skill.
 
-**Fail:** The agent stops and requests `gtm-listing-demo`, another repository, a second ZIP, or a separate Skill installation before it can proceed.
+**Fail:** The agent stops and requests another repository, a second ZIP, or a separate Skill installation before it can proceed.
 
 ## Japan market without category evidence
 
