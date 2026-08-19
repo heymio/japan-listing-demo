@@ -12,13 +12,13 @@
 
 - **Checkpointed execution by default** is active.
 - Every numbered workflow stage ends at a **Major Stage Checkpoint** unless the user explicitly opts into Autonomous Mode for the current request.
+- Every advanced stage emits a **Stage Completion Manifest** with planned/completed/approved/needs-revision/missing/blocked/open items and `COMPLETE`, `PARTIAL`, or `BLOCKED` status.
 - The agent completes a useful batch inside the current stage and does not pause after every minor search, tool call, frame, or image.
 - A user Transition Command such as `继续`, `下一步`, `go`, `go next`, `next`, `先这样`, or `这张先过` stops further current-stage iteration and advances immediately unless the user explicitly asks to keep improving the current artifact.
-- After a Transition Command, the prior stage is locked. Unresolved items are recorded as `NEEDS REVISION`, `PENDING CLAIM`, `DEMO ASSET`, `PROVISIONAL UI`, `UNKNOWN`, or Open Items instead of being silently regenerated.
+- A Transition Command locks the real stage status; `PARTIAL` is not rewritten as `COMPLETE`.
 - The same artifact/problem has a Retry Budget of at most two autonomous attempts without new user input or new evidence.
-- After the Retry Budget is exhausted, the workflow stops the retry loop and waits at the current checkpoint with the best available result or blocked status.
 - A Transition Command overrides the Retry Budget; the agent must not require a second `继续` before entering the next stage.
-- Final QA may flag earlier locked-stage issues but does not silently reopen them.
+- New authoritative evidence triggers a Change Impact Map rather than silent ignore or whole-project restart.
 
 ## Configuration QA
 
@@ -55,6 +55,8 @@ When `locale.id: ja-JP`:
 - Unsupported or unknown capabilities remain `UNKNOWN` or `PENDING`.
 - Mobile rendering and current content policies are checked.
 - Platform Capability evidence and Frontend Visual evidence are recorded separately.
+- `CONTENT_COVERAGE` and `MODULE_FIT_GATE` are separate results.
+- Native interactive modules have interaction logic and content packing planned before visual production.
 
 ## Frontend Fidelity QA
 
@@ -69,12 +71,26 @@ Run this section whenever the deliverable is intended to look like a real consum
 - Text/DOM parsing alone is not labeled `HIGH` frontend fidelity.
 - Live-page access failures follow the Retry Budget; the workflow does not repeatedly retry an inaccessible page or invent the missing shell.
 - `FRONTEND_FIDELITY_GATE` runs immediately before Stage 9 for a channel-native demo.
-- The gate verifies a locked Primary Reference, material shell evidence, section order, ownership boundaries, and required desktop/mobile behavior.
 - A gate failure produces a clearly named **Content Review Demo**, not a falsely labeled **channel-native demo**.
 - A native demo reproduces the verified channel shell first and inserts approved project content only into verified brand-controlled regions.
-- Platform-owned regions are evidenced structure or conservative placeholders, not redesigned brand marketing modules.
-- Consumer Mode does not expose internal IA names, module IDs, evidence statuses, or workflow labels as page chrome.
 - Review Mode is an overlay and does not change the verified underlying Consumer Mode layout.
+
+## Asset Readiness and Slot Integrity QA
+
+- Stage 1 contains an **Asset Readiness Preflight** for asset classes expected later.
+- An **Approved Asset Registry** exists with stable Asset IDs and derivative provenance.
+- Approved assets are not silently swapped, recropped, recomposed, or reassigned to another role downstream.
+- An **Asset-to-Slot Contract** binds Asset IDs to page/offer, channel region/module, dimensions/aspect, crop/transform rule, interaction, and ownership.
+- `ASSET_SLOT_GATE` fails on cross-slot leakage, wrong page/offer, wrong dimensions/crop, or unapproved derivatives.
+- Gallery-native and enhanced-content assets remain distinct role classes unless an explicitly approved derivative says otherwise.
+
+## Module Fit and Delivery Parity QA
+
+- Full content/topic coverage does not automatically pass module fit.
+- `MODULE_FIT_GATE` checks verified module availability, message grouping, interaction purpose, evidence, asset orientation/density, mobile behavior, frontend evidence, and channel constraints.
+- Independent static boards are not mechanically converted into carousel/slides only during Demo Assembly.
+- `DELIVERY_PARITY_GATE` compares planned versus implemented slot/module, interaction, Asset IDs, dimensions/aspect, message coverage, page/offer ownership, and channel region.
+- Missing modules, wrong source assets, wrong dimensions, or static substitutes for planned interactions fail parity even when the HTML opens successfully.
 
 ## Claim and compliance QA
 
@@ -92,6 +108,16 @@ Run this section whenever the deliverable is intended to look like a real consum
 - Environment, casting, props, and interactions are project-specific and approved.
 - Text remains readable and correctly localized on mobile.
 - Visual-quality failure does not trigger an unbounded regeneration loop; retry and transition rules are enforced.
+- Every visualizable P0 differentiator has a Differentiator Proof Matrix entry.
+- `DIFFERENTIATOR_PROOF_GATE` requires direct proof or an explicitly approved alternative proof strategy; generic lifestyle imagery alone is not enough.
+
+## Change-control QA
+
+- New authoritative facts, approved offer/strategy changes, asset/UI changes, channel-reference changes, or claim/legal decisions trigger a **Change Impact Map**.
+- Outputs are classified `UNAFFECTED`, `REVIEW`, `INVALIDATED`, or `REOPEN`.
+- Unaffected locked outputs are preserved.
+- Invalidated dependent outputs do not remain silently in final work.
+- The workflow does not restart the entire project unless dependency impact actually requires it.
 
 ## Technical and review-mode QA
 
@@ -102,3 +128,17 @@ Run this section whenever the deliverable is intended to look like a real consum
 - Review Mode exposes status and open items without changing Consumer Mode geometry.
 - Consumer Mode hides internal labels and unsupported details while preserving complete meaning.
 - Deliverable naming matches evidence: a native PDP/demo name is used only after `FRONTEND_FIDELITY_GATE` passes or the user explicitly approves a constrained `PARTIAL` scope.
+
+## Final Delivery QA
+
+Before calling the work complete:
+
+- Stage Completion Manifests are truthful;
+- required planned deliverables exist or reduced scope is explicitly approved;
+- `ASSET_SLOT_GATE` passes;
+- `CONTENT_COVERAGE` is acceptable;
+- `MODULE_FIT_GATE` passes;
+- `DIFFERENTIATOR_PROOF_GATE` passes or has an approved alternative;
+- `DELIVERY_PARITY_GATE` passes;
+- channel-native work satisfies `FRONTEND_FIDELITY_GATE`;
+- passed checks and open items are reported separately.
