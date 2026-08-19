@@ -22,10 +22,7 @@ Do not infer account access from a competitor page or another marketplace site.
 
 Amazon official guidance and Seller/Vendor interfaces are **Platform Capability** evidence. They establish what the account/channel may support, but **official rules do not substitute** for current **consumer-facing** frontend visual evidence.
 
-A high-fidelity Amazon PDP demo therefore requires both:
-
-1. current capability/ownership evidence; and
-2. a current Amazon.co.jp frontend reference that visually proves the material shell and section order.
+A high-fidelity Amazon PDP demo requires both current capability/ownership evidence and a current Amazon.co.jp frontend reference that visually proves the material shell and section order.
 
 ## Frontend reference intake
 
@@ -36,25 +33,25 @@ At Stage 5.5, ask whether the user has a preferred current **Reference URL** or 
 - If supplied, record it as the candidate **Primary Reference**.
 - If not supplied, research 1–3 current comparable Amazon.co.jp PDPs and recommend one Primary Reference.
 - Use current visual inspection or supplied screenshots/PDFs to establish the frontend shell.
-- If Amazon blocks live access, do not infer fidelity from text/DOM or official documentation alone. Use a supplied capture or clearly identified secondary reference for gaps, otherwise mark fidelity `PARTIAL`, `UNKNOWN`, or `BLOCKED`.
+- If live access is blocked, do not infer fidelity from text/DOM or official documentation alone.
 
 ## Frontend anatomy to capture
 
-Capture enough evidence to establish, where present on the current reference:
+Capture enough evidence to establish, where present:
 
-- Amazon/global page chrome relevant to the PDP context;
+- Amazon/global page chrome relevant to PDP context;
 - breadcrumb/category trail when material;
 - product media/gallery region;
-- product title, brand/store link, rating/review summary, price/offer information, and bullet region;
+- title, brand/store link, rating/review summary, price/offer information, bullets;
 - variation/option controls;
-- Featured Offer / purchase controls and other offer regions;
+- Featured Offer / purchase controls;
 - brand-controlled story/enhanced-content entry points;
 - product description / A+ placement;
-- specifications or product information regions;
-- platform-controlled recommendations, reviews, sponsored, or merchandising blocks that affect section order;
-- desktop and mobile/app-web reordering.
+- specifications/product information regions;
+- platform-controlled recommendations, reviews, sponsored, or merchandising blocks affecting section order;
+- desktop/mobile reordering.
 
-The demo does not need to reproduce every Amazon-owned data point, but its shell, ordering, hierarchy, and ownership boundaries must come from the locked reference evidence rather than original web design.
+The demo does not need every Amazon-owned data point, but shell, ordering, hierarchy, and ownership boundaries must come from locked reference evidence rather than original web design.
 
 ## Slot roles
 
@@ -70,6 +67,29 @@ The demo does not need to reproduce every Amazon-owned data point, but its shell
 
 Ratings, reviews, sponsored placements, recommendations, Featured Offer UI, and other platform-generated blocks are outside brand design ownership unless current evidence says otherwise.
 
+## Executable Amazon A+ module budget
+
+Read `references/executable-gates.md` and `data/channel-policy-limits.json`.
+
+The packaged current executable ceilings are:
+
+- Basic A+: **5 modules**;
+- Premium A+: **7 modules**.
+
+These limits are machine policy for the current Skill version. A current account may have a lower usable limit; the project may record that lower value. The project agent must not raise the packaged ceiling by editing its own Project State Manifest.
+
+Brand Story is treated as a separate detail-page section and is not counted as one of the Premium A+ module slots in the packaged policy.
+
+Before Stage 7 can lock an A+ module plan, run:
+
+```text
+CHANNEL_MODULE_BUDGET_GATE
+```
+
+A plan with more modules than the effective limit fails even when all content topics are covered.
+
+Content topics are not modules. Pack multiple related messages into the limited set of verified native modules.
+
 ## Amazon asset-role integrity
 
 Read `references/delivery-integrity.md`.
@@ -77,26 +97,27 @@ Read `references/delivery-integrity.md`.
 Gallery assets and enhanced-content assets are distinct slot classes unless an explicitly approved derivative says otherwise.
 
 - Approved Gallery assets keep stable Asset IDs and are reused exactly in Demo Assembly.
-- Do not crop an A+/enhanced-content landscape board into a square Gallery image and present it as the approved Gallery asset.
+- Do not crop an A+/enhanced-content landscape board into a Gallery image and present it as the approved Gallery asset.
 - Do not reuse a Gallery asset inside A+ merely because the subject looks relevant when the locked module requires a different role/evidence object.
-- Record target dimensions/aspect, crop/transform rule, page/offer scope, and allowed slots in the **Asset-to-Slot Contract**.
-- Run `ASSET_SLOT_GATE` before final adaptation and before Stage 9.
+- Record dimensions/aspect, crop/transform rule, page/offer scope, and allowed slots in the **Asset-to-Slot Contract**.
 
-A new crop/recomposition that can change framing, evidence, text, dimensions, or slot suitability is a derivative with a new Asset ID and approval status.
+A material crop/recomposition/role change creates a derivative with a new Asset ID and approval status.
+
+A deterministic crop is still a transform. It does not pass `TRANSFORM_AUTH_GATE` without matching transform authorization provenance.
 
 ## Planning rule
 
-Use the exact module families visible in the current account. If a module cannot be verified, record it as `UNKNOWN` rather than mapping content to a guessed structure.
+Use exact module families visible in the current account. If a module cannot be verified, record it as `UNKNOWN` rather than mapping content to a guessed structure.
 
 `Message != Module`. Pack several related messages into one supported carousel, hotspot, video, comparison, or expandable structure when the current account provides it.
 
-For channel-native demo work, map each planned region to the locked **Channel Frontend Reference Pack**. A message-to-module plan does not authorize inventing an Amazon frontend shell.
+For channel-native work, map each planned region to the locked **Channel Frontend Reference Pack**. A message-to-module plan does not authorize inventing an Amazon frontend shell.
 
 ## A+ / enhanced-content module fit
 
 Run `CONTENT_COVERAGE` and `MODULE_FIT_GATE` separately.
 
-A+ message coverage may be complete while the module architecture is still wrong. Do not treat “all topics are present” as proof that the selected Amazon module family is optimal or native.
+A+ message coverage may be complete while the module architecture is wrong. Do not treat “all topics are present” as proof that the selected Amazon module family is optimal or native.
 
 For every selected enhanced-content module record:
 
@@ -108,13 +129,35 @@ For every selected enhanced-content module record:
 - mobile behavior;
 - corresponding frontend-reference evidence when relevant.
 
-Do not take previously designed independent static boards and mechanically cut/group them into a navigation carousel, image carousel, slide sequence, hotspot, or other interaction during Demo Assembly. If an interactive module is the best choice, redesign the content packing and visual brief for that interaction in Stage 7 / 7.5 before production.
+Do not take independent static boards and mechanically cut/group them into navigation carousel, image carousel, slide sequence, hotspot, or other interaction during Demo Assembly. If an interactive module is the best choice, redesign content packing and visual brief for that interaction in Stage 7 / 7.5 before production.
 
 `CONTENT_COVERAGE = PASS` can coexist with `MODULE_FIT_GATE = FAIL`.
 
+## Locked module origin
+
+Stage 7 writes Amazon A+ architecture into the Project State Manifest `locked_module_plan` and computes a canonical `plan_hash`.
+
+After user review, record a matching approval event for that exact plan hash. Stage 9 must consume the same hash.
+
+Run:
+
+```text
+MODULE_ORIGIN_GATE
+```
+
+The gate fails if Demo Assembly adds an unplanned module, removes a planned module, changes native module type, changes interaction, or does not consume the exact locked plan hash.
+
+Stage 9 may not create M08/M09/M10 after a 7-module plan was approved and then retroactively update the plan to legitimize them.
+
+## Approval provenance
+
+A `LOCKED` asset must pass `APPROVAL_PROVENANCE_GATE` through either a matching user approval event or exact SHA-256 recovery of a previously locked asset.
+
+A file that looks similar to a missing prior asset is `RECOVERED_UNAPPROVED` until provenance is valid. Filename similarity is not exact recovery.
+
 ## Demo parity
 
-After Stage 9 assembly, run `DELIVERY_PARITY_GATE`.
+After Stage 9 assembly, the external validator computes `DELIVERY_PARITY_GATE` and related gates.
 
 For Amazon work, explicitly compare:
 
@@ -123,9 +166,13 @@ For Amazon work, explicitly compare:
 - planned Brand Story/A+ modules vs implemented modules;
 - carousel/slide/hotspot/video/comparison interaction vs actual demo interaction;
 - planned message coverage vs implemented coverage;
-- Single/Kit/variation page boundaries where applicable.
+- Single/Kit/variation boundaries where applicable.
 
-A missing A+ module, static rendering of a planned carousel, wrong Gallery source asset, or wrong crop/dimension causes parity failure even if the HTML runs.
+A missing A+ module, static rendering of a planned carousel, wrong source asset, wrong crop/dimension, or unplanned module causes failure even if HTML runs.
+
+Agent-authored `declared_gate_results` are ignored. Executable PASS comes only from the **external validator**.
+
+If the validator cannot run, executable gates remain `UNVERIFIED`.
 
 ## Frontend Fidelity Gate
 
@@ -133,9 +180,9 @@ Immediately before Stage 9, run `FRONTEND_FIDELITY_GATE`.
 
 A deliverable may be labeled an Amazon.co.jp PDP/channel-native demo only when the Primary Reference, material consumer-facing shell, section order, ownership boundaries, and required desktop/mobile behavior are visually supported.
 
-If the gate fails, use the fallback name **Content Review Demo**. Do not create a custom brand header, custom marketplace navigation, rounded-card page system, invented buy-box, custom tabs, or generic ecommerce chrome and call it Amazon-native.
+If the gate fails, use **Content Review Demo**. Do not create custom brand header, marketplace navigation, rounded-card page system, invented buy-box, custom tabs, or generic ecommerce chrome and call it Amazon-native.
 
-Review Mode may add non-destructive overlays for internal status, but the underlying Consumer Mode layout must remain the verified Amazon shell.
+Review Mode may add non-destructive overlays, but underlying Consumer Mode must remain the verified Amazon shell.
 
 ## Mobile rule
 
@@ -145,17 +192,17 @@ Review every gallery image, headline, variation, comparison, expandable element,
 
 Record:
 
-- marketplace site and account type;
-- capability status and verification date;
+- marketplace site/account type;
+- capability status/verification date;
 - editable-slot map;
 - selected module families;
 - content ownership boundary;
-- **Channel Frontend Reference Pack**;
-- Primary Reference URL / ASIN / supplied capture;
-- desktop/mobile frontend evidence and fidelity status;
-- Approved Asset Registry and Amazon Asset-to-Slot Contract;
-- `CONTENT_COVERAGE` and `MODULE_FIT_GATE` results;
-- `ASSET_SLOT_GATE` and `DELIVERY_PARITY_GATE` results;
-- `FRONTEND_FIDELITY_GATE` result when a native demo is requested;
+- Channel Frontend Reference Pack and Primary Reference;
+- Approved Asset Registry and Asset-to-Slot Contract;
+- Project State Manifest;
+- locked Amazon module plan and `plan_hash`;
+- `CONTENT_COVERAGE` and `MODULE_FIT_GATE`;
+- external-validator results for `CHANNEL_MODULE_BUDGET_GATE`, `APPROVAL_PROVENANCE_GATE`, `MODULE_ORIGIN_GATE`, `TRANSFORM_AUTH_GATE`, `ASSET_SLOT_GATE`, and `DELIVERY_PARITY_GATE`;
+- `FRONTEND_FIDELITY_GATE` result;
 - mobile QA result;
-- open channel-policy or frontend questions.
+- open channel-policy/frontend questions.
