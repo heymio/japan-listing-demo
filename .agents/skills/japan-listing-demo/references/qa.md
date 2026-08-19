@@ -8,6 +8,16 @@
 - Upstream provenance is recorded for maintainers but not exposed as a runtime requirement.
 - Optional private overlays remain optional and separate.
 
+## Execution Flow QA
+
+- **Continuous execution by default** is active when the user asks for an end deliverable.
+- A normal Gate is not a pause point; Source Gate, Fact Gate, Strategy review, Channel Capability checks, Visual Evidence QA, and similar checks do not require a user reply before the next valid stage.
+- Progress updates are informational and do not wait for “继续”, “go”, “确认”, “可以继续”, or equivalent approval.
+- Non-blocking gaps are tracked as `PENDING CLAIM`, `DEMO ASSET`, `PROVISIONAL UI`, `UNKNOWN`, or Open Items while supported downstream work continues.
+- The workflow pauses for a Hard Blocker only when continuing would materially invalidate or misrepresent the next output.
+- An explicit user checkpoint is always respected. If the user asks to stop at Strategy / Module Plan, visual production does not begin until approval.
+- Batch visual work does not pause after every asset unless the user explicitly requests per-asset review.
+
 ## Configuration QA
 
 - `market.country` is `JP`.
