@@ -1,5 +1,20 @@
 # Changelog
 
+## 0.2.4 — Delivery integrity and change control
+
+- Added **Stage Completion Manifest** so a completed subset of a stage cannot be mislabeled as full stage completion; statuses are `COMPLETE`, `PARTIAL`, or `BLOCKED`.
+- Added **Asset Readiness Preflight** in Stage 1 to surface critical product/UI/channel asset gaps before visual production or demo assembly.
+- Added **Approved Asset Registry** with stable Asset IDs, canonical source, dimensions/aspect, page/offer scope, allowed slots, approval status, derivative provenance, and transform rules.
+- Added **Asset-to-Slot Contract** and `ASSET_SLOT_GATE` to prevent approved assets from being silently replaced, cross-slot asset leakage, wrong dimensions/crops, and unapproved derivatives.
+- Added explicit Amazon rule that Gallery-native and enhanced-content assets are distinct slot classes unless an approved derivative says otherwise.
+- Separated `CONTENT_COVERAGE` from `MODULE_FIT_GATE`; complete topic coverage no longer implies the selected native module architecture is valid.
+- Prohibited mechanically converting independent static boards into carousel/slides only during Demo Assembly; interactive module logic/content packing must be planned in Stage 7 and Stage 7.5.
+- Added `DIFFERENTIATOR_PROOF_GATE` so visualizable P0 purchase reasons require direct visual proof or an explicitly approved alternative proof strategy.
+- Added `DELIVERY_PARITY_GATE` to compare planned vs implemented module/slot, interaction, source Asset IDs, dimensions/aspect, message coverage, page/offer ownership, and channel region before a demo can be called complete.
+- Added **Change Impact Map** with `UNAFFECTED`, `REVIEW`, `INVALIDATED`, and `REOPEN` so newer authoritative evidence reopens only impacted work.
+- Added anonymized real-project regression cases for false completion, silent asset substitution, cross-slot leakage, module-fit mistakes, missing native interaction, weak P0 proof, late asset discovery, and targeted reopen.
+- Updated Amazon.co.jp profile, workflow, output contracts, QA, default prompt, README/install docs, validator, package membership, and version metadata.
+
 ## 0.2.3 — Channel-native demo fidelity gate
 
 - Fixed a workflow gap where channel capability research could be completed without establishing the current consumer-facing frontend, allowing the agent to invent a generic marketplace/DTC shell during Demo Assembly.
