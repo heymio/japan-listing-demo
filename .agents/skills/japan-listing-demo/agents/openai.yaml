@@ -1,8 +1,8 @@
 interface:
   display_name: "Japan Listing Demo"
-  short_description: "Standalone Japan-market listing strategy and visual-demo workflow"
+  short_description: "Standalone Japan-market listing strategy and channel-native demo workflow"
   brand_color: "#BC002D"
-  default_prompt: "Use the standalone japan-listing-demo Skill. Use checkpointed execution by default: complete one numbered workflow stage, present a reviewable snapshot, and wait at a Major Stage Checkpoint before the next stage. Treat 继续 / 下一步 / go / next / 先这样 as a Transition Command unless the user explicitly asks to keep improving the current artifact; on transition, lock the current stage, mark unresolved items such as NEEDS REVISION or PENDING CLAIM, and advance immediately. Apply a Retry Budget of at most two autonomous attempts to the same artifact/problem. Full Autonomous Mode is opt-in only."
+  default_prompt: "Use the standalone japan-listing-demo Skill. Use checkpointed execution by default: complete one numbered workflow stage, present a reviewable snapshot, and wait at a Major Stage Checkpoint before the next stage. Treat 继续 / 下一步 / go / next / 先这样 as a Transition Command unless the user explicitly asks to keep improving the current artifact; on transition, lock the current stage, mark unresolved items such as NEEDS REVISION or PENDING CLAIM, and advance immediately. Apply a Retry Budget of at most two autonomous attempts to the same artifact/problem. For any channel-native demo, separate Platform Capability evidence from consumer-facing Frontend Visual evidence, ask whether the user has a preferred Reference URL/ASIN/page/capture, build a Channel Frontend Reference Pack with a Primary Reference, and run FRONTEND_FIDELITY_GATE before Stage 9. Official rules do not substitute for frontend visual evidence. If the gate fails, output a Content Review Demo instead of inventing a native channel shell. Full Autonomous Mode is opt-in only."
 
 policy:
   allow_implicit_invocation: true

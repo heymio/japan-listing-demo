@@ -54,6 +54,27 @@ When `locale.id: ja-JP`:
 - A previous marketplace implementation does not define the current one.
 - Unsupported or unknown capabilities remain `UNKNOWN` or `PENDING`.
 - Mobile rendering and current content policies are checked.
+- Platform Capability evidence and Frontend Visual evidence are recorded separately.
+
+## Frontend Fidelity QA
+
+Run this section whenever the deliverable is intended to look like a real consumer-facing channel page.
+
+- A **Channel Frontend Reference Pack** exists.
+- The user was asked whether they had a preferred current **Reference URL**, ASIN, retailer/store page, design-system reference, or screenshot set before native demo assembly.
+- A user-supplied valid reference is the candidate **Primary Reference** and is not silently replaced.
+- If the user supplied no reference, 1–3 current comparable consumer-facing references were researched and a Primary Reference was selected with reasons.
+- **Official rules do not substitute** for visual evidence of the current consumer-facing frontend.
+- The reference pack records capture date, access status, desktop evidence, mobile/app-web evidence, section order, brand/platform ownership, material interactions, responsive behavior, fidelity status, and open questions.
+- Text/DOM parsing alone is not labeled `HIGH` frontend fidelity.
+- Live-page access failures follow the Retry Budget; the workflow does not repeatedly retry an inaccessible page or invent the missing shell.
+- `FRONTEND_FIDELITY_GATE` runs immediately before Stage 9 for a channel-native demo.
+- The gate verifies a locked Primary Reference, material shell evidence, section order, ownership boundaries, and required desktop/mobile behavior.
+- A gate failure produces a clearly named **Content Review Demo**, not a falsely labeled **channel-native demo**.
+- A native demo reproduces the verified channel shell first and inserts approved project content only into verified brand-controlled regions.
+- Platform-owned regions are evidenced structure or conservative placeholders, not redesigned brand marketing modules.
+- Consumer Mode does not expose internal IA names, module IDs, evidence statuses, or workflow labels as page chrome.
+- Review Mode is an overlay and does not change the verified underlying Consumer Mode layout.
 
 ## Claim and compliance QA
 
@@ -74,9 +95,10 @@ When `locale.id: ja-JP`:
 
 ## Technical and review-mode QA
 
-- Gallery, tabs, carousels, comparisons, Q&A, and essential review interactions work on desktop and mobile.
+- Gallery, tabs, carousels, comparisons, Q&A, and essential review interactions work on desktop and mobile when those interactions belong to the verified target shell.
 - Local review files use native or CSS-safe fallbacks when JavaScript support is uncertain.
 - Asset paths are complete.
 - Standalone files have no missing local dependencies.
-- Review Mode exposes status and open items.
+- Review Mode exposes status and open items without changing Consumer Mode geometry.
 - Consumer Mode hides internal labels and unsupported details while preserving complete meaning.
+- Deliverable naming matches evidence: a native PDP/demo name is used only after `FRONTEND_FIDELITY_GATE` passes or the user explicitly approves a constrained `PARTIAL` scope.

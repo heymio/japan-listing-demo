@@ -1,5 +1,5 @@
 distribution: standalone
-distribution_version: 0.2.2
+distribution_version: 0.2.3
 upstream:
   repository: heymio/gtm-listing-demo
   version: 0.2.0
@@ -20,10 +20,24 @@ distribution_patches:
       - core/workflow.md
       - SKILL.md
       - agents/openai.yaml
+  - id: channel-native-demo-fidelity-v0.2.3
+    purpose: require current consumer-facing frontend references and a Frontend Fidelity Gate before labeling or assembling channel-native demos
+    files:
+      - core/workflow.md
+      - core/qa.md
+      - SKILL.md
+      - agents/openai.yaml
+      - references/channel-native-demo.md
+      - references/qa.md
+      - profiles/channels/amazon-jp.md
+      - profiles/channels/rakuten.md
+      - profiles/channels/yahoo-shopping.md
+      - profiles/channels/dtc.md
+      - profiles/channels/retailer-pdp.md
 update_policy:
   - review upstream changelog
   - update snapshot in a feature branch
   - preserve or deliberately revise documented distribution patches
-  - run standalone, Japan, channel, and cross-category evals
+  - run standalone, Japan, channel, cross-category, and frontend-fidelity evals
   - release only after CI passes
 runtime_dependency: none

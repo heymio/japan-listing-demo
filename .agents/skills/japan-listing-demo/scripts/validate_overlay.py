@@ -32,6 +32,7 @@ REQUIRED_JAPAN_FILES = [
     SKILL_DIR / "references" / "japan-market-evidence.md",
     SKILL_DIR / "references" / "ja-jp-localization.md",
     SKILL_DIR / "references" / "japan-claim-compliance.md",
+    SKILL_DIR / "references" / "channel-native-demo.md",
     SKILL_DIR / "references" / "qa.md",
     SKILL_DIR / "profiles" / "channels" / "amazon-jp.md",
     SKILL_DIR / "profiles" / "channels" / "rakuten.md",
@@ -85,6 +86,7 @@ GUARDED_FILES = [
     SKILL_DIR / "references" / "japan-market-evidence.md",
     SKILL_DIR / "references" / "ja-jp-localization.md",
     SKILL_DIR / "references" / "japan-claim-compliance.md",
+    SKILL_DIR / "references" / "channel-native-demo.md",
     SKILL_DIR / "references" / "qa.md",
     SKILL_DIR / "profiles" / "channels" / "amazon-jp.md",
     SKILL_DIR / "profiles" / "channels" / "rakuten.md",
@@ -140,8 +142,8 @@ def main() -> int:
             fail(f"core manifest is missing provenance value: {value}")
 
     version = (REPO_ROOT / "VERSION").read_text(encoding="utf-8").strip()
-    if version != "0.2.2":
-        fail(f"VERSION must be 0.2.2, found {version!r}")
+    if version != "0.2.3":
+        fail(f"VERSION must be 0.2.3, found {version!r}")
 
     all_text = "\n".join(path.read_text(encoding="utf-8") for path in required)
     placeholders = re.findall(r"\b(?:TODO|TBD|FIXME)\b", all_text, flags=re.I)
@@ -183,6 +185,12 @@ def main() -> int:
         "Japan market without category evidence",
         "Japan market with a non-Japanese locale",
         "Rakuten project must not inherit Amazon modules",
+        "Amazon channel-native demo requires frontend reference intake",
+        "User-provided frontend reference has priority",
+        "Platform rules are not frontend visual evidence",
+        "Frontend Fidelity Gate blocks invented channel shells",
+        "Channel-native demo shell comes from reference evidence",
+        "Non-Amazon channel-native demos use the same reference contract",
         "Category conclusions must not leak across projects",
     ]:
         if scenario not in eval_text:
@@ -192,7 +200,7 @@ def main() -> int:
     openai_yaml = (SKILL_DIR / "agents" / "openai.yaml").read_text(encoding="utf-8")
     execution_policy = "\n".join([skill_text, workflow, openai_yaml]).casefold()
     if "continuous execution by default" in execution_policy:
-        fail("continuous execution must not be the default in v0.2.2")
+        fail("continuous execution must not be the default in v0.2.3")
     for phrase in [
         "checkpointed execution by default",
         "major stage checkpoint",
@@ -206,6 +214,24 @@ def main() -> int:
     if "human review gate" in workflow.casefold():
         fail("legacy Human Review Gate wording must be replaced with major-stage checkpoint semantics")
 
+    native_demo = (SKILL_DIR / "references" / "channel-native-demo.md").read_text(encoding="utf-8")
+    amazon_profile = (SKILL_DIR / "profiles" / "channels" / "amazon-jp.md").read_text(encoding="utf-8")
+    frontend_policy = "\n".join([skill_text, workflow, openai_yaml, native_demo, amazon_profile]).casefold()
+    for phrase in [
+        "channel frontend reference pack",
+        "frontend fidelity gate",
+        "primary reference",
+        "reference url",
+        "content review demo",
+        "channel-native demo",
+        "consumer-facing",
+        "platform capability",
+    ]:
+        if phrase not in frontend_policy:
+            fail(f"channel-native demo policy is missing: {phrase}")
+    if "official rules do not substitute" not in frontend_policy:
+        fail("must state that official platform rules do not substitute for frontend visual evidence")
+
     readme = (REPO_ROOT / "README.md").read_text(encoding="utf-8")
     install = (REPO_ROOT / "docs" / "install.md").read_text(encoding="utf-8")
     for document_name, document in [("README.md", readme), ("docs/install.md", install)]:
@@ -216,6 +242,8 @@ def main() -> int:
             fail(f"{document_name} must explain major-stage checkpoints")
         if "next" not in doc and "下一步" not in doc:
             fail(f"{document_name} must explain transition commands")
+        if "frontend" not in doc or "reference" not in doc:
+            fail(f"{document_name} must explain frontend reference research before channel-native demos")
 
     print("PASS: japan-listing-demo standalone distribution is valid")
     print(f"PASS: {len(required)} required files exist")
@@ -223,6 +251,7 @@ def main() -> int:
     print("PASS: no second-Skill runtime dependency is present")
     print("PASS: category and persona leakage checks passed")
     print("PASS: checkpointed execution, transition command, and anti-loop eval coverage passed")
+    print("PASS: channel frontend reference and fidelity-gate coverage passed")
     return 0
 
 

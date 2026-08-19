@@ -1,5 +1,20 @@
 # Changelog
 
+## 0.2.3 — Channel-native demo fidelity gate
+
+- Fixed a workflow gap where channel capability research could be completed without establishing the current consumer-facing frontend, allowing the agent to invent a generic marketplace/DTC shell during Demo Assembly.
+- Added **Channel Frontend Reference Pack** as a required Stage 5.5 output for channel-native demos.
+- Added explicit **Reference URL / ASIN / page / screenshot intake**: the agent asks whether the user has a preferred current reference; user-supplied references become the candidate Primary Reference.
+- When the user has no reference, the agent researches 1–3 current comparable consumer-facing pages and recommends one Primary Reference at the Stage 5.5 checkpoint.
+- Separated **Platform Capability evidence** from **Frontend Visual evidence**. Official platform/retailer/component rules do not by themselves prove the current frontend layout.
+- Added visual-capture requirements for desktop/mobile shell anatomy, material section order, interaction, responsive behavior, and brand/platform ownership boundaries.
+- Added `FRONTEND_FIDELITY_GATE` immediately before Stage 9.
+- Added the fallback name **Content Review Demo** when frontend fidelity is not sufficiently verified; the workflow must not label an invented shell as a channel-native PDP/demo.
+- Changed Stage 9 so verified channel shell and section order are reproduced first, then approved project content is inserted only into verified brand-controlled regions.
+- Added Review Mode isolation: internal labels/statuses may overlay the demo but must not redesign the underlying Consumer Mode shell.
+- Added channel-native rules to Amazon.co.jp, Rakuten, Yahoo! Shopping, DTC, and retailer PDP profiles.
+- Added frontend-fidelity QA, regression evals, validator checks, package-member checks, README/install guidance, and version metadata.
+
 ## 0.2.2 — Checkpoint and anti-loop fix
 
 - Restored **Major Stage Checkpoints by default** after real-world testing showed that fully autonomous end-to-end execution could produce structurally complete but low-quality final demos without enough human review.
