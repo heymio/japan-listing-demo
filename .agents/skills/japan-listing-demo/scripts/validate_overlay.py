@@ -140,8 +140,8 @@ def main() -> int:
             fail(f"core manifest is missing provenance value: {value}")
 
     version = (REPO_ROOT / "VERSION").read_text(encoding="utf-8").strip()
-    if version != "0.2.1":
-        fail(f"VERSION must be 0.2.1, found {version!r}")
+    if version != "0.2.2":
+        fail(f"VERSION must be 0.2.2, found {version!r}")
 
     all_text = "\n".join(path.read_text(encoding="utf-8") for path in required)
     placeholders = re.findall(r"\b(?:TODO|TBD|FIXME)\b", all_text, flags=re.I)
@@ -175,7 +175,10 @@ def main() -> int:
     )
     for scenario in [
         "Standalone Japan team installation",
-        "Continuous execution without stage-by-stage approval",
+        "Major-stage checkpoint by default",
+        "User transition command exits current stage",
+        "Frame retry budget prevents loops",
+        "Explicit autonomous mode is opt-in",
         "Explicit checkpoint request must be respected",
         "Japan market without category evidence",
         "Japan market with a non-Japanese locale",
@@ -188,33 +191,38 @@ def main() -> int:
     workflow = (SKILL_DIR / "core" / "workflow.md").read_text(encoding="utf-8")
     openai_yaml = (SKILL_DIR / "agents" / "openai.yaml").read_text(encoding="utf-8")
     execution_policy = "\n".join([skill_text, workflow, openai_yaml]).casefold()
+    if "continuous execution by default" in execution_policy:
+        fail("continuous execution must not be the default in v0.2.2")
     for phrase in [
-        "continuous execution by default",
-        "gate is not a pause point",
-        "hard blocker",
-        "continue automatically",
+        "checkpointed execution by default",
+        "major stage checkpoint",
+        "transition command",
+        "retry budget",
+        "needs revision",
+        "autonomous mode",
     ]:
         if phrase not in execution_policy:
-            fail(f"continuous-execution policy is missing: {phrase}")
+            fail(f"checkpointed-execution policy is missing: {phrase}")
     if "human review gate" in workflow.casefold():
-        fail("workflow must not require a stage-by-stage Human Review Gate")
-    if "reviewable strategy snapshot" not in workflow.casefold():
-        fail("Stage 4 must output a Reviewable Strategy Snapshot instead of a mandatory pause")
+        fail("legacy Human Review Gate wording must be replaced with major-stage checkpoint semantics")
 
     readme = (REPO_ROOT / "README.md").read_text(encoding="utf-8")
     install = (REPO_ROOT / "docs" / "install.md").read_text(encoding="utf-8")
     for document_name, document in [("README.md", readme), ("docs/install.md", install)]:
-        if "one skill" not in document.casefold() and "一个 skill" not in document.casefold():
+        doc = document.casefold()
+        if "one skill" not in doc and "一个 skill" not in doc:
             fail(f"{document_name} must explain one-Skill installation")
-        if "continuous" not in document.casefold() and "连续" not in document.casefold():
-            fail(f"{document_name} must explain continuous execution behavior")
+        if "checkpoint" not in doc and "检查点" not in doc:
+            fail(f"{document_name} must explain major-stage checkpoints")
+        if "next" not in doc and "下一步" not in doc:
+            fail(f"{document_name} must explain transition commands")
 
     print("PASS: japan-listing-demo standalone distribution is valid")
     print(f"PASS: {len(required)} required files exist")
     print("PASS: bundled core provenance and version are valid")
     print("PASS: no second-Skill runtime dependency is present")
     print("PASS: category and persona leakage checks passed")
-    print("PASS: continuous-execution policy and eval coverage passed")
+    print("PASS: checkpointed execution, transition command, and anti-loop eval coverage passed")
     return 0
 
 
