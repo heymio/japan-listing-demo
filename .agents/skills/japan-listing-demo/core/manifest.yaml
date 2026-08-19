@@ -1,0 +1,20 @@
+distribution: standalone
+upstream:
+  repository: heymio/gtm-listing-demo
+  version: 0.2.0
+  commit: b882526f5a683235d30f562006cf1984a9f0d9f9
+snapshot_scope:
+  - workflow
+  - contracts
+  - market-research
+  - localization
+  - visual-evidence
+  - qa
+  - category-template
+  - core-evals
+update_policy:
+  - review upstream changelog
+  - update snapshot in a feature branch
+  - run standalone, Japan, channel, and cross-category evals
+  - release only after CI passes
+runtime_dependency: none

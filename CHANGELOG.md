@@ -1,22 +1,19 @@
 # Changelog
 
-All notable changes to `japan-listing-demo` are documented here.
+## 0.2.0 — Standalone distribution
 
-## 0.1.0 — 2026-08-19
+- Bundled a version-locked generic workflow snapshot inside the Japan Skill.
+- Removed the runtime requirement to install or load a second Skill.
+- Added core provenance manifest, workflow, contracts, evidence methods, QA, category template, and core evals.
+- Updated `$japan-listing-demo` to be the only team-facing invocation.
+- Updated README and installation instructions for one repository and one ZIP.
+- Added validator checks for runtime dependency wording, standalone files, version, provenance, one-install documentation, and leakage boundaries.
+- Added ZIP-member verification to the packager.
+- Preserved Japan market-evidence, `ja-JP` localization, claim/compliance, channel, visual, mobile, and technical QA layers.
 
-### Added
+## 0.1.0 — Public Japan overlay
 
-- Public Japan-market overlay for `heymio/gtm-listing-demo` v0.2.0+.
-- Japan market-evidence framework.
-- `ja-JP` localization and native-review rules.
-- Japan claim and compliance verification queue.
-- Channel profiles for Amazon.co.jp, Rakuten, Yahoo! Shopping, DTC, and retailer PDPs.
-- Cross-category, cross-channel, locale, public/private, and unsupported-persona evals.
-- Standard-library validator and Skill packaging script.
-- GitHub Actions validation and artifact packaging.
-
-### Boundaries
-
-- No product-category conclusions are built into the overlay.
-- No private company facts, pricing, design links, unreleased claims, or project assets are included.
-- Market, locale, channel, category, offer, and page target remain separate configuration layers.
+- Added Japan market-evidence framework.
+- Added `ja-JP` localization and Japan claim/compliance references.
+- Added Amazon.co.jp, Rakuten, Yahoo! Shopping, DTC, and retailer PDP channel profiles.
+- Added category/persona leakage checks and Japan-specific evals.
