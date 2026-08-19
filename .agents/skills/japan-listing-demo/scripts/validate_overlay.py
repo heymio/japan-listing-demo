@@ -140,8 +140,8 @@ def main() -> int:
             fail(f"core manifest is missing provenance value: {value}")
 
     version = (REPO_ROOT / "VERSION").read_text(encoding="utf-8").strip()
-    if version != "0.2.0":
-        fail(f"VERSION must be 0.2.0, found {version!r}")
+    if version != "0.2.1":
+        fail(f"VERSION must be 0.2.1, found {version!r}")
 
     all_text = "\n".join(path.read_text(encoding="utf-8") for path in required)
     placeholders = re.findall(r"\b(?:TODO|TBD|FIXME)\b", all_text, flags=re.I)
@@ -175,6 +175,8 @@ def main() -> int:
     )
     for scenario in [
         "Standalone Japan team installation",
+        "Continuous execution without stage-by-stage approval",
+        "Explicit checkpoint request must be respected",
         "Japan market without category evidence",
         "Japan market with a non-Japanese locale",
         "Rakuten project must not inherit Amazon modules",
@@ -183,18 +185,36 @@ def main() -> int:
         if scenario not in eval_text:
             fail(f"missing evaluation scenario: {scenario}")
 
+    workflow = (SKILL_DIR / "core" / "workflow.md").read_text(encoding="utf-8")
+    openai_yaml = (SKILL_DIR / "agents" / "openai.yaml").read_text(encoding="utf-8")
+    execution_policy = "\n".join([skill_text, workflow, openai_yaml]).casefold()
+    for phrase in [
+        "continuous execution by default",
+        "gate is not a pause point",
+        "hard blocker",
+        "continue automatically",
+    ]:
+        if phrase not in execution_policy:
+            fail(f"continuous-execution policy is missing: {phrase}")
+    if "human review gate" in workflow.casefold():
+        fail("workflow must not require a stage-by-stage Human Review Gate")
+    if "reviewable strategy snapshot" not in workflow.casefold():
+        fail("Stage 4 must output a Reviewable Strategy Snapshot instead of a mandatory pause")
+
     readme = (REPO_ROOT / "README.md").read_text(encoding="utf-8")
     install = (REPO_ROOT / "docs" / "install.md").read_text(encoding="utf-8")
     for document_name, document in [("README.md", readme), ("docs/install.md", install)]:
         if "one skill" not in document.casefold() and "一个 skill" not in document.casefold():
             fail(f"{document_name} must explain one-Skill installation")
+        if "continuous" not in document.casefold() and "连续" not in document.casefold():
+            fail(f"{document_name} must explain continuous execution behavior")
 
     print("PASS: japan-listing-demo standalone distribution is valid")
     print(f"PASS: {len(required)} required files exist")
     print("PASS: bundled core provenance and version are valid")
     print("PASS: no second-Skill runtime dependency is present")
     print("PASS: category and persona leakage checks passed")
-    print("PASS: Japan evidence contract and standalone eval coverage passed")
+    print("PASS: continuous-execution policy and eval coverage passed")
     return 0
 
 
