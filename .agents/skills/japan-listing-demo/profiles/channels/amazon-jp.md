@@ -70,6 +70,20 @@ The demo does not need to reproduce every Amazon-owned data point, but its shell
 
 Ratings, reviews, sponsored placements, recommendations, Featured Offer UI, and other platform-generated blocks are outside brand design ownership unless current evidence says otherwise.
 
+## Amazon asset-role integrity
+
+Read `references/delivery-integrity.md`.
+
+Gallery assets and enhanced-content assets are distinct slot classes unless an explicitly approved derivative says otherwise.
+
+- Approved Gallery assets keep stable Asset IDs and are reused exactly in Demo Assembly.
+- Do not crop an A+/enhanced-content landscape board into a square Gallery image and present it as the approved Gallery asset.
+- Do not reuse a Gallery asset inside A+ merely because the subject looks relevant when the locked module requires a different role/evidence object.
+- Record target dimensions/aspect, crop/transform rule, page/offer scope, and allowed slots in the **Asset-to-Slot Contract**.
+- Run `ASSET_SLOT_GATE` before final adaptation and before Stage 9.
+
+A new crop/recomposition that can change framing, evidence, text, dimensions, or slot suitability is a derivative with a new Asset ID and approval status.
+
 ## Planning rule
 
 Use the exact module families visible in the current account. If a module cannot be verified, record it as `UNKNOWN` rather than mapping content to a guessed structure.
@@ -77,6 +91,41 @@ Use the exact module families visible in the current account. If a module cannot
 `Message != Module`. Pack several related messages into one supported carousel, hotspot, video, comparison, or expandable structure when the current account provides it.
 
 For channel-native demo work, map each planned region to the locked **Channel Frontend Reference Pack**. A message-to-module plan does not authorize inventing an Amazon frontend shell.
+
+## A+ / enhanced-content module fit
+
+Run `CONTENT_COVERAGE` and `MODULE_FIT_GATE` separately.
+
+A+ message coverage may be complete while the module architecture is still wrong. Do not treat “all topics are present” as proof that the selected Amazon module family is optimal or native.
+
+For every selected enhanced-content module record:
+
+- verified module family/account availability;
+- message role and messages packed into it;
+- why the interaction is useful for the shopper;
+- evidence objects/assets required;
+- source Asset IDs and orientation/density constraints;
+- mobile behavior;
+- corresponding frontend-reference evidence when relevant.
+
+Do not take previously designed independent static boards and mechanically cut/group them into a navigation carousel, image carousel, slide sequence, hotspot, or other interaction during Demo Assembly. If an interactive module is the best choice, redesign the content packing and visual brief for that interaction in Stage 7 / 7.5 before production.
+
+`CONTENT_COVERAGE = PASS` can coexist with `MODULE_FIT_GATE = FAIL`.
+
+## Demo parity
+
+After Stage 9 assembly, run `DELIVERY_PARITY_GATE`.
+
+For Amazon work, explicitly compare:
+
+- planned Gallery slot count/order vs implemented Gallery assets;
+- exact Gallery Asset IDs and target dimensions/aspect;
+- planned Brand Story/A+ modules vs implemented modules;
+- carousel/slide/hotspot/video/comparison interaction vs actual demo interaction;
+- planned message coverage vs implemented coverage;
+- Single/Kit/variation page boundaries where applicable.
+
+A missing A+ module, static rendering of a planned carousel, wrong Gallery source asset, or wrong crop/dimension causes parity failure even if the HTML runs.
 
 ## Frontend Fidelity Gate
 
@@ -104,6 +153,9 @@ Record:
 - **Channel Frontend Reference Pack**;
 - Primary Reference URL / ASIN / supplied capture;
 - desktop/mobile frontend evidence and fidelity status;
+- Approved Asset Registry and Amazon Asset-to-Slot Contract;
+- `CONTENT_COVERAGE` and `MODULE_FIT_GATE` results;
+- `ASSET_SLOT_GATE` and `DELIVERY_PARITY_GATE` results;
 - `FRONTEND_FIDELITY_GATE` result when a native demo is requested;
 - mobile QA result;
 - open channel-policy or frontend questions.
