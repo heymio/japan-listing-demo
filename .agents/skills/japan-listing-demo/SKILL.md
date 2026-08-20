@@ -32,6 +32,14 @@ Read `references/routing.md` and route by current stage:
 
 Do not duplicate the detailed rules of those Skills in this Router.
 
+### Skill resolution
+
+In the recommended repository/Codex distribution, resolve those names as sibling Skills under `.agents/skills/`.
+
+In the one-install compatibility archive, sibling Skills are embedded under `internal-skills/<skill-name>/`. If repository-level sibling resolution is unavailable and that directory exists, read the corresponding embedded `SKILL.md` and its stage-local references as the execution source for the current plane. This is a **single-context** fallback: stage boundaries and Context Projection still apply, but embedded loading is not independent semantic review.
+
+The user still invokes only `$japan-listing-demo` in either distribution mode.
+
 ## Major Stage Checkpoint
 
 Use **Major Stage Checkpoint** execution by default. Complete the current stage to a reviewable state, then stop for the user's review before entering the next major stage unless the user gives a Transition Command or explicitly requests autonomous execution.
