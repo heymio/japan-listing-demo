@@ -102,6 +102,24 @@ def test_fresh_project_does_not_require_full_stage_6_5_audit() -> None:
     assert "targeted early audit" in text
 
 
+def test_channel_profiles_are_owned_by_planning() -> None:
+    channels = ["amazon-jp.md", "rakuten.md", "yahoo-shopping.md", "dtc.md", "retailer-pdp.md"]
+    root = SKILL_DIR / "profiles" / "channels"
+    for name in channels:
+        text = read(root / name).casefold()
+        assert "use when" in text
+        assert "platform" in text or "channel" in text
+        assert "content" in text or "module" in text
+
+
+def test_amazon_planning_profile_keeps_module_budget_and_role_separation() -> None:
+    text = read(SKILL_DIR / "profiles" / "channels" / "amazon-jp.md").casefold()
+    for phrase in ["basic a+", "premium a+", "message != module", "gallery", "enhanced-content", "module_fit_gate"]:
+        assert phrase in text
+    for forbidden in ["exact_recovery_verified", "delivery_parity_gate", "provenance_conflict"]:
+        assert forbidden not in text
+
+
 def main() -> int:
     tests = [v for k, v in globals().items() if k.startswith("test_") and callable(v)]
     for test in tests:
