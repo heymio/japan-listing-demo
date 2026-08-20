@@ -1,0 +1,13 @@
+assets:
+  AMZ-G1:
+    role: gallery-native
+    status: USER_APPROVED
+    current_output_ref: file:amz-g1
+    approval_ref: chat:creative-approval-1
+  AMZ-G2:
+    role: gallery-native
+    status: REVIEW
+    current_output_ref: file:amz-g2-draft
+  AMZ-A1:
+    role: enhanced-content
+    status: READY
