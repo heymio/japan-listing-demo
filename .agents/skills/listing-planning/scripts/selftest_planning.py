@@ -33,11 +33,34 @@ def test_stage_6_5_is_lightweight_by_default() -> None:
     assert "full project-wide audit is not mandatory" in text
 
 
+def test_deep_strategy_references_exist() -> None:
+    required = {
+        "source-authority.md": ["product fact", "conflict", "claim"],
+        "market-research.md": ["voc", "competitor", "evidence", "inference"],
+        "localization.md": ["locale", "ja-jp", "evidence"],
+        "channel-planning.md": ["primary reference", "platform capability", "frontend visual"],
+        "module-fit.md": ["content_coverage", "module_fit_gate", "message != module"],
+        "planning-qa.md": ["complete demo-required production set", "gallery", "enhanced-content"],
+    }
+    for filename, phrases in required.items():
+        text = read(SKILL_DIR / "references" / filename).casefold()
+        for phrase in phrases:
+            assert phrase in text, (filename, phrase)
+
+
+def test_planning_references_do_not_own_final_hardening() -> None:
+    joined = "\n".join(
+        read(path) for path in sorted((SKILL_DIR / "references").glob("*.md"))
+    ).casefold()
+    for forbidden in ["provenance_conflict", "exact_recovery_verified", "delivery_parity_gate"]:
+        assert forbidden not in joined
+
+
 def main() -> int:
     tests = [v for k, v in globals().items() if k.startswith("test_") and callable(v)]
     for test in tests:
         test()
-    print(f"PASS: {len(tests)} listing-planning boundary tests")
+    print(f"PASS: {len(tests)} listing-planning tests")
     return 0
 
 
