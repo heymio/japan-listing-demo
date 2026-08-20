@@ -47,6 +47,7 @@ def test_deep_strategy_references_exist() -> None:
         "source-authority.md": ["product fact", "conflict", "claim"],
         "market-research.md": ["voc", "competitor", "evidence", "inference"],
         "localization.md": ["locale", "ja-jp", "evidence"],
+        "claim-compliance.md": ["verification queue", "visual can create a claim", "refresh trigger"],
         "channel-planning.md": ["primary reference", "platform capability", "frontend visual"],
         "module-fit.md": ["content_coverage", "module_fit_gate", "message != module"],
         "planning-qa.md": ["complete demo-required production set", "gallery", "enhanced-content"],
@@ -55,6 +56,15 @@ def test_deep_strategy_references_exist() -> None:
         text = read(SKILL_DIR / "references" / filename).casefold()
         for phrase in phrases:
             assert phrase in text, (filename, phrase)
+
+
+def test_japan_market_and_copy_depth_survives_context_simplification() -> None:
+    market = read(SKILL_DIR / "references" / "market-research.md").casefold()
+    locale = read(SKILL_DIR / "references" / "localization.md").casefold()
+    for phrase in ["market evidence registry", "search and keyword research", "visual localization"]:
+        assert phrase in market
+    for phrase in ["native review", "search-language research", "numbers and formats", "provisional copy"]:
+        assert phrase in locale
 
 
 def test_planning_references_do_not_own_final_hardening() -> None:
