@@ -47,7 +47,11 @@ Use a targeted early audit only when inheriting or reusing a previously approved
 
 ## Stage 7 completion
 
-Before leaving Stage 7, define the Complete Demo-Required Production Set. Priority differentiator proof is not the same as a complete production asset set.
+Stage 7 is complete only when every Demo-required final role has an Asset ID in the Production Handoff or an explicit `BLOCKED` entry with the missing upstream decision.
+
+**Priority proof coverage does not make the production set complete.** P0/differentiator visual proof is a strategy and evidence requirement, not a substitute for complete production-set accounting.
+
+Gallery and enhanced-content roles remain separate production requirements unless explicit reuse or derivative intent was planned upstream.
 
 ## Required handoff
 
