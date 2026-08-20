@@ -21,6 +21,7 @@ REPO_ROOT = SCRIPT_DIR.parents[3]
 DEFAULT_POLICY_PATH = REPO_ROOT / ".agents" / "skills" / "japan-listing-demo" / "data" / "channel-policy-limits.json"
 HEX64 = re.compile(r"^[0-9a-f]{64}$")
 FINAL_AUDITED_STATUSES = {"VERIFIED", "HUMAN_APPROVED"}
+SUPPORTED_SCHEMA_VERSIONS = {"0.1", "0.2"}
 
 
 def canonical_hash(value: Any) -> str:
@@ -142,8 +143,9 @@ def _required_asset_ids(state: dict[str, Any]) -> set[str]:
 
 def _schema_gate(state: dict[str, Any]) -> dict[str, Any]:
     errors: list[str] = []
-    if state.get("schema_version") != "0.1":
-        errors.append("schema_version must be 0.1")
+    schema_version = state.get("schema_version")
+    if schema_version not in SUPPORTED_SCHEMA_VERSIONS:
+        errors.append("schema_version must be 0.1 or 0.2")
     if not isinstance(state.get("channel"), dict):
         errors.append("channel object missing")
     if not isinstance(state.get("assets", []), list):
@@ -160,6 +162,9 @@ def _schema_gate(state: dict[str, Any]) -> dict[str, Any]:
     auditor_evidence = state.get("auditor_evidence")
     if auditor_evidence is not None and not isinstance(auditor_evidence, dict):
         errors.append("auditor_evidence must be an object when present")
+    production_freeze = state.get("production_freeze")
+    if production_freeze is not None and not isinstance(production_freeze, dict):
+        errors.append("production_freeze must be an object when present")
     return _gate("FAIL" if errors else "PASS", *errors)
 
 
@@ -371,6 +376,44 @@ def _evidence_reconciliation_gate(state: dict[str, Any]) -> dict[str, Any]:
     return _gate("FAIL" if errors else "PASS", *errors)
 
 
+def _production_freeze_gate(state: dict[str, Any]) -> dict[str, Any]:
+    if state.get("schema_version") != "0.2":
+        return _gate("N/A", "production freeze gate applies to Delivery State 0.2")
+    checkpoints = state.get("audit_checkpoints") or {}
+    if checkpoints.get("pre_9_required") is not True:
+        return _gate("N/A", "pre-9 hardening not required")
+
+    freeze = state.get("production_freeze")
+    if not isinstance(freeze, dict):
+        return _gate("FAIL", "production_freeze missing before pre-demo hardening")
+
+    errors: list[str] = []
+    expected = freeze.get("expected_assets")
+    approved = freeze.get("user_approved_assets")
+    output_refs = freeze.get("approved_output_refs")
+
+    if not isinstance(expected, int) or isinstance(expected, bool) or expected < 0:
+        errors.append("production_freeze expected_assets must be a non-negative integer")
+    if not isinstance(approved, list) or any(not isinstance(asset_id, str) or not asset_id for asset_id in approved):
+        errors.append("production_freeze user_approved_assets must be a list of Asset IDs")
+        approved = []
+    if len(set(approved)) != len(approved):
+        errors.append("production_freeze user_approved_assets must not contain duplicates")
+    if not isinstance(output_refs, list) or any(not isinstance(ref, str) or not ref for ref in output_refs):
+        errors.append("production_freeze approved_output_refs must be a list of output references")
+        output_refs = []
+
+    if isinstance(expected, int) and not isinstance(expected, bool) and expected >= 0:
+        if len(approved) != expected:
+            errors.append(f"production freeze approved {len(approved)} of {expected} expected assets")
+    if len(output_refs) != len(approved):
+        errors.append("production_freeze approved_output_refs count must match approved assets")
+
+    if errors:
+        return _gate("FAIL", *errors)
+    return _gate("PASS", f"production freeze contains {len(approved)} creatively approved assets")
+
+
 def _pre_demo_asset_gate(state: dict[str, Any]) -> dict[str, Any]:
     checkpoints = state.get("audit_checkpoints") or {}
     if checkpoints.get("pre_9_required") is not True:
@@ -476,6 +519,7 @@ def validate_state(state: dict[str, Any], policy: dict[str, Any] | None = None) 
         "MODULE_ORIGIN_GATE": _module_origin_gate(state),
         "TRANSFORM_AUTH_GATE": _transform_auth_gate(state),
         "EVIDENCE_RECONCILIATION_GATE": _evidence_reconciliation_gate(state),
+        "PRODUCTION_FREEZE_GATE": _production_freeze_gate(state),
         "ASSET_SLOT_GATE": _asset_slot_gate(state),
         "PRE_DEMO_ASSET_GATE": _pre_demo_asset_gate(state),
         "DELIVERY_PARITY_GATE": _delivery_parity_gate(state),
@@ -490,7 +534,7 @@ def validate_state(state: dict[str, Any], policy: dict[str, Any] | None = None) 
     return {
         "overall_status": overall,
         "gates": gates,
-        "note": "declared_gate_results is intentionally ignored; auditor evidence overrides planner asset eligibility when present",
+        "note": "creative Production Freeze and auditor Evidence Verification are separate; declared_gate_results is ignored; auditor evidence overrides planner asset eligibility when present",
     }
 
 
