@@ -146,6 +146,29 @@ def test_complete_production_freeze_and_verified_assets_pass_both_gates() -> Non
     assert result["gates"]["PRE_DEMO_ASSET_GATE"]["status"] == "PASS"
 
 
+def test_hardening_references_cover_delivery_integrity() -> None:
+    expected = {
+        "asset-integrity.md": ["sha-256", "transform", "semantic role", "asset-to-slot"],
+        "executable-gates.md": ["channel_module_budget_gate", "module_origin_gate", "pre_demo_asset_gate", "delivery_parity_gate"],
+        "frontend-fidelity.md": ["primary reference", "frontend_fidelity_gate", "content review demo"],
+        "final-qa.md": ["final qa", "consumer mode", "review mode", "delivery parity"],
+    }
+    for filename, phrases in expected.items():
+        text = read(SKILL_DIR / "references" / filename).casefold()
+        for phrase in phrases:
+            assert phrase in text, (filename, phrase)
+
+
+def test_delivery_state_example_is_v02_without_fake_pass_results() -> None:
+    text = read(SKILL_DIR / "templates" / "delivery-state.example.json")
+    folded = text.casefold()
+    assert '"schema_version": "0.2"' in text
+    assert '"production_freeze"' in text
+    assert '"pre_9_required": true' in folded
+    for forbidden in ["declared_gate_results", '"status": "pass"']:
+        assert forbidden not in folded
+
+
 def main() -> int:
     tests = [v for k, v in globals().items() if k.startswith("test_") and callable(v)]
     for test in tests:
