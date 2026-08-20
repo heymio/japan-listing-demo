@@ -8,7 +8,7 @@ import json
 from pathlib import Path
 from typing import Any
 
-from fingerprint_assets import fingerprint_packet
+from fingerprint_assets import fingerprint_packet, validate_audit_packet
 
 FINAL_USABLE = {"VERIFIED", "HUMAN_APPROVED"}
 SUPPORTED_IMAGE_FAMILIES = {"png", "jpeg", "webp"}
@@ -210,15 +210,14 @@ def reconcile_evidence(
     fingerprints from the project root. This low-level function remains for tests
     and host integrations that already control the physical-evidence boundary.
     """
+    validate_audit_packet(packet)
     fingerprints = fingerprints_payload.get("assets", {})
     approvals = _index(packet.get("approval_events", []), "approval_event_id")
     prior_locked = _index(packet.get("prior_locked_assets", []), "asset_id")
     assets_out: dict[str, Any] = {}
 
     for asset in packet.get("assets", []):
-        asset_id = asset.get("asset_id")
-        if not isinstance(asset_id, str) or not asset_id:
-            continue
+        asset_id = asset["asset_id"]
         fingerprint = fingerprints.get(asset_id) or {
             "exists": False,
             "path_allowed": False,
@@ -266,7 +265,7 @@ def reconcile_evidence(
 
     set_errors: list[str] = []
     for slot in packet.get("slots", []):
-        slot_id = slot.get("slot_id")
+        slot_id = slot["slot_id"]
         for asset_id in slot.get("required_asset_ids", []):
             result = assets_out.get(asset_id)
             if not result:
@@ -325,6 +324,7 @@ def main() -> int:
     try:
         packet = _load_json(args.audit_input, "audit input")
         semantic_review = _load_json(args.semantic_review, "semantic review") if args.semantic_review else None
+        result = reconcile_from_files(packet, args.project_root, semantic_review, independent_semantic=False)
     except ValueError as exc:
         print(f"FAIL: {exc}")
         return 1
@@ -333,7 +333,6 @@ def main() -> int:
     # never upgrades an `independent_context` label solely from a caller flag.
     # Human review remains trusted; host runtimes with a real isolation boundary
     # may call reconcile_from_files(..., independent_semantic=True) directly.
-    result = reconcile_from_files(packet, args.project_root, semantic_review, independent_semantic=False)
     text = json.dumps(result, ensure_ascii=False, indent=2, sort_keys=True)
     if args.output:
         args.output.parent.mkdir(parents=True, exist_ok=True)
