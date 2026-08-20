@@ -17,6 +17,15 @@ Planning QA asks whether the project has enough evidence and architecture to han
 11. Interaction/content packing is decided before Production.
 12. Stage 7 defines the **Complete Demo-Required Production Set** for Gallery, enhanced-content, and any other required page/demo regions.
 
+## Stage 6.5 decision table
+
+| Situation | Stage 6.5 behavior |
+|---|---|
+| Fresh source render/UI/brand asset | inventory only |
+| New final Gallery/A+ asset not produced yet | plan its Asset ID; do not audit nonexistent output |
+| Previously approved exact asset requested for reuse | targeted early audit |
+| User supplied visual only as benchmark | register benchmark role; no reuse approval |
+
 ## Handoff quality
 
 The Project Brief, Creative Strategy Kernel, and Production Handoff should preserve resolved decisions and creative strategy while excluding final-delivery hardening machinery and long-form research history.
