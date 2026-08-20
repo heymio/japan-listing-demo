@@ -4,7 +4,7 @@
 
 **Goal:** Add the `listing-hardening` sibling Skill, move final evidence/delivery responsibilities to Stage 8.5–10, preserve v0.2.5/v0.2.6 protections, and change early evidence audit from mandatory project-wide behavior to targeted inherited-asset audit only.
 
-**Architecture:** Hardening consumes the Production Freeze, exact final files, locked module/page plan, relevant Project Brief fields, and frontend evidence. It owns physical-file validation, evidence-auditor orchestration, exact approval/provenance, transforms, slot integrity, module origin, frontend fidelity, demo assembly, delivery parity, and final QA. The existing executable validator is migrated to the Hardening Skill while the old script path remains a compatibility shim for one release. Full `listing-evidence-auditor` audit is mandatory at Stage 8.5; `EVIDENCE_RECONCILIATION_GATE` is applicable only when targeted inherited-asset audit was explicitly requested earlier.
+**Architecture:** Hardening consumes the Production Freeze, exact final files, locked module/page plan, relevant Project Brief fields, and frontend evidence. It owns physical-file validation, evidence-auditor orchestration, exact approval/provenance, transforms, slot integrity, module origin, frontend fidelity, demo assembly, delivery parity, and final QA. The existing executable validator is migrated to the Hardening Skill while the old script path remains a compatibility shim for one release. Delivery State schema `0.2` is an additive successor to Project State `0.1`; the v0.3.0 compatibility release accepts both. Full `listing-evidence-auditor` audit is mandatory at Stage 8.5; `EVIDENCE_RECONCILIATION_GATE` is applicable only when targeted inherited-asset audit was explicitly requested earlier.
 
 **Tech Stack:** Python 3.12 standard library, existing `listing-evidence-auditor` scripts, JSON Delivery State / Project State compatibility, Markdown hardening references/evals, GitHub Actions.
 
@@ -20,6 +20,7 @@
 - `USER_APPROVED` creative status alone is never final-consumable delivery evidence.
 - `listing-evidence-auditor` remains a separate sibling Skill and retains its independent/human semantic-review limitation.
 - Wrong files, unauthorized derivatives, role mismatch, incomplete sets, or plan drift invalidate delivery state; do not normalize them by rewriting registries.
+- Delivery State `0.2` preserves the machine fields required by v0.2.6 (`channel`, `approval_events`, `assets`, `locked_module_plan`, `asset_slot_contract`, `implementation`) and adds Production Freeze / hardening state. It is not a disconnected second schema.
 - Keep the old `.agents/skills/japan-listing-demo/scripts/validate_project_state.py` CLI/API working as a compatibility shim until the final integration/release slice.
 - Public files remain category-neutral; no private project examples.
 - `VERSION` remains `0.2.6` in this slice.
@@ -36,15 +37,15 @@
 - Create `.agents/skills/listing-hardening/references/executable-gates.md` — machine gate contract migrated from current reference.
 - Create `.agents/skills/listing-hardening/references/frontend-fidelity.md` — implementation/fidelity half of channel-native demo rules.
 - Create `.agents/skills/listing-hardening/references/final-qa.md` — final delivery QA.
-- Create `.agents/skills/listing-hardening/templates/delivery-state.example.json` — Hardening-owned delivery state.
+- Create `.agents/skills/listing-hardening/templates/delivery-state.example.json` — Hardening-owned schema `0.2` example, compatible with the existing Project State machine fields.
 - Create `.agents/skills/listing-hardening/scripts/validate_delivery_state.py` — canonical validator implementation, preserving `canonical_hash()` and `validate_state()` APIs.
-- Create `.agents/skills/listing-hardening/scripts/selftest_hardening.py` — selective early-audit, Production Freeze, and mandatory pre-demo regressions.
+- Create `.agents/skills/listing-hardening/scripts/selftest_hardening.py` — schema, selective early-audit, Production Freeze, and mandatory pre-demo regressions.
 - Create `.agents/skills/listing-hardening/evals/hardening.md` — anonymized hardening scenarios.
 
 ### Compatibility / existing files
 
 - Modify `.agents/skills/japan-listing-demo/scripts/validate_project_state.py` — compatibility shim that loads/re-exports the Hardening validator.
-- Modify `.agents/skills/japan-listing-demo/scripts/selftest_project_state_validator.py` — import compatibility remains green; no new business logic lives here after migration.
+- Modify `.agents/skills/japan-listing-demo/scripts/selftest_project_state_validator.py` — v0.1 import/behavior compatibility remains green; no new business logic lives here after migration except fixture additions required by new gates.
 - Modify `.github/workflows/validate-japan-listing-demo.yml` — run Hardening self-tests.
 - Do not rewrite public Router/README/package bundle yet; final integration owns that.
 
@@ -269,15 +270,18 @@ git commit -m "refactor: move delivery validator to hardening"
 
 ---
 
-### Task 3: Add Production Freeze as a separate hardening gate and characterize selective early-audit behavior
+### Task 3: Introduce Delivery State v0.2 and Production Freeze without weakening selective-audit behavior
 
 **Files:**
 - Modify: `.agents/skills/listing-hardening/scripts/validate_delivery_state.py`
 - Modify: `.agents/skills/listing-hardening/scripts/selftest_hardening.py`
-- Modify: `.agents/skills/japan-listing-demo/templates/project-state.example.json` only for compatibility examples if necessary; final template ownership moves in the release slice.
+- Modify: `.agents/skills/japan-listing-demo/scripts/selftest_project_state_validator.py`
+- Modify: `.agents/skills/japan-listing-demo/templates/project-state.example.json` only for legacy/example compatibility if necessary.
 
 **Interfaces:**
-- `audit_checkpoints.post_6_5_required` means a targeted inherited-asset audit was requested; absent/false => `EVIDENCE_RECONCILIATION_GATE = N/A`.
+- `schema_version: "0.1"` remains valid for legacy Project State during v0.3.0 compatibility.
+- `schema_version: "0.2"` is Delivery State and retains the v0.1 machine fields plus `production_freeze` and hardening state.
+- `audit_checkpoints.post_6_5_required` means targeted inherited-asset audit was requested; absent/false => `EVIDENCE_RECONCILIATION_GATE = N/A`.
 - `audit_checkpoints.pre_9_required` is true for final channel-native hardening.
 - New `PRODUCTION_FREEZE_GATE` checks creative-set completeness before pre-demo evidence verification.
 - `PRE_DEMO_ASSET_GATE` separately checks final evidence verification and remains strict.
@@ -315,14 +319,23 @@ def test_pre_demo_audit_remains_mandatory_when_required() -> None:
 
 - [ ] **Step 2: Run characterization tests**
 
-Expected: these three tests PASS on migrated v0.2.6 behavior. They document what is preserved; they are not the RED test for the new gate.
+Expected: these three tests PASS on migrated v0.2.6 behavior. They document preserved behavior; they are not the RED test for new schema/gate behavior.
 
-- [ ] **Step 3: Add the failing Production Freeze gate test**
+- [ ] **Step 3: Add failing Delivery State schema and Production Freeze tests**
 
 ```python
+def test_delivery_state_schema_0_2_is_accepted() -> None:
+    validator = load_module(NEW_VALIDATOR, "delivery_schema_red")
+    state = minimal_valid_state()
+    state["schema_version"] = "0.2"
+    result = validator.validate_state(state)
+    assert result["gates"]["SCHEMA_GATE"]["status"] == "PASS"
+
+
 def test_pre_demo_hardening_requires_complete_production_freeze() -> None:
     validator = load_module(NEW_VALIDATOR, "freeze_gate_red")
     state = minimal_valid_state()
+    state["schema_version"] = "0.2"
     state["audit_checkpoints"] = {"pre_9_required": True}
     state["auditor_evidence"] = {
         "checkpoint": "pre-9",
@@ -339,9 +352,20 @@ def test_pre_demo_hardening_requires_complete_production_freeze() -> None:
 
 - [ ] **Step 4: Run and verify RED**
 
-Expected: assertion failure because `PRODUCTION_FREEZE_GATE` is not yet present in the validator result.
+Expected: schema `0.2` fails the existing `SCHEMA_GATE`, and `PRODUCTION_FREEZE_GATE` is absent.
 
-- [ ] **Step 5: Implement `_production_freeze_gate`**
+- [ ] **Step 5: Implement additive schema support and `_production_freeze_gate`**
+
+Change schema handling from exact `0.1` to:
+
+```python
+if state.get("schema_version") not in {"0.1", "0.2"}:
+    errors.append("schema_version must be 0.1 or 0.2")
+```
+
+Keep all existing required machine fields for both versions.
+
+Add:
 
 ```python
 def _production_freeze_gate(state: dict[str, Any]) -> dict[str, Any]:
@@ -374,6 +398,7 @@ Add `PRODUCTION_FREEZE_GATE` to `validate_state()` before `PRE_DEMO_ASSET_GATE`.
 def test_complete_creative_freeze_still_needs_auditor_evidence() -> None:
     validator = load_module(NEW_VALIDATOR, "creative_only_validator")
     state = minimal_valid_state()
+    state["schema_version"] = "0.2"
     state["audit_checkpoints"] = {"pre_9_required": True}
     state["production_freeze"] = {
         "expected_assets": 1,
@@ -390,7 +415,7 @@ def test_complete_creative_freeze_still_needs_auditor_evidence() -> None:
 
 - [ ] **Step 7: Run Hardening and legacy validator tests**
 
-Expected: new freeze tests pass. Update legacy v0.2.6 tests that explicitly set `pre_9_required = true` to add a complete category-neutral Production Freeze fixture; do not weaken their existing evidence assertions.
+Expected: new schema/freeze tests pass. Update legacy v0.2.6 tests that explicitly set `pre_9_required = true` to add a complete category-neutral Production Freeze fixture; retain schema `0.1` in legacy fixtures and do not weaken existing evidence assertions.
 
 - [ ] **Step 8: Commit**
 
@@ -398,7 +423,7 @@ Expected: new freeze tests pass. Update legacy v0.2.6 tests that explicitly set 
 git add .agents/skills/listing-hardening/scripts \
         .agents/skills/japan-listing-demo/scripts/selftest_project_state_validator.py \
         .agents/skills/japan-listing-demo/templates/project-state.example.json
-git commit -m "feat: separate creative freeze from evidence verification"
+git commit -m "feat: add delivery state and production freeze gate"
 ```
 
 ---
@@ -417,6 +442,7 @@ git commit -m "feat: separate creative freeze from evidence verification"
 **Interfaces:**
 - Hardening reference set owns final-only governance terms.
 - Planning/Production no longer need these files at runtime after router integration.
+- `delivery-state.example.json` uses schema `0.2` and preserves the v0.1 validator machine fields.
 
 - [ ] **Step 1: Add failing reference-ownership tests**
 
@@ -424,7 +450,7 @@ git commit -m "feat: separate creative freeze from evidence verification"
 def test_hardening_references_cover_delivery_integrity() -> None:
     expected = {
         "asset-integrity.md": ["sha-256", "transform", "semantic role", "asset-to-slot"],
-        "executable-gates.md": ["channel_module_budget_gate", "module_origin_gate", "pre_demo_asset_gate", "delivery_parity_gate"],
+        "executable-gates.md": ["channel_module_budget_gate", "module_origin_gate", "production_freeze_gate", "pre_demo_asset_gate", "delivery_parity_gate"],
         "frontend-fidelity.md": ["primary reference", "frontend_fidelity_gate", "content review demo"],
         "final-qa.md": ["final qa", "consumer mode", "review mode", "delivery parity"],
     }
@@ -452,31 +478,37 @@ Wrong implementation must be corrected at the source; do not rewrite the registr
 
 `frontend-fidelity.md` must preserve the `Content Review Demo` fallback.
 
-- [ ] **Step 4: Create Delivery State example**
+- [ ] **Step 4: Create a structurally valid Delivery State 0.2 example**
 
-Use category-neutral JSON:
+Use category-neutral JSON and preserve the existing machine fields:
 
 ```json
 {
   "schema_version": "0.2",
+  "channel": {
+    "id": "amazon-jp",
+    "enhanced_content": {"tier": "premium", "declared_max_modules": 7}
+  },
+  "approval_events": [],
+  "assets": [],
   "production_freeze": {
-    "expected_assets": 2,
-    "user_approved_assets": ["G1", "A1"],
+    "expected_assets": 0,
+    "user_approved_assets": [],
     "blocked_assets": [],
     "revision_pending": [],
-    "approved_output_refs": ["file:g1", "file:a1"]
+    "approved_output_refs": []
   },
-  "audit_checkpoints": {"pre_9_required": true},
+  "audit_checkpoints": {"pre_9_required": false},
   "auditor_evidence": {},
-  "locked_module_plan": {},
+  "locked_module_plan": {"status": "DRAFT", "modules": []},
   "asset_slot_contract": [],
-  "implementation": {},
+  "implementation": {"slots": []},
   "frontend_fidelity": {},
   "delivery_parity": {}
 }
 ```
 
-The example intentionally contains no fake PASS verdicts.
+The example contains no fake PASS verdicts and can pass `SCHEMA_GATE` without pretending final hardening is complete.
 
 - [ ] **Step 5: Add anonymized hardening evals**
 
@@ -487,7 +519,8 @@ Creative approval cannot replace physical verification
 Wrong same-name file fails exact identity
 Unauthorized crop fails transform authorization
 Gallery asset cannot satisfy enhanced-content role by convenience
-Incomplete final asset set blocks pre-demo gate
+Incomplete final asset set blocks production freeze
+Complete creative freeze still needs pre-demo evidence audit
 Stage 9 cannot invent an interaction absent from locked plan
 Channel-native name requires frontend fidelity
 Accidental demo must not rewrite source registry
@@ -564,6 +597,7 @@ Before implementation review, verify:
 - Fresh Stage 6.5 no longer implies full project-wide evidence audit.
 - Targeted inherited-asset audit remains strict when explicitly requested.
 - Production Freeze completeness and Evidence Verification remain separate gates.
+- Delivery State `0.2` is an additive successor of Project State `0.1`, and legacy `0.1` remains accepted for the compatibility release.
 - All v0.2.5/v0.2.6 structural/evidence regressions remain active.
 - The old validator path remains compatible until final integration.
 - Hardening references contain no strategy/creative-generation responsibilities.
