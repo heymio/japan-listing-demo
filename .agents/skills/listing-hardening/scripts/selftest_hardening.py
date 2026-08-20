@@ -191,6 +191,22 @@ def test_duplicate_asset_and_slot_ids_fail_schema() -> None:
     assert any("duplicate" in message.casefold() for message in result["gates"]["SCHEMA_GATE"]["messages"])
 
 
+def test_duplicate_implementation_module_id_fails_schema() -> None:
+    validator = load_module(NEW_VALIDATOR, "duplicate_impl_module_validator")
+    state = minimal_valid_state("0.2")
+    duplicate_slot = dict(state["implementation"]["slots"][0])
+    duplicate_slot["slot_id"] = "M01-copy"
+    state["implementation"]["slots"].append(duplicate_slot)
+    result = validator.validate_state(state)
+    gate = result["gates"]["SCHEMA_GATE"]
+    assert gate["status"] == "FAIL"
+    assert any(
+        "duplicate" in message.casefold() and "module_id" in message.casefold()
+        for message in gate["messages"]
+    )
+    assert all(name == "SCHEMA_GATE" or item["status"] == "N/A" for name, item in result["gates"].items())
+
+
 def test_hardening_references_cover_delivery_integrity() -> None:
     expected = {
         "asset-integrity.md": ["sha-256", "transform", "semantic role", "asset-to-slot"],
