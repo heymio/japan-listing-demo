@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Validate japan-listing-demo and its sibling evidence auditor distribution."""
+"""Validate the creative-first five-Skill japan-listing-demo distribution."""
 
 from __future__ import annotations
 
@@ -8,104 +8,120 @@ import subprocess
 import sys
 from pathlib import Path
 
-SKILL_DIR = Path(__file__).resolve().parents[1]
-REPO_ROOT = SKILL_DIR.parents[2]
-SKILL_FILE = SKILL_DIR / "SKILL.md"
-AUDITOR_DIR = REPO_ROOT / ".agents" / "skills" / "listing-evidence-auditor"
+MAIN_SKILL = Path(__file__).resolve().parents[1]
+REPO_ROOT = MAIN_SKILL.parents[2]
+SKILLS_ROOT = REPO_ROOT / ".agents" / "skills"
 
-REQUIRED_CORE_FILES = [
-    SKILL_DIR / "core" / "manifest.yaml",
-    SKILL_DIR / "core" / "workflow.md",
-    SKILL_DIR / "core" / "contracts.md",
-    SKILL_DIR / "core" / "market-research.md",
-    SKILL_DIR / "core" / "localization.md",
-    SKILL_DIR / "core" / "visual-evidence.md",
-    SKILL_DIR / "core" / "qa.md",
-    SKILL_DIR / "core" / "profiles" / "categories" / "_template.md",
-    SKILL_DIR / "core" / "evals" / "core.md",
-    SKILL_DIR / "core" / "evals" / "cross-category.md",
-    SKILL_DIR / "core" / "evals" / "multichannel.md",
+SKILL_NAMES = [
+    "japan-listing-demo",
+    "listing-planning",
+    "listing-production",
+    "listing-hardening",
+    "listing-evidence-auditor",
 ]
+SKILLS = {name: SKILLS_ROOT / name for name in SKILL_NAMES}
 
-REQUIRED_JAPAN_FILES = [
-    SKILL_FILE,
-    SKILL_DIR / "agents" / "openai.yaml",
-    SKILL_DIR / "references" / "core-snapshot.md",
-    SKILL_DIR / "references" / "japan-market-evidence.md",
-    SKILL_DIR / "references" / "ja-jp-localization.md",
-    SKILL_DIR / "references" / "japan-claim-compliance.md",
-    SKILL_DIR / "references" / "channel-native-demo.md",
-    SKILL_DIR / "references" / "delivery-integrity.md",
-    SKILL_DIR / "references" / "executable-gates.md",
-    SKILL_DIR / "references" / "qa.md",
-    SKILL_DIR / "profiles" / "channels" / "amazon-jp.md",
-    SKILL_DIR / "profiles" / "channels" / "rakuten.md",
-    SKILL_DIR / "profiles" / "channels" / "yahoo-shopping.md",
-    SKILL_DIR / "profiles" / "channels" / "dtc.md",
-    SKILL_DIR / "profiles" / "channels" / "retailer-pdp.md",
-    SKILL_DIR / "evals" / "core.md",
-    SKILL_DIR / "evals" / "cross-category.md",
-    SKILL_DIR / "evals" / "channels.md",
-    SKILL_DIR / "evals" / "delivery-integrity.md",
-    SKILL_DIR / "evals" / "executable-gates.md",
-    SKILL_DIR / "evals" / "evidence-auditor.md",
-    SKILL_DIR / "data" / "channel-policy-limits.json",
-    SKILL_DIR / "templates" / "project-state.example.json",
-    SKILL_DIR / "scripts" / "validate_project_state.py",
-    SKILL_DIR / "scripts" / "selftest_project_state_validator.py",
-    SKILL_DIR / "scripts" / "package_skill.py",
-]
-
-REQUIRED_AUDITOR_FILES = [
-    AUDITOR_DIR / "SKILL.md",
-    AUDITOR_DIR / "agents" / "openai.yaml",
-    AUDITOR_DIR / "references" / "audit-contract.md",
-    AUDITOR_DIR / "scripts" / "fingerprint_assets.py",
-    AUDITOR_DIR / "scripts" / "reconcile_evidence.py",
-    AUDITOR_DIR / "scripts" / "selftest_auditor.py",
-    AUDITOR_DIR / "templates" / "audit-input.example.json",
-    AUDITOR_DIR / "templates" / "semantic-review.example.json",
-]
-
-REQUIRED_REPO_FILES = [
+REQUIRED_FILES = [
+    SKILLS["japan-listing-demo"] / "SKILL.md",
+    SKILLS["japan-listing-demo"] / "agents" / "openai.yaml",
+    SKILLS["japan-listing-demo"] / "references" / "routing.md",
+    SKILLS["japan-listing-demo"] / "references" / "exception-routing.md",
+    SKILLS["japan-listing-demo"] / "data" / "channel-policy-limits.json",
+    SKILLS["japan-listing-demo"] / "core" / "manifest.yaml",
+    SKILLS["japan-listing-demo"] / "scripts" / "selftest_router.py",
+    SKILLS["japan-listing-demo"] / "scripts" / "validate_project_state.py",
+    SKILLS["japan-listing-demo"] / "scripts" / "selftest_project_state_validator.py",
+    SKILLS["japan-listing-demo"] / "scripts" / "package_skill.py",
+    SKILLS["listing-planning"] / "SKILL.md",
+    SKILLS["listing-planning"] / "agents" / "openai.yaml",
+    SKILLS["listing-planning"] / "references" / "source-authority.md",
+    SKILLS["listing-planning"] / "references" / "market-research.md",
+    SKILLS["listing-planning"] / "references" / "localization.md",
+    SKILLS["listing-planning"] / "references" / "channel-planning.md",
+    SKILLS["listing-planning"] / "references" / "module-fit.md",
+    SKILLS["listing-planning"] / "references" / "planning-qa.md",
+    SKILLS["listing-planning"] / "templates" / "project-brief.example.yaml",
+    SKILLS["listing-planning"] / "templates" / "creative-strategy.example.yaml",
+    SKILLS["listing-planning"] / "templates" / "production-handoff.example.yaml",
+    SKILLS["listing-planning"] / "scripts" / "validate_planning_contracts.py",
+    SKILLS["listing-planning"] / "scripts" / "selftest_planning.py",
+    SKILLS["listing-planning"] / "evals" / "planning.md",
+    SKILLS["listing-planning"] / "profiles" / "channels" / "amazon-jp.md",
+    SKILLS["listing-planning"] / "profiles" / "channels" / "rakuten.md",
+    SKILLS["listing-planning"] / "profiles" / "channels" / "yahoo-shopping.md",
+    SKILLS["listing-planning"] / "profiles" / "channels" / "dtc.md",
+    SKILLS["listing-planning"] / "profiles" / "channels" / "retailer-pdp.md",
+    SKILLS["listing-production"] / "SKILL.md",
+    SKILLS["listing-production"] / "agents" / "openai.yaml",
+    SKILLS["listing-production"] / "references" / "visual-production.md",
+    SKILLS["listing-production"] / "references" / "benchmark-policy.md",
+    SKILLS["listing-production"] / "references" / "production-qa.md",
+    SKILLS["listing-production"] / "references" / "golden-examples.md",
+    SKILLS["listing-production"] / "references" / "visual-patterns" / "hero-positioning.md",
+    SKILLS["listing-production"] / "references" / "visual-patterns" / "compact-proof.md",
+    SKILLS["listing-production"] / "references" / "visual-patterns" / "mechanism-explainer.md",
+    SKILLS["listing-production"] / "references" / "visual-patterns" / "automation-flow.md",
+    SKILLS["listing-production"] / "references" / "visual-patterns" / "comparison.md",
+    SKILLS["listing-production"] / "references" / "visual-patterns" / "installation-decision.md",
+    SKILLS["listing-production"] / "references" / "visual-patterns" / "ui-proof.md",
+    SKILLS["listing-production"] / "templates" / "asset-packet.example.yaml",
+    SKILLS["listing-production"] / "templates" / "asset-ledger.example.yaml",
+    SKILLS["listing-production"] / "templates" / "production-freeze.example.yaml",
+    SKILLS["listing-production"] / "scripts" / "project_asset_packet.py",
+    SKILLS["listing-production"] / "scripts" / "production_state.py",
+    SKILLS["listing-production"] / "scripts" / "selftest_production.py",
+    SKILLS["listing-production"] / "evals" / "production.md",
+    SKILLS["listing-hardening"] / "SKILL.md",
+    SKILLS["listing-hardening"] / "agents" / "openai.yaml",
+    SKILLS["listing-hardening"] / "references" / "asset-integrity.md",
+    SKILLS["listing-hardening"] / "references" / "executable-gates.md",
+    SKILLS["listing-hardening"] / "references" / "frontend-fidelity.md",
+    SKILLS["listing-hardening"] / "references" / "final-qa.md",
+    SKILLS["listing-hardening"] / "templates" / "delivery-state.example.json",
+    SKILLS["listing-hardening"] / "scripts" / "validate_delivery_state.py",
+    SKILLS["listing-hardening"] / "scripts" / "selftest_hardening.py",
+    SKILLS["listing-hardening"] / "evals" / "hardening.md",
+    SKILLS["listing-evidence-auditor"] / "SKILL.md",
+    SKILLS["listing-evidence-auditor"] / "agents" / "openai.yaml",
+    SKILLS["listing-evidence-auditor"] / "references" / "audit-contract.md",
+    SKILLS["listing-evidence-auditor"] / "scripts" / "fingerprint_assets.py",
+    SKILLS["listing-evidence-auditor"] / "scripts" / "reconcile_evidence.py",
+    SKILLS["listing-evidence-auditor"] / "scripts" / "selftest_auditor.py",
+    SKILLS["listing-evidence-auditor"] / "templates" / "audit-input.example.json",
+    SKILLS["listing-evidence-auditor"] / "templates" / "semantic-review.example.json",
     REPO_ROOT / "README.md",
     REPO_ROOT / "CHANGELOG.md",
     REPO_ROOT / "VERSION",
     REPO_ROOT / "docs" / "install.md",
+    REPO_ROOT / "docs" / "team-gpt-setup.md",
     REPO_ROOT / "scripts" / "package_codex_bundle.py",
+]
+
+LEGACY_RUNTIME_FILES = [
+    MAIN_SKILL / "core" / "workflow.md",
+    MAIN_SKILL / "core" / "contracts.md",
+    MAIN_SKILL / "references" / "delivery-integrity.md",
+    MAIN_SKILL / "references" / "executable-gates.md",
+    MAIN_SKILL / "references" / "channel-native-demo.md",
+    MAIN_SKILL / "references" / "qa.md",
+    MAIN_SKILL / "profiles" / "channels" / "amazon-jp.md",
+    MAIN_SKILL / "profiles" / "channels" / "rakuten.md",
+    MAIN_SKILL / "profiles" / "channels" / "yahoo-shopping.md",
+    MAIN_SKILL / "profiles" / "channels" / "dtc.md",
+    MAIN_SKILL / "profiles" / "channels" / "retailer-pdp.md",
 ]
 
 CATEGORY_LEAKAGE_TERMS = [
     "SwitchBot", "Solar PTC", "ViewStation", "防犯カメラ", "玄関", "駐車場",
     "robot vacuum", "smart lock", "smart lighting", "pet tech",
 ]
-
 PERSONA_LEAKAGE_PATTERNS = [
     r"Japanese consumers prefer", r"Japanese users care", r"Japanese shoppers usually",
     r"日本ユーザーは", r"日本の消費者は", r"日本人は.*好む",
 ]
-
-RUNTIME_DEPENDENCY_PATTERNS = [
-    r"REQUIRED SUB-SKILL", r"Load `?gtm-listing-demo`? public core",
-    r"install .*gtm-listing-demo.*and.*japan-listing-demo", r"install both",
-]
-
-GUARDED_FILES = [
-    SKILL_FILE,
-    SKILL_DIR / "references" / "japan-market-evidence.md",
-    SKILL_DIR / "references" / "ja-jp-localization.md",
-    SKILL_DIR / "references" / "japan-claim-compliance.md",
-    SKILL_DIR / "references" / "channel-native-demo.md",
-    SKILL_DIR / "references" / "delivery-integrity.md",
-    SKILL_DIR / "references" / "executable-gates.md",
-    SKILL_DIR / "references" / "qa.md",
-    SKILL_DIR / "profiles" / "channels" / "amazon-jp.md",
-    SKILL_DIR / "profiles" / "channels" / "rakuten.md",
-    SKILL_DIR / "profiles" / "channels" / "yahoo-shopping.md",
-    SKILL_DIR / "profiles" / "channels" / "dtc.md",
-    SKILL_DIR / "profiles" / "channels" / "retailer-pdp.md",
-    AUDITOR_DIR / "SKILL.md",
-    AUDITOR_DIR / "references" / "audit-contract.md",
+ROUTER_FORBIDDEN = [
+    "sha-256", "provenance_conflict", "pre_demo_asset_gate",
+    "delivery_parity_gate", "declared_gate_results",
 ]
 
 
@@ -127,12 +143,7 @@ def parse_frontmatter(text: str) -> dict[str, str]:
 
 
 def run_selftest(path: Path, label: str) -> str:
-    result = subprocess.run(
-        [sys.executable, str(path)],
-        cwd=REPO_ROOT,
-        capture_output=True,
-        text=True,
-    )
+    result = subprocess.run([sys.executable, str(path)], cwd=REPO_ROOT, capture_output=True, text=True)
     if result.returncode != 0:
         print(result.stdout)
         print(result.stderr, file=sys.stderr)
@@ -140,100 +151,104 @@ def run_selftest(path: Path, label: str) -> str:
     return result.stdout.strip()
 
 
+def text_files_under(root: Path) -> list[Path]:
+    return [
+        path for path in root.rglob("*")
+        if path.is_file() and path.suffix.lower() in {".md", ".yaml", ".yml", ".json", ".txt", ".py"}
+        and "__pycache__" not in path.parts
+    ]
+
+
 def main() -> int:
-    required = REQUIRED_CORE_FILES + REQUIRED_JAPAN_FILES + REQUIRED_AUDITOR_FILES + REQUIRED_REPO_FILES
-    missing = [str(path.relative_to(REPO_ROOT)) for path in required if not path.exists()]
+    missing = [str(path.relative_to(REPO_ROOT)) for path in REQUIRED_FILES if not path.exists()]
     if missing:
-        fail(f"missing standalone files: {', '.join(missing)}")
+        fail(f"missing v0.3.0 distribution files: {', '.join(missing)}")
 
-    skill_text = SKILL_FILE.read_text(encoding="utf-8")
-    frontmatter = parse_frontmatter(skill_text)
-    if frontmatter.get("name") != "japan-listing-demo":
-        fail("frontmatter name must be japan-listing-demo")
-    if not frontmatter.get("description", "").startswith("Use when "):
-        fail("description must start with 'Use when '")
-    if "standalone" not in skill_text.casefold():
-        fail("SKILL.md must state that this is a standalone distribution")
-    for pattern in RUNTIME_DEPENDENCY_PATTERNS:
-        if re.search(pattern, skill_text, flags=re.I | re.S):
-            fail(f"runtime dependency wording found in SKILL.md: {pattern}")
+    legacy = [str(path.relative_to(REPO_ROOT)) for path in LEGACY_RUNTIME_FILES if path.exists()]
+    if legacy:
+        fail(f"legacy monolithic runtime files still active: {', '.join(legacy)}")
 
-    auditor_text = (AUDITOR_DIR / "SKILL.md").read_text(encoding="utf-8")
-    auditor_frontmatter = parse_frontmatter(auditor_text)
-    if auditor_frontmatter.get("name") != "listing-evidence-auditor":
-        fail("auditor frontmatter name must be listing-evidence-auditor")
+    for name, directory in SKILLS.items():
+        frontmatter = parse_frontmatter((directory / "SKILL.md").read_text(encoding="utf-8"))
+        if frontmatter.get("name") != name:
+            fail(f"{name}: frontmatter name mismatch")
+        if not frontmatter.get("description", "").startswith("Use when "):
+            fail(f"{name}: description must start with 'Use when '")
 
-    manifest = (SKILL_DIR / "core" / "manifest.yaml").read_text(encoding="utf-8")
-    for value in ["heymio/gtm-listing-demo", "0.2.0", "b882526f5a683235d30f562006cf1984a9f0d9f9", "standalone"]:
-        if value.casefold() not in manifest.casefold():
-            fail(f"core manifest is missing provenance value: {value}")
+    router_text = (MAIN_SKILL / "SKILL.md").read_text(encoding="utf-8")
+    router_prompt = (MAIN_SKILL / "agents" / "openai.yaml").read_text(encoding="utf-8")
+    if "standalone" not in router_text.casefold():
+        fail("main router must state standalone distribution")
+    if len(router_text) > 8000:
+        fail(f"main router is too large: {len(router_text)} chars")
+    if len(router_prompt) > 2200:
+        fail(f"router default prompt is too large: {len(router_prompt)} chars")
+    for term in ROUTER_FORBIDDEN:
+        if term in router_prompt.casefold():
+            fail(f"hardening control-plane term leaked into router default prompt: {term}")
+
+    routing_text = (MAIN_SKILL / "references" / "routing.md").read_text(encoding="utf-8").casefold()
+    for phrase in [
+        "stage 0–7", "listing-planning", "stage 7.5–8", "listing-production",
+        "stage 8.5–10", "listing-hardening", "done:", "open:", "next:",
+    ]:
+        if phrase.casefold() not in routing_text:
+            fail(f"router contract missing: {phrase}")
 
     version = (REPO_ROOT / "VERSION").read_text(encoding="utf-8").strip()
-    if version != "0.2.6":
-        fail(f"VERSION must be 0.2.6, found {version!r}")
+    if version != "0.3.0":
+        fail(f"VERSION must be 0.3.0, found {version!r}")
 
-    all_text = "\n".join(path.read_text(encoding="utf-8") for path in required if path.suffix in {".md", ".yaml", ".txt"})
-    placeholders = re.findall(r"\b(?:TODO|TBD|FIXME)\b", all_text, flags=re.I)
-    if placeholders:
-        fail(f"placeholder terms found: {sorted(set(placeholders))}")
+    manifest = (MAIN_SKILL / "core" / "manifest.yaml").read_text(encoding="utf-8").casefold()
+    for phrase in ["standalone", "listing-planning", "listing-production", "listing-hardening", "listing-evidence-auditor"]:
+        if phrase not in manifest:
+            fail(f"core manifest missing v0.3.0 architecture marker: {phrase}")
 
-    guarded_text = "\n".join(path.read_text(encoding="utf-8") for path in GUARDED_FILES)
+    active_files: list[Path] = []
+    for directory in SKILLS.values():
+        active_files.extend(text_files_under(directory))
+    active_text = "\n".join(path.read_text(encoding="utf-8") for path in active_files)
     for term in CATEGORY_LEAKAGE_TERMS:
-        if term.casefold() in guarded_text.casefold():
-            fail(f"category or private-project leakage found in guarded files: {term}")
+        if term.casefold() in active_text.casefold():
+            fail(f"category/private-project leakage found in active public Skills: {term}")
 
-    locale_and_market_text = "\n".join(
-        path.read_text(encoding="utf-8")
-        for path in [SKILL_DIR / "references" / "japan-market-evidence.md", SKILL_DIR / "references" / "ja-jp-localization.md"]
+    planning_locale = "\n".join(
+        (SKILLS["listing-planning"] / "references" / name).read_text(encoding="utf-8")
+        for name in ["market-research.md", "localization.md"]
     )
     for pattern in PERSONA_LEAKAGE_PATTERNS:
-        if re.search(pattern, locale_and_market_text, flags=re.I):
+        if re.search(pattern, planning_locale, flags=re.I):
             fail(f"unsupported Japan persona statement found: {pattern}")
 
-    eval_text = "\n".join(
-        (SKILL_DIR / "evals" / name).read_text(encoding="utf-8")
-        for name in ["core.md", "cross-category.md", "channels.md", "delivery-integrity.md", "executable-gates.md", "evidence-auditor.md"]
-    )
-    for scenario in [
-        "Candidate Gallery claim loses to auditor visual-role mismatch",
-        "Same filename with changed bytes loses prior approval",
-        "Inline self-audit cannot unlock Stage 9",
-        "One invalidated member fails the complete required set",
-    ]:
-        if scenario not in eval_text:
-            fail(f"missing evidence-auditor evaluation scenario: {scenario}")
-
-    workflow = (SKILL_DIR / "core" / "workflow.md").read_text(encoding="utf-8")
-    openai_yaml = (SKILL_DIR / "agents" / "openai.yaml").read_text(encoding="utf-8")
-    policy_text = "\n".join([skill_text, workflow, openai_yaml, auditor_text]).casefold()
-    for phrase in [
-        "checkpointed execution by default",
-        "listing-evidence-auditor",
-        "evidence_reconciliation_gate",
-        "pre_demo_asset_gate",
-        "stage 8.5",
-        "effective state",
-        "human_review_required",
-        "independent context",
-    ]:
-        if phrase not in policy_text:
-            fail(f"required v0.2.6 policy is missing: {phrase}")
+    placeholders = re.findall(r"\b(?:TODO|TBD|FIXME)\b", active_text, flags=re.I)
+    if placeholders:
+        fail(f"placeholder terms found in active Skills: {sorted(set(placeholders))}")
 
     readme = (REPO_ROOT / "README.md").read_text(encoding="utf-8").casefold()
     install = (REPO_ROOT / "docs" / "install.md").read_text(encoding="utf-8").casefold()
-    for document_name, document in [("README.md", readme), ("docs/install.md", install)]:
-        for phrase in ["listing-evidence-auditor", "one repository", "human_review_required", "pre_demo_asset_gate"]:
-            if phrase not in document:
+    gpt_guide = (REPO_ROOT / "docs" / "team-gpt-setup.md").read_text(encoding="utf-8").casefold()
+    for document_name, document, phrases in [
+        ("README.md", readme, ["one repository", "$japan-listing-demo", "listing-planning", "listing-production", "listing-hardening"]),
+        ("docs/install.md", install, ["one repository", "$japan-listing-demo", "listing-evidence-auditor"]),
+        ("docs/team-gpt-setup.md", gpt_guide, ["gpt = optional ux shell", "skills = versioned execution architecture", "auditor/scripts = hard verification"]),
+    ]:
+        for phrase in phrases:
+            if phrase.casefold() not in document:
                 fail(f"{document_name} must explain: {phrase}")
 
-    auditor_selftest = run_selftest(AUDITOR_DIR / "scripts" / "selftest_auditor.py", "evidence auditor")
-    project_state_selftest = run_selftest(SKILL_DIR / "scripts" / "selftest_project_state_validator.py", "project-state validator")
+    outputs = [
+        run_selftest(SKILLS["listing-planning"] / "scripts" / "selftest_planning.py", "planning"),
+        run_selftest(SKILLS["listing-production"] / "scripts" / "selftest_production.py", "production"),
+        run_selftest(SKILLS["listing-hardening"] / "scripts" / "selftest_hardening.py", "hardening"),
+        run_selftest(SKILLS["listing-evidence-auditor"] / "scripts" / "selftest_auditor.py", "evidence auditor"),
+        run_selftest(MAIN_SKILL / "scripts" / "selftest_router.py", "router"),
+        run_selftest(MAIN_SKILL / "scripts" / "selftest_project_state_validator.py", "project-state compatibility"),
+    ]
 
-    print(auditor_selftest)
-    print(project_state_selftest)
-    print("PASS: japan-listing-demo v0.2.6 distribution is valid")
-    print(f"PASS: {len(required)} required files exist")
-    print("PASS: sibling evidence auditor and effective-state gates are packaged and self-tested")
+    print("\n".join(outputs))
+    print("PASS: japan-listing-demo v0.3.0 creative-first distribution is valid")
+    print(f"PASS: {len(REQUIRED_FILES)} required files exist across five Skills")
+    print("PASS: thin router, deep planning, focused production, hardening, and evidence auditor are self-tested")
     return 0
 
 
