@@ -42,7 +42,7 @@ Normal checkpoints use `Done / Open / Next`. `继续 / 下一步 / go / next / �
 
 ## Creative-first architecture
 
-v0.3.0 introduced stage-local execution planes behind a thin router; v0.3.1 keeps that architecture unchanged and hardens the validators around it:
+v0.3.x separates the workflow into stage-local execution planes behind a thin router:
 
 ```text
 $japan-listing-demo
@@ -110,17 +110,11 @@ Stage 8.5 runs the mandatory full final-asset audit through `listing-evidence-au
 Delivery State 0.2 keeps two separate questions explicit:
 
 ```text
-PRODUCTION_FREEZE_GATE   → is the exact creatively approved Asset ID set complete?
+PRODUCTION_FREEZE_GATE   → is the creatively approved set complete?
 PRE_DEMO_ASSET_GATE     → are the exact final files evidence-safe?
 ```
 
 Both matter. One cannot substitute for the other.
-
-## v0.3.1 validator integrity
-
-v0.3.1 is a narrow engineering hardening release, not a workflow redesign. It adds parsed planning-contract validation, rejects invalid image bytes during physical fingerprinting, recomputes real-file fingerprints inside the normal reconciler path, rejects self-asserted semantic independence in the standalone CLI, requires Production Freeze Asset IDs to equal the required set, and makes malformed Delivery State fail before downstream gates execute.
-
-These checks are designed primarily to prevent accidental or internally inconsistent workflow state. They do not by themselves prove Japan-market output quality or create an adversarial security boundary.
 
 ## Channel-native planning and demo fidelity
 
@@ -139,11 +133,11 @@ Brand Story is separate. `Message != Module`, and `CONTENT_COVERAGE` remains sep
 
 ## Evidence auditor
 
-`listing-evidence-auditor` remains the exact-file evidence boundary. It checks physical file identity, approval binding, provenance, semantic visual role, and required asset-set completeness.
-
-Normal reconciliation takes the audit packet plus the real project root and recomputes fingerprints from the files. A caller-supplied fingerprint JSON is not the normal trusted CLI input.
+`listing-evidence-auditor` remains the exact-file trust boundary. It checks physical file identity, approval binding, provenance, semantic visual role, and required asset-set completeness.
 
 Loading the auditor inside the same model context does not create independent semantic review. If independent semantic review is unavailable, unresolved role evidence remains `UNVERIFIED` / `HUMAN_REVIEW_REQUIRED` unless resolved by an appropriate human or genuinely independent review.
+
+v0.3.1 additionally rejects ambiguous audit packets before any dictionary indexing: duplicate asset, approval-event, prior-lock, slot, or expected-role identifiers fail fast.
 
 ## Distribution
 
@@ -204,6 +198,10 @@ Ordinary team users should not need to understand Skill routing, file hashes, pr
 ## Optional team GPT
 
 A thin team-facing Custom GPT can provide onboarding and project-entry UX, but it is not the execution source of truth. See `docs/team-gpt-setup.md`.
+
+## Release model
+
+A merge to `main` updates the source-of-truth branch, but it is not the same thing as an immutable public release. Formal releases should use a version tag such as `v0.3.1` plus a GitHub Release containing the prebuilt distribution ZIP assets and checksums. CI artifacts are temporary verification outputs, not permanent release assets.
 
 ## Version
 
