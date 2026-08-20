@@ -1,5 +1,23 @@
 # Changelog
 
+## 0.3.0 — Creative-first hardening architecture
+
+- Replaced the monolithic `japan-listing-demo` runtime with a **thin router** while keeping one normal user invocation: `$japan-listing-demo`.
+- Added `listing-planning` for Stage 0–7 so Product Truth, Offer/Page Boundary, Claim Readiness, Consumer Strategy, VOC/competitor reasoning, Japan localization, channel research, Gallery/enhanced-content architecture, module budget, and `MODULE_FIT_GATE` remain strategically deep without carrying delivery-governance noise into Production.
+- Added formal **Project Brief**, **Creative Strategy Kernel**, and **Production Handoff** contracts. Stage 7 now defines the **Complete Demo-Required Production Set**; P0/differentiator proof coverage is not treated as visual-set completeness.
+- Changed fresh-project Stage 6.5 to lightweight **Source Asset Intake**. Full project-wide evidence audit is no longer mandatory before final assets exist; targeted early audit remains available for inherited/reused previously approved exact assets.
+- Added `listing-production` for Stage 7.5–8 with artifact-first behavior, one-job Asset Packets, explicit **Context Projection**, benchmark-vs-reuse separation, Asset Ledger, Production Freeze, Visual Pattern Library, Golden Examples, and compact Creative QA.
+- Separated **Creative Approval** (`USER_APPROVED`) from **Evidence Verification**. Creative approval no longer implies physical identity, provenance, or final delivery eligibility.
+- Added `listing-hardening` for Stage 8.5–10 and moved canonical delivery validation there while keeping the legacy `validate_project_state.py` path as a compatibility shim.
+- Added **Delivery State 0.2** and `PRODUCTION_FREEZE_GATE`, separating “the complete creative set is approved” from `PRE_DEMO_ASSET_GATE`, which verifies the exact final files.
+- Kept mandatory **Stage 8.5 full evidence audit** through `listing-evidence-auditor`, plus existing exact-file, approval-provenance, transform, semantic-role, asset-set, slot, module-origin, frontend-fidelity, and delivery-parity safeguards.
+- Moved Amazon.co.jp, Rakuten, Yahoo! Shopping, DTC, and retailer channel planning profiles into `listing-planning`, keeping Platform Capability evidence separate from Frontend Visual evidence and keeping Gallery/enhanced-content role planning separate.
+- Removed duplicated monolithic workflow/contracts/delivery/executable/frontend/QA runtime files from the main router Skill after stage-local ownership was established.
+- Changed normal checkpoint output to concise `Done / Open / Next`; full Stage Completion Manifest is exception-only for `PARTIAL`, `BLOCKED`, or explicit detailed audit review.
+- Added a five-Skill repository/Codex bundle containing `japan-listing-demo`, `listing-planning`, `listing-production`, `listing-hardening`, and `listing-evidence-auditor`.
+- Kept one-install `japan-listing-demo.skill.zip` by embedding the four internal stage/audit Skills under `japan-listing-demo/internal-skills/`; the package retains explicit single-context semantic-audit limitations.
+- Added Team Golden Path evals and an optional thin Custom GPT setup guide. The GPT remains an optional UX shell; GitHub-packaged Skills remain the versioned execution source of truth.
+
 ## 0.2.6 — Independent listing evidence auditor
 
 - Added sibling **`listing-evidence-auditor` Skill** in the same public repository while keeping normal user invocation as `$japan-listing-demo`.
