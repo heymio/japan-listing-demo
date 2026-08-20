@@ -42,7 +42,7 @@ Normal checkpoints use `Done / Open / Next`. `继续 / 下一步 / go / next / �
 
 ## Creative-first architecture
 
-v0.3.0 separates the workflow into stage-local execution planes behind a thin router:
+v0.3.0 introduced stage-local execution planes behind a thin router; v0.3.1 keeps that architecture unchanged and hardens the validators around it:
 
 ```text
 $japan-listing-demo
@@ -110,11 +110,17 @@ Stage 8.5 runs the mandatory full final-asset audit through `listing-evidence-au
 Delivery State 0.2 keeps two separate questions explicit:
 
 ```text
-PRODUCTION_FREEZE_GATE   → is the creatively approved set complete?
+PRODUCTION_FREEZE_GATE   → is the exact creatively approved Asset ID set complete?
 PRE_DEMO_ASSET_GATE     → are the exact final files evidence-safe?
 ```
 
 Both matter. One cannot substitute for the other.
+
+## v0.3.1 validator integrity
+
+v0.3.1 is a narrow engineering hardening release, not a workflow redesign. It adds parsed planning-contract validation, rejects invalid image bytes during physical fingerprinting, recomputes real-file fingerprints inside the normal reconciler path, rejects self-asserted semantic independence in the standalone CLI, requires Production Freeze Asset IDs to equal the required set, and makes malformed Delivery State fail before downstream gates execute.
+
+These checks are designed primarily to prevent accidental or internally inconsistent workflow state. They do not by themselves prove Japan-market output quality or create an adversarial security boundary.
 
 ## Channel-native planning and demo fidelity
 
@@ -133,7 +139,9 @@ Brand Story is separate. `Message != Module`, and `CONTENT_COVERAGE` remains sep
 
 ## Evidence auditor
 
-`listing-evidence-auditor` remains the exact-file trust boundary. It checks physical file identity, approval binding, provenance, semantic visual role, and required asset-set completeness.
+`listing-evidence-auditor` remains the exact-file evidence boundary. It checks physical file identity, approval binding, provenance, semantic visual role, and required asset-set completeness.
+
+Normal reconciliation takes the audit packet plus the real project root and recomputes fingerprints from the files. A caller-supplied fingerprint JSON is not the normal trusted CLI input.
 
 Loading the auditor inside the same model context does not create independent semantic review. If independent semantic review is unavailable, unresolved role evidence remains `UNVERIFIED` / `HUMAN_REVIEW_REQUIRED` unless resolved by an appropriate human or genuinely independent review.
 
@@ -199,7 +207,7 @@ A thin team-facing Custom GPT can provide onboarding and project-entry UX, but i
 
 ## Version
 
-`0.3.0`
+`0.3.1`
 
 ## License
 
