@@ -1,0 +1,27 @@
+{
+  "schema_version": "0.2",
+  "channel": {
+    "id": "amazon-jp",
+    "enhanced_content": {
+      "tier": "premium",
+      "declared_max_modules": 7
+    }
+  },
+  "production_freeze": {
+    "expected_assets": 2,
+    "user_approved_assets": ["G1", "A1"],
+    "approved_output_refs": ["file:g1", "file:a1"]
+  },
+  "audit_checkpoints": {
+    "post_6_5_required": false,
+    "pre_9_required": true
+  },
+  "approval_events": [],
+  "assets": [],
+  "auditor_evidence": {},
+  "locked_module_plan": {},
+  "asset_slot_contract": [],
+  "implementation": {},
+  "frontend_fidelity": {},
+  "delivery_parity": {}
+}
