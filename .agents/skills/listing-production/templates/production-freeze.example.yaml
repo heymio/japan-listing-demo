@@ -1,0 +1,11 @@
+production_freeze:
+  expected_assets: 3
+  user_approved_assets:
+    - AMZ-G1
+  blocked_assets: []
+  revision_pending:
+    - AMZ-G2
+    - AMZ-A1
+  approved_output_refs:
+    - file:amz-g1
+  ready_for_hardening: false
