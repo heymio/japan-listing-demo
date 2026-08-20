@@ -111,6 +111,76 @@ Use priority and role, not only binary presence.
 
 Approved assets are stable downstream inputs. A material crop/recomposition/role change creates a derivative with a new Asset ID and provenance.
 
+## Candidate Asset Registry
+
+Stage 6.5A writes the planner-owned **Candidate Asset Registry**. Candidate state is not effective truth.
+
+| Asset ID | Claimed path | Claimed role | Claimed page/offer scope | Claimed allowed slots | Claimed parent | Claimed transform | Claimed approval event |
+|---|---|---|---|---|---|---|---|
+
+Every `claimed_*` value is an assertion to be audited.
+
+## Audit Packet
+
+The main workflow converts Candidate Asset Registry into `audit-input.json` for `listing-evidence-auditor`.
+
+Minimum sections:
+
+```json
+{
+  "audit_version": "1",
+  "project_id": "project-defined",
+  "checkpoint": "post-6.5",
+  "assets": [],
+  "slots": [],
+  "approval_events": [],
+  "prior_locked_assets": [],
+  "expected_visual_roles": []
+}
+```
+
+The audit packet contains no gate verdict and must not contain a desired PASS result.
+
+## Auditor Evidence State
+
+The sibling auditor writes evidence into a separate namespace. It does not overwrite Candidate State.
+
+```json
+{
+  "checkpoint": "pre-9",
+  "independent_semantic": true,
+  "asset_set_gate": {"status": "PASS", "messages": []},
+  "assets": {
+    "G03": {
+      "physical_sha256": "...",
+      "effective_status": "VERIFIED"
+    }
+  }
+}
+```
+
+Allowed effective statuses:
+
+- `VERIFIED`;
+- `HUMAN_APPROVED`;
+- `PHYSICALLY_VERIFIED_ONLY`;
+- `INVALIDATED`;
+- `UNVERIFIED`;
+- `HUMAN_REVIEW_REQUIRED`.
+
+## Effective State
+
+For downstream asset eligibility:
+
+```text
+Auditor Evidence State
+> Candidate/Planner asset status
+```
+
+A planner-authored `LOCKED` value cannot override `INVALIDATED`, `UNVERIFIED`, `PHYSICALLY_VERIFIED_ONLY`, or `HUMAN_REVIEW_REQUIRED`.
+
+Stage 7 final Asset-to-Slot locking and Stage 9 Demo Assembly may consume only `VERIFIED` or `HUMAN_APPROVED` assets when the corresponding audit checkpoint is required.
+
 ## Asset Manifest
 
 | Asset ID | Object | Source | Quality | Evidence supported | Usable slots | Status | Replacement required |
@@ -121,7 +191,7 @@ Approved assets are stable downstream inputs. A material crop/recomposition/role
 | Slot ID | Page/offer | Channel region/module | Message role | Required Asset ID | Required dimensions/aspect | Crop/transform rule | Interaction | Ownership |
 |---|---|---|---|---|---|---|---|---|
 
-Run `ASSET_SLOT_GATE` before final visual adaptation and Demo Assembly.
+Run `ASSET_SLOT_GATE` before final visual adaptation and Demo Assembly. When auditor evidence exists, the gate uses auditor effective status and physical SHA-256 as authoritative evidence.
 
 ## Channel Slot / Module Plan
 
@@ -184,8 +254,10 @@ Minimum sections:
 {
   "schema_version": "0.1",
   "channel": {},
+  "audit_checkpoints": {},
   "approval_events": [],
   "assets": [],
+  "auditor_evidence": {},
   "locked_module_plan": {},
   "asset_slot_contract": [],
   "implementation": {}
@@ -193,6 +265,21 @@ Minimum sections:
 ```
 
 The **Project State Manifest** is source state, not a place to write gate verdicts. Any `declared_gate_results` field is ignored by `scripts/validate_project_state.py`.
+
+### Audit checkpoint contract
+
+```json
+{
+  "audit_checkpoints": {
+    "post_6_5_required": true,
+    "pre_9_required": true
+  }
+}
+```
+
+When `post_6_5_required` is true, `EVIDENCE_RECONCILIATION_GATE` must be computed from auditor evidence before final asset bindings can lock.
+
+When `pre_9_required` is true, `PRE_DEMO_ASSET_GATE` must PASS before Stage 9 consumes required assets.
 
 ### Approval event contract
 
@@ -208,6 +295,8 @@ The **Project State Manifest** is source state, not a place to write gate verdic
 ```
 
 Approval is bound to the exact approved state through `approved_hash`. If the hashed state changes, the old approval does not validate the new state.
+
+For physical asset approval, the evidence auditor additionally verifies exact physical SHA-256 + role + slot scope against its audit packet approval event.
 
 ### Locked module-plan contract
 
@@ -225,13 +314,13 @@ Stage 9 implementation records the exact consumed `plan_hash` and implemented sl
 
 ### Asset-lock and recovery contract
 
-A `LOCKED` asset requires:
+A `LOCKED` candidate asset requires:
 
 - valid lowercase SHA-256;
 - either a matching user approval event for `asset_lock:<Asset ID>`;
-- or exact recovery where current SHA-256 equals the recorded previous locked SHA-256.
+- or exact recovery where current candidate SHA-256 equals the recorded previous locked SHA-256.
 
-Filename similarity and visual resemblance are not exact recovery.
+When auditor evidence is available, candidate SHA-256 must also equal the recomputed physical SHA-256. Filename similarity and visual resemblance are not exact recovery.
 
 ### Transform authorization contract
 
@@ -253,18 +342,21 @@ Computed gates include:
 - `APPROVAL_PROVENANCE_GATE`;
 - `MODULE_ORIGIN_GATE`;
 - `TRANSFORM_AUTH_GATE`;
+- `EVIDENCE_RECONCILIATION_GATE`;
 - `ASSET_SLOT_GATE`;
+- `PRE_DEMO_ASSET_GATE`;
 - `DELIVERY_PARITY_GATE`.
 
-If validator execution is unavailable, these gates are `UNVERIFIED`; they must not be manually self-declared PASS.
+If validator or required auditor execution is unavailable, the relevant gates are `UNVERIFIED`; they must not be manually self-declared PASS.
 
 ## Review Mode
 
 | Status | Meaning | Consumer mode |
 |---|---|---|
-| `LOCKED` | Current evidence supports formal production | Content visible, badge hidden |
+| `LOCKED` | Candidate state is locked for planning; auditor evidence may still override downstream eligibility | Internal badge hidden |
 | `PENDING CLAIM` | Requires product, commercial, legal, or test confirmation | Claim hidden or neutralized |
 | `DEMO ASSET` | Visual direction only | Internal label hidden; replace before release |
 | `PROVISIONAL UI` | Temporary interface evidence | Internal label hidden; replace before release |
 | `NEEDS REVISION` | Produced but not accepted or parity-safe | Internal label hidden; cannot be treated as final |
-| `UNVERIFIED` | Executable validation could not run or lacks packaged policy | Must not be treated as machine-validated PASS |
+| `UNVERIFIED` | Executable/auditor validation could not run or lacks evidence | Must not be treated as validated PASS |
+| `HUMAN_REVIEW_REQUIRED` | Independent semantic evidence is unavailable and human exact-hash role/scope review is required | Must not be treated as final-consumable |
