@@ -1,5 +1,18 @@
 # Changelog
 
+## 0.3.1 — Validator integrity
+
+- Replaced planning handoff keyword-presence checks with parsed structural validation for the supported YAML contract profile, including type checks, duplicate-key/ID checks, malformed-input failures, and Production Handoff cross-reference checks.
+- Hardened real-file fingerprinting so supported image assets must have a valid PNG/JPEG/WebP signature, matching extension, positive dimensions, positive byte size, and no physical errors; a fake `.png` with non-image bytes is rejected.
+- Changed the normal Evidence Reconciler CLI to accept an audit packet plus project root and recompute fingerprints from the real files itself. It no longer accepts caller-supplied fingerprint JSON or a self-asserted `--independent-semantic` trust flag.
+- Kept a low-level reconciliation function for controlled host/test integrations, while a genuinely isolated host may explicitly call the real-file entrypoint with independent semantic provenance.
+- Strengthened `PRODUCTION_FREEZE_GATE` so creatively approved Asset IDs must equal the complete required Asset ID set, rather than only matching a count.
+- Added strict Delivery State schema fail-fast: malformed state returns `FAIL`, duplicate asset/module/slot/approval IDs are rejected, and semantic gates are skipped instead of throwing on invalid container types.
+- Preserved the v0.3.0 gate implementation as an internal hardening core and placed the new strict schema/freeze boundary in front of it, minimizing regression risk to existing gate behavior.
+- Updated the one-install compatibility ZIP so it packages both the strict hardening wrapper and its embedded compatibility core.
+- Removed the stray one-byte root file `x` and added a release-integrity check preventing its return.
+- This release does **not** change the v0.3.0 Planning → Production → Hardening workflow architecture or claim production-grade outcome validation.
+
 ## 0.3.0 — Creative-first hardening architecture
 
 - Replaced the monolithic `japan-listing-demo` runtime with a **thin router** while keeping one normal user invocation: `$japan-listing-demo`.
