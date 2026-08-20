@@ -39,6 +39,18 @@ Minimum structure:
 
 `checkpoint` is normally `pre-9`; a targeted inherited-asset audit may use `post-6.5`.
 
+### Identifier uniqueness
+
+The audit packet is rejected before fingerprinting or reconciliation if any of these identities repeat:
+
+- `assets[*].asset_id`;
+- `approval_events[*].approval_event_id`;
+- `prior_locked_assets[*].asset_id`;
+- `slots[*].slot_id`;
+- `expected_visual_roles[*].asset_id`.
+
+Duplicate identities are not resolved by “last record wins”. Silent dictionary overwrite is forbidden because it can hide missing files, conflicting approvals, or contradictory role/scope evidence.
+
 ## Physical evidence boundary
 
 The normal reconciliation path takes the audit packet plus the **real project root** and recomputes physical fingerprints internally:
