@@ -9,6 +9,7 @@ SKILL_DIR = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(SKILL_DIR / "scripts"))
 
 from project_asset_packet import project_generation_context, validate_asset_packet  # noqa: E402
+from production_state import build_production_freeze, production_progress, set_creative_status  # noqa: E402
 
 
 def read(path: Path) -> str:
@@ -78,6 +79,30 @@ def test_projection_drops_control_plane_fields() -> None:
     encoded = json.dumps(projected, ensure_ascii=False).casefold()
     for forbidden in ["project_state_manifest", "declared_gate_results", "stage_completion_manifest", "delivery_parity"]:
         assert forbidden not in encoded
+
+
+def test_user_approval_is_creative_only() -> None:
+    ledger = {"assets": {"AMZ-G1": {"status": "REVIEW"}}}
+    updated = set_creative_status(ledger, "AMZ-G1", "USER_APPROVED", "file:g1", "chat:approval-1")
+    row = updated["assets"]["AMZ-G1"]
+    assert row["status"] == "USER_APPROVED"
+    assert row["current_output_ref"] == "file:g1"
+    assert "VERIFIED" not in json.dumps(row)
+
+
+def test_three_of_thirteen_is_not_complete() -> None:
+    handoff = {"asset_set": [{"asset_id": f"A{i}"} for i in range(13)]}
+    ledger = {"assets": {f"A{i}": {"status": "USER_APPROVED"} for i in range(3)}}
+    progress = production_progress(handoff, ledger)
+    assert progress == {"expected": 13, "approved": 3, "remaining": 10, "complete": False}
+
+
+def test_freeze_refuses_revision_pending_asset() -> None:
+    handoff = {"asset_set": [{"asset_id": "A1"}, {"asset_id": "A2"}]}
+    ledger = {"assets": {"A1": {"status": "USER_APPROVED", "current_output_ref": "file:a1"}, "A2": {"status": "REVISE"}}}
+    freeze = build_production_freeze(handoff, ledger)
+    assert freeze["ready_for_hardening"] is False
+    assert freeze["revision_pending"] == ["A2"]
 
 
 def main() -> int:
