@@ -105,6 +105,34 @@ def test_freeze_refuses_revision_pending_asset() -> None:
     assert freeze["revision_pending"] == ["A2"]
 
 
+def test_visual_pattern_library_is_complete() -> None:
+    names = [
+        "hero-positioning.md", "compact-proof.md", "mechanism-explainer.md",
+        "automation-flow.md", "comparison.md", "installation-decision.md", "ui-proof.md",
+    ]
+    for name in names:
+        text = read(SKILL_DIR / "references" / "visual-patterns" / name).casefold()
+        for phrase in ["when to use", "shopper question", "good composition", "proof object", "information density", "common failure"]:
+            assert phrase in text, (name, phrase)
+
+
+def test_creative_qa_has_seven_dimensions_and_no_hardening_terms() -> None:
+    text = read(SKILL_DIR / "references" / "production-qa.md").casefold()
+    for phrase in [
+        "message clarity", "product prominence", "visual proof", "composition",
+        "realism", "benchmark", "channel readiness",
+    ]:
+        assert phrase in text
+    for forbidden in ["sha-256", "exact recovery", "delivery parity"]:
+        assert forbidden not in text
+
+
+def test_benchmark_policy_separates_reference_from_reuse() -> None:
+    text = read(SKILL_DIR / "references" / "benchmark-policy.md").casefold()
+    assert "benchmark" in text and "reuse" in text
+    assert "does not automatically" in text
+
+
 def main() -> int:
     tests = [v for k, v in globals().items() if k.startswith("test_") and callable(v)]
     for test in tests:
