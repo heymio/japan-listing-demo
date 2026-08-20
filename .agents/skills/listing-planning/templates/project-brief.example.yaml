@@ -1,0 +1,44 @@
+project:
+  id: sample-listing-project
+  market: JP
+  locale: ja-JP
+  channel: amazon-jp
+  category: project-defined
+  product: Example Product
+  page_targets:
+    - primary-listing
+
+offers:
+  - id: single
+    page_scope:
+      - primary-listing
+
+product_truth:
+  confirmed:
+    - id: FACT-001
+      statement: Confirmed product capability
+      source_ref: SRC-001
+  conditional: []
+  prohibited: []
+
+claim_boundaries:
+  consumer_ready:
+    - FACT-001
+  pending: []
+  prohibited: []
+
+consumer_evidence_sources:
+  - id: VOC-001
+    type: verified-review-sample
+    scope: current-category
+
+channel_reference:
+  primary_reference: REF-001
+  capability_status: PARTIAL
+  frontend_visual_status: PARTIAL
+
+open_business_decisions:
+  - id: OPEN-001
+    question: Final launch price
+    blocks:
+      - price-copy
