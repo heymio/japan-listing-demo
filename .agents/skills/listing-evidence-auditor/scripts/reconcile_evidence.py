@@ -87,7 +87,9 @@ def _approval_matches(
     approved_role = event.get("approved_role")
     if approved_role != expected_role:
         return False
-    if semantic.get("semantic_role_status") == "ROLE_MATCH" and semantic.get("actual_role") != approved_role:
+    if semantic.get("semantic_role_status") != "ROLE_MATCH":
+        return False
+    if semantic.get("actual_role") != approved_role:
         return False
     if sorted(event.get("approved_slots", [])) != sorted(asset.get("allowed_slots", [])):
         return False
@@ -216,8 +218,8 @@ def reconcile_evidence(
             expected_role,
             semantic,
         )
-        if not approval_match and provenance == "EXACT_RECOVERY_VERIFIED":
-            approval_match = True
+        if not approval_match and provenance == "EXACT_RECOVERY_VERIFIED" and semantic.get("semantic_role_status") == "ROLE_MATCH":
+            approval_match = semantic.get("actual_role") == expected_role
 
         physical_ok = _physical_ok(fingerprint)
         effective_status = _effective_status(physical_ok, provenance, approval_match, semantic)
