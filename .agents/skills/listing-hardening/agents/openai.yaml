@@ -1,0 +1,6 @@
+interface:
+  display_name: "Listing Hardening"
+  short_description: "Stage 8.5–10 final asset verification, channel demo assembly, and delivery QA"
+  default_prompt: "Harden Stage 8.5–10 only. Consume the Production Freeze, exact final files, locked plan/slot contracts, relevant Project Brief fields, and frontend evidence. Run the mandatory Stage 8.5 full audit through listing-evidence-auditor, preserve exact approval/transform/role/set integrity, verify frontend fidelity, assemble the planned channel demo without inventing modules/interactions, and run delivery parity/final QA. Do not redo consumer strategy or visual production."
+policy:
+  allow_implicit_invocation: true
