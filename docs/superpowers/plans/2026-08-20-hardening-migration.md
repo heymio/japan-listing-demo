@@ -4,7 +4,7 @@
 
 **Goal:** Add the `listing-hardening` sibling Skill, move final evidence/delivery responsibilities to Stage 8.5–10, preserve v0.2.5/v0.2.6 protections, and change early evidence audit from mandatory project-wide behavior to targeted inherited-asset audit only.
 
-**Architecture:** Hardening consumes the Production Freeze, exact final files, locked module/page plan, relevant Project Brief fields, and frontend evidence. It owns physical-file validation, evidence-auditor orchestration, exact approval/provenance, transforms, slot integrity, module origin, frontend fidelity, demo assembly, delivery parity, and final QA. The existing executable validator is migrated to the Hardening Skill while the old script path remains a compatibility shim for one release. Full `listing-evidence-auditor` audit is mandatory at Stage 8.5; `EVIDENCE_RECONCILIATION_GATE` becomes applicable only when targeted inherited-asset audit was explicitly requested earlier.
+**Architecture:** Hardening consumes the Production Freeze, exact final files, locked module/page plan, relevant Project Brief fields, and frontend evidence. It owns physical-file validation, evidence-auditor orchestration, exact approval/provenance, transforms, slot integrity, module origin, frontend fidelity, demo assembly, delivery parity, and final QA. The existing executable validator is migrated to the Hardening Skill while the old script path remains a compatibility shim for one release. Full `listing-evidence-auditor` audit is mandatory at Stage 8.5; `EVIDENCE_RECONCILIATION_GATE` is applicable only when targeted inherited-asset audit was explicitly requested earlier.
 
 **Tech Stack:** Python 3.12 standard library, existing `listing-evidence-auditor` scripts, JSON Delivery State / Project State compatibility, Markdown hardening references/evals, GitHub Actions.
 
@@ -16,10 +16,10 @@
 - Preserve all proven safeguards: Amazon/module budget, locked module origin, transform authorization, exact approval provenance, real-file fingerprinting, semantic role audit, complete required asset set, slot integrity, delivery parity, and frontend fidelity.
 - Full evidence audit is mandatory at Stage 8.5 on the exact final files from Production Freeze.
 - Fresh projects do not require full project-wide post-6.5 audit by default.
-- Targeted early audit remains available for inherited/reused previously approved exact assets; when requested, its evidence must still be authoritative.
+- Targeted early audit remains available for inherited/reused previously approved exact assets; when requested, its evidence must remain authoritative.
 - `USER_APPROVED` creative status alone is never final-consumable delivery evidence.
 - `listing-evidence-auditor` remains a separate sibling Skill and retains its independent/human semantic-review limitation.
-- Wrong files, unauthorized derivatives, role mismatch, incomplete sets, or plan drift must invalidate delivery state rather than being normalized by rewriting registries.
+- Wrong files, unauthorized derivatives, role mismatch, incomplete sets, or plan drift invalidate delivery state; do not normalize them by rewriting registries.
 - Keep the old `.agents/skills/japan-listing-demo/scripts/validate_project_state.py` CLI/API working as a compatibility shim until the final integration/release slice.
 - Public files remain category-neutral; no private project examples.
 - `VERSION` remains `0.2.6` in this slice.
@@ -38,15 +38,15 @@
 - Create `.agents/skills/listing-hardening/references/final-qa.md` — final delivery QA.
 - Create `.agents/skills/listing-hardening/templates/delivery-state.example.json` — Hardening-owned delivery state.
 - Create `.agents/skills/listing-hardening/scripts/validate_delivery_state.py` — canonical validator implementation, preserving `canonical_hash()` and `validate_state()` APIs.
-- Create `.agents/skills/listing-hardening/scripts/selftest_hardening.py` — selective early-audit and mandatory pre-demo regressions.
+- Create `.agents/skills/listing-hardening/scripts/selftest_hardening.py` — selective early-audit, Production Freeze, and mandatory pre-demo regressions.
 - Create `.agents/skills/listing-hardening/evals/hardening.md` — anonymized hardening scenarios.
 
 ### Compatibility / existing files
 
 - Modify `.agents/skills/japan-listing-demo/scripts/validate_project_state.py` — compatibility shim that loads/re-exports the Hardening validator.
-- Modify `.agents/skills/japan-listing-demo/scripts/selftest_project_state_validator.py` — import compatibility must remain green; add no new business logic here after migration.
+- Modify `.agents/skills/japan-listing-demo/scripts/selftest_project_state_validator.py` — import compatibility remains green; no new business logic lives here after migration.
 - Modify `.github/workflows/validate-japan-listing-demo.yml` — run Hardening self-tests.
-- Do not yet rewrite the public Router/README/package bundle; final integration owns that.
+- Do not rewrite public Router/README/package bundle yet; final integration owns that.
 
 ---
 
@@ -74,6 +74,7 @@ SKILL_DIR = Path(__file__).resolve().parents[1]
 
 
 def read(path: Path) -> str:
+    assert path.exists(), f"missing expected hardening file: {path}"
     return path.read_text(encoding="utf-8")
 
 
@@ -114,7 +115,7 @@ if __name__ == "__main__":
 python .agents/skills/listing-hardening/scripts/selftest_hardening.py
 ```
 
-Expected: FAIL because `listing-hardening/SKILL.md` does not exist.
+Expected: assertion failure identifying missing `listing-hardening/SKILL.md`.
 
 - [ ] **Step 3: Create minimal Hardening Skill and prompt**
 
@@ -172,16 +173,15 @@ git commit -m "feat: add final delivery hardening boundary"
 **Interfaces:**
 - New canonical API: `canonical_hash(value) -> str`, `validate_state(state, policy=None) -> dict`, `main() -> int`.
 - Old API/CLI path re-exports those exact names and behavior.
-- Packaged policy path must resolve from the repository/main-skill data file until final integration decides its permanent owner.
+- Packaged policy path resolves from the repository/main-skill data file in repository mode; compatibility-archive path resolution is added in the final distribution plan.
 
-- [ ] **Step 1: Add failing equivalence tests before migration**
+- [ ] **Step 1: Add a failing equivalence test before migration**
 
 Append:
 
 ```python
 import importlib.util
 import json
-import sys
 
 REPO_ROOT = SKILL_DIR.parents[2]
 OLD_VALIDATOR = REPO_ROOT / ".agents" / "skills" / "japan-listing-demo" / "scripts" / "validate_project_state.py"
@@ -189,6 +189,7 @@ NEW_VALIDATOR = SKILL_DIR / "scripts" / "validate_delivery_state.py"
 
 
 def load_module(path: Path, name: str):
+    assert path.exists(), f"missing expected validator: {path}"
     spec = importlib.util.spec_from_file_location(name, path)
     assert spec and spec.loader
     module = importlib.util.module_from_spec(spec)
@@ -206,13 +207,13 @@ def test_new_validator_exists_and_matches_legacy_api() -> None:
 
 - [ ] **Step 2: Run and verify RED**
 
-Expected: FAIL because `validate_delivery_state.py` does not exist.
+Expected: assertion failure identifying missing `validate_delivery_state.py`.
 
 - [ ] **Step 3: Move current validator implementation to Hardening**
 
-Copy/refactor the current `validate_project_state.py` implementation into `listing-hardening/scripts/validate_delivery_state.py` without changing gate behavior yet.
+Copy/refactor current `validate_project_state.py` into `listing-hardening/scripts/validate_delivery_state.py` without changing gate behavior yet.
 
-Change its packaged policy location to an explicit repository-relative path:
+In repository mode use:
 
 ```python
 SCRIPT_DIR = Path(__file__).resolve().parent
@@ -222,7 +223,7 @@ DEFAULT_POLICY_PATH = REPO_ROOT / ".agents" / "skills" / "japan-listing-demo" / 
 
 - [ ] **Step 4: Replace the old script with a compatibility loader**
 
-The old file must dynamically load the new implementation because hyphenated Skill directory names are not importable packages:
+The old file dynamically loads the new implementation because hyphenated Skill directory names are not importable packages:
 
 ```python
 from __future__ import annotations
@@ -247,7 +248,7 @@ if __name__ == "__main__":
     raise SystemExit(main())
 ```
 
-Validate the `parents[]` index against the actual path before committing; the resolved `TARGET` must equal `.agents/skills/listing-hardening/scripts/validate_delivery_state.py`.
+Validate the `parents[]` indices against actual paths before committing.
 
 - [ ] **Step 5: Run old and new self-tests**
 
@@ -268,21 +269,22 @@ git commit -m "refactor: move delivery validator to hardening"
 
 ---
 
-### Task 3: Change evidence-audit timing semantics without weakening final gates
+### Task 3: Add Production Freeze as a separate hardening gate and characterize selective early-audit behavior
 
 **Files:**
 - Modify: `.agents/skills/listing-hardening/scripts/validate_delivery_state.py`
 - Modify: `.agents/skills/listing-hardening/scripts/selftest_hardening.py`
-- Modify: `.agents/skills/japan-listing-demo/templates/project-state.example.json` only if needed for compatibility examples; final template ownership moves in the release slice.
+- Modify: `.agents/skills/japan-listing-demo/templates/project-state.example.json` only for compatibility examples if necessary; final template ownership moves in the release slice.
 
 **Interfaces:**
-- `audit_checkpoints.post_6_5_required` means targeted inherited-asset audit was requested; default absent/false => `EVIDENCE_RECONCILIATION_GATE = N/A`.
-- `audit_checkpoints.pre_9_required` must be true for a final channel-native delivery state created from Production Freeze.
-- `PRE_DEMO_ASSET_GATE` remains strict.
+- `audit_checkpoints.post_6_5_required` means a targeted inherited-asset audit was requested; absent/false => `EVIDENCE_RECONCILIATION_GATE = N/A`.
+- `audit_checkpoints.pre_9_required` is true for final channel-native hardening.
+- New `PRODUCTION_FREEZE_GATE` checks creative-set completeness before pre-demo evidence verification.
+- `PRE_DEMO_ASSET_GATE` separately checks final evidence verification and remains strict.
 
-- [ ] **Step 1: Add selective-audit regressions**
+- [ ] **Step 1: Add characterization tests for existing selective-audit behavior**
 
-Append helpers/tests modeled on the existing v0.2.6 base state:
+Use a self-contained `minimal_valid_state()` copied from the existing category-neutral `base_state()` fixture, then add:
 
 ```python
 def test_fresh_project_does_not_require_post_6_5_audit() -> None:
@@ -311,34 +313,35 @@ def test_pre_demo_audit_remains_mandatory_when_required() -> None:
     assert result["gates"]["PRE_DEMO_ASSET_GATE"]["status"] == "UNVERIFIED"
 ```
 
-`minimal_valid_state()` may be copied from the existing category-neutral `base_state()` fixture so the test is self-contained.
+- [ ] **Step 2: Run characterization tests**
 
-- [ ] **Step 2: Run and inspect baseline**
+Expected: these three tests PASS on migrated v0.2.6 behavior. They document what is preserved; they are not the RED test for the new gate.
 
-The first test should already PASS if current v0.2.6 semantics treat absent/false post-6.5 audit as N/A. The targeted/pre-demo tests must also preserve existing strict behavior. If all three already pass, keep them as characterization tests and continue; do not force an artificial failure.
-
-For the actual TDD RED in this task, add this new behavior test:
+- [ ] **Step 3: Add the failing Production Freeze gate test**
 
 ```python
-def test_creative_user_approval_does_not_satisfy_pre_demo_gate() -> None:
-    validator = load_module(NEW_VALIDATOR, "creative_only_validator")
+def test_pre_demo_hardening_requires_complete_production_freeze() -> None:
+    validator = load_module(NEW_VALIDATOR, "freeze_gate_red")
     state = minimal_valid_state()
     state["audit_checkpoints"] = {"pre_9_required": True}
-    state["production_freeze"] = {
-        "expected_assets": 1,
-        "user_approved_assets": ["A01"],
-        "approved_output_refs": ["file:a01"],
+    state["auditor_evidence"] = {
+        "checkpoint": "pre-9",
+        "independent_semantic": True,
+        "asset_set_gate": {"status": "PASS", "messages": []},
+        "assets": {
+            "A01": {"physical_sha256": "a" * 64, "effective_status": "VERIFIED"}
+        },
     }
-    state.pop("auditor_evidence", None)
     result = validator.validate_state(state)
-    assert result["gates"]["PRE_DEMO_ASSET_GATE"]["status"] == "UNVERIFIED"
+    assert "PRODUCTION_FREEZE_GATE" in result["gates"]
+    assert result["gates"]["PRODUCTION_FREEZE_GATE"]["status"] == "FAIL"
 ```
 
-If current validator ignores `production_freeze` but already returns `UNVERIFIED`, add schema validation in Step 3 so the new Delivery State contract is materially tested.
+- [ ] **Step 4: Run and verify RED**
 
-- [ ] **Step 3: Add Delivery State / Production Freeze schema awareness**
+Expected: assertion failure because `PRODUCTION_FREEZE_GATE` is not yet present in the validator result.
 
-Require `production_freeze` when `pre_9_required` is true and final implementation exists:
+- [ ] **Step 5: Implement `_production_freeze_gate`**
 
 ```python
 def _production_freeze_gate(state: dict[str, Any]) -> dict[str, Any]:
@@ -350,23 +353,50 @@ def _production_freeze_gate(state: dict[str, Any]) -> dict[str, Any]:
         return _gate("FAIL", "production_freeze missing before pre-demo hardening")
     expected = freeze.get("expected_assets")
     approved = freeze.get("user_approved_assets", [])
+    blocked = freeze.get("blocked_assets", [])
+    revision = freeze.get("revision_pending", [])
     if not isinstance(expected, int) or expected < 0:
         return _gate("FAIL", "production_freeze expected_assets must be a non-negative integer")
+    if blocked:
+        return _gate("FAIL", f"production freeze has blocked assets: {', '.join(map(str, blocked))}")
+    if revision:
+        return _gate("FAIL", f"production freeze has revision-pending assets: {', '.join(map(str, revision))}")
     if len(approved) != expected:
         return _gate("FAIL", f"production freeze approved {len(approved)} of {expected} expected assets")
     return _gate("PASS", f"production freeze contains {expected} creatively approved assets")
 ```
 
-Add this gate to `validate_state()` before `PRE_DEMO_ASSET_GATE`. Creative completeness does not replace evidence verification; both gates must pass.
+Add `PRODUCTION_FREEZE_GATE` to `validate_state()` before `PRE_DEMO_ASSET_GATE`.
 
-- [ ] **Step 4: Run Hardening and legacy validator tests**
+- [ ] **Step 6: Add a GREEN test proving creative completeness still does not replace evidence verification**
 
-Expected: new Production Freeze regressions pass and all v0.2.5/v0.2.6 tests remain green.
+```python
+def test_complete_creative_freeze_still_needs_auditor_evidence() -> None:
+    validator = load_module(NEW_VALIDATOR, "creative_only_validator")
+    state = minimal_valid_state()
+    state["audit_checkpoints"] = {"pre_9_required": True}
+    state["production_freeze"] = {
+        "expected_assets": 1,
+        "user_approved_assets": ["A01"],
+        "blocked_assets": [],
+        "revision_pending": [],
+        "approved_output_refs": ["file:a01"],
+    }
+    state.pop("auditor_evidence", None)
+    result = validator.validate_state(state)
+    assert result["gates"]["PRODUCTION_FREEZE_GATE"]["status"] == "PASS"
+    assert result["gates"]["PRE_DEMO_ASSET_GATE"]["status"] == "UNVERIFIED"
+```
 
-- [ ] **Step 5: Commit**
+- [ ] **Step 7: Run Hardening and legacy validator tests**
+
+Expected: new freeze tests pass. Update legacy v0.2.6 tests that explicitly set `pre_9_required = true` to add a complete category-neutral Production Freeze fixture; do not weaken their existing evidence assertions.
+
+- [ ] **Step 8: Commit**
 
 ```bash
 git add .agents/skills/listing-hardening/scripts \
+        .agents/skills/japan-listing-demo/scripts/selftest_project_state_validator.py \
         .agents/skills/japan-listing-demo/templates/project-state.example.json
 git commit -m "feat: separate creative freeze from evidence verification"
 ```
@@ -406,11 +436,11 @@ def test_hardening_references_cover_delivery_integrity() -> None:
 
 - [ ] **Step 2: Run and verify RED**
 
-Expected: missing reference files.
+Expected: assertion failure identifying the first missing reference file.
 
 - [ ] **Step 3: Migrate/rewrite current hardening rules**
 
-Use the current `references/delivery-integrity.md`, `references/executable-gates.md`, `references/channel-native-demo.md`, QA files, and `listing-evidence-auditor` contract as source material, but keep only Stage 8.5–10 concerns here.
+Use current `references/delivery-integrity.md`, `references/executable-gates.md`, `references/channel-native-demo.md`, QA files, and `listing-evidence-auditor` contract as source material, but keep only Stage 8.5–10 concerns here.
 
 `asset-integrity.md` must include:
 
@@ -432,6 +462,8 @@ Use category-neutral JSON:
   "production_freeze": {
     "expected_assets": 2,
     "user_approved_assets": ["G1", "A1"],
+    "blocked_assets": [],
+    "revision_pending": [],
     "approved_output_refs": ["file:g1", "file:a1"]
   },
   "audit_checkpoints": {"pre_9_required": true},
@@ -512,7 +544,7 @@ python .agents/skills/japan-listing-demo/scripts/package_skill.py
 python scripts/package_codex_bundle.py
 ```
 
-Expected: all exit 0. The legacy validator CLI must still work through the compatibility shim.
+Expected: all exit 0. The legacy validator CLI remains functional through the compatibility shim.
 
 - [ ] **Step 4: Commit CI coverage**
 
