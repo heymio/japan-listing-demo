@@ -1,5 +1,22 @@
 # Changelog
 
+## 0.2.6 — Independent listing evidence auditor
+
+- Added sibling **`listing-evidence-auditor` Skill** in the same public repository while keeping normal user invocation as `$japan-listing-demo`.
+- Split planner-authored **Candidate Asset Registry** from auditor-owned **Evidence State** and downstream **Effective State**.
+- Added real-file fingerprinting that recomputes path containment, existence, SHA-256, byte size, signature family, extension/signature mismatch, and supported PNG/JPEG/WebP dimensions instead of trusting planner-authored metadata.
+- Added provenance reconciliation with `ORIGINAL_VERIFIED`, `DERIVATIVE_VERIFIED`, `EXACT_RECOVERY_VERIFIED`, `PROVENANCE_CONFLICT`, and `PROVENANCE_UNKNOWN`.
+- Bound human asset approval to exact physical SHA-256 + approved visual role + approved slot/page/offer scope. Same-name replacement does not inherit approval when bytes change.
+- Added semantic visual-role audit contract. Same-agent inline review cannot self-certify final `ROLE_MATCH`; when an independent context is unavailable, unresolved role evidence remains `HUMAN_REVIEW_REQUIRED` / `UNVERIFIED` unless the user explicitly approves exact hash + role/scope.
+- Added required asset-set completeness audit so one invalidated/unverified required member blocks final set consumption.
+- Split Stage 6.5 into Candidate Asset Intake and post-6.5 evidence reconciliation; added `EVIDENCE_RECONCILIATION_GATE` before final asset binding.
+- Added **Stage 8.5 Pre-Demo Evidence Audit** and `PRE_DEMO_ASSET_GATE` before Stage 9.
+- Updated v0.2.5 Project State validator so auditor evidence overrides Candidate Asset Status for asset eligibility and physical SHA conflicts fail downstream gates.
+- Preserved all v0.2.5 executable gates: module budget, approval provenance, module origin, transform authorization, asset-slot, and delivery parity.
+- Added evidence-auditor workflow regressions and two self-test suites.
+- Added a two-Skill Codex/repository bundle (`dist/japan-listing-demo-codex-bundle.zip`).
+- Kept compatibility `japan-listing-demo.skill.zip`, but it now includes an explicit single-context limitation note and cannot claim independent semantic audit.
+
 ## 0.2.5 — Executable gates and approval provenance
 
 - Added a machine-readable **Project State Manifest** for channel capability, approval events, assets, locked module plan, asset-slot bindings, and implementation state.

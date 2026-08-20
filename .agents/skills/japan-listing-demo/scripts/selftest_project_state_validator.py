@@ -3,9 +3,6 @@
 
 from __future__ import annotations
 
-import copy
-import hashlib
-import json
 import sys
 from pathlib import Path
 
@@ -47,7 +44,7 @@ def base_state() -> dict:
     plan_payload = {"modules": [module]}
     plan_hash = canonical_hash(plan_payload)
 
-    state = {
+    return {
         "schema_version": "0.1",
         "channel": {
             "id": "amazon-jp",
@@ -92,7 +89,6 @@ def base_state() -> dict:
         },
         "declared_gate_results": {"CHANNEL_MODULE_BUDGET_GATE": "PASS"},
     }
-    return state
 
 
 def assert_status(result: dict, gate: str, expected: str) -> None:
@@ -227,6 +223,81 @@ def test_filename_similarity_is_not_exact_recovery() -> None:
     }
     result = validate_state(state)
     assert_status(result, "APPROVAL_PROVENANCE_GATE", "FAIL")
+
+
+def test_agent_locked_asset_cannot_override_auditor_invalidated() -> None:
+    state = base_state()
+    state["audit_checkpoints"] = {"pre_9_required": True}
+    state["auditor_evidence"] = {
+        "checkpoint": "pre-9",
+        "independent_semantic": True,
+        "asset_set_gate": {"status": "FAIL", "messages": ["A01 invalidated"]},
+        "assets": {
+            "A01": {
+                "physical_sha256": "b" * 64,
+                "effective_status": "INVALIDATED",
+            }
+        },
+    }
+    result = validate_state(state)
+    assert_status(result, "PRE_DEMO_ASSET_GATE", "FAIL")
+    assert_status(result, "ASSET_SLOT_GATE", "FAIL")
+
+
+def test_stage7_final_lock_requires_verified_effective_asset() -> None:
+    state = base_state()
+    state["audit_checkpoints"] = {"post_6_5_required": True}
+    state["auditor_evidence"] = {
+        "checkpoint": "post-6.5",
+        "independent_semantic": True,
+        "asset_set_gate": {"status": "FAIL", "messages": ["semantic unresolved"]},
+        "assets": {
+            "A01": {
+                "physical_sha256": "a" * 64,
+                "effective_status": "PHYSICALLY_VERIFIED_ONLY",
+            }
+        },
+    }
+    result = validate_state(state)
+    assert_status(result, "EVIDENCE_RECONCILIATION_GATE", "FAIL")
+    assert_status(result, "ASSET_SLOT_GATE", "FAIL")
+
+
+def test_pre_demo_gate_passes_only_verified_required_assets() -> None:
+    state = base_state()
+    state["audit_checkpoints"] = {"pre_9_required": True}
+    state["auditor_evidence"] = {
+        "checkpoint": "pre-9",
+        "independent_semantic": True,
+        "asset_set_gate": {"status": "PASS", "messages": []},
+        "assets": {
+            "A01": {
+                "physical_sha256": "a" * 64,
+                "effective_status": "VERIFIED",
+            }
+        },
+    }
+    result = validate_state(state)
+    assert_status(result, "PRE_DEMO_ASSET_GATE", "PASS")
+    assert_status(result, "ASSET_SLOT_GATE", "PASS")
+
+
+def test_same_agent_semantic_evidence_cannot_unlock_pre_demo() -> None:
+    state = base_state()
+    state["audit_checkpoints"] = {"pre_9_required": True}
+    state["auditor_evidence"] = {
+        "checkpoint": "pre-9",
+        "independent_semantic": False,
+        "asset_set_gate": {"status": "FAIL", "messages": ["human review required"]},
+        "assets": {
+            "A01": {
+                "physical_sha256": "a" * 64,
+                "effective_status": "HUMAN_REVIEW_REQUIRED",
+            }
+        },
+    }
+    result = validate_state(state)
+    assert_status(result, "PRE_DEMO_ASSET_GATE", "FAIL")
 
 
 def main() -> int:

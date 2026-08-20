@@ -1,0 +1,11 @@
+{
+  "assets": {
+    "G03": {
+      "asset_id": "G03",
+      "review_source": "independent_context",
+      "actual_role": "gallery-native",
+      "role_status": "ROLE_MATCH",
+      "notes": "The artifact visually behaves as a gallery-native image and does not contain enhanced-content board framing."
+    }
+  }
+}

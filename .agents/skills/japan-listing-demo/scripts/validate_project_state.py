@@ -2,7 +2,8 @@
 """Validate machine-checkable listing project state.
 
 The validator computes gate results from source state. It intentionally ignores any
-agent-authored `declared_gate_results` field.
+agent-authored `declared_gate_results` field. When auditor evidence is present, it
+wins over planner-authored asset status for downstream eligibility.
 """
 
 from __future__ import annotations
@@ -18,6 +19,7 @@ from typing import Any
 SKILL_DIR = Path(__file__).resolve().parents[1]
 DEFAULT_POLICY_PATH = SKILL_DIR / "data" / "channel-policy-limits.json"
 HEX64 = re.compile(r"^[0-9a-f]{64}$")
+FINAL_AUDITED_STATUSES = {"VERIFIED", "HUMAN_APPROVED"}
 
 
 def canonical_hash(value: Any) -> str:
@@ -93,6 +95,50 @@ def _transform_payload(asset: dict[str, Any]) -> dict[str, Any]:
     }
 
 
+def _auditor_evidence(state: dict[str, Any]) -> dict[str, Any]:
+    evidence = state.get("auditor_evidence")
+    return evidence if isinstance(evidence, dict) else {}
+
+
+def _audited_asset(state: dict[str, Any], asset_id: str) -> dict[str, Any] | None:
+    assets = _auditor_evidence(state).get("assets") or {}
+    item = assets.get(asset_id)
+    return item if isinstance(item, dict) else None
+
+
+def _effective_asset_usable(state: dict[str, Any], asset_id: str) -> tuple[bool, str]:
+    audited = _audited_asset(state, asset_id)
+    if not audited:
+        return False, "auditor evidence missing"
+    status = audited.get("effective_status")
+    if status not in FINAL_AUDITED_STATUSES:
+        return False, f"effective status {status!r} is not final-consumable"
+    return True, ""
+
+
+def _candidate_asset_index(state: dict[str, Any]) -> dict[str, dict[str, Any]]:
+    return {
+        asset.get("asset_id"): asset
+        for asset in state.get("assets", [])
+        if isinstance(asset.get("asset_id"), str) and asset.get("asset_id")
+    }
+
+
+def _required_asset_ids(state: dict[str, Any]) -> set[str]:
+    result: set[str] = set()
+    for contract in state.get("asset_slot_contract", []):
+        for asset_id in contract.get("required_asset_ids", []):
+            if isinstance(asset_id, str) and asset_id:
+                result.add(asset_id)
+    if result:
+        return result
+    for module in state.get("locked_module_plan", {}).get("modules", []):
+        for asset_id in module.get("asset_ids", []):
+            if isinstance(asset_id, str) and asset_id:
+                result.add(asset_id)
+    return result
+
+
 def _schema_gate(state: dict[str, Any]) -> dict[str, Any]:
     errors: list[str] = []
     if state.get("schema_version") != "0.1":
@@ -107,6 +153,12 @@ def _schema_gate(state: dict[str, Any]) -> dict[str, Any]:
         errors.append("locked_module_plan object missing")
     if not isinstance(state.get("implementation"), dict):
         errors.append("implementation object missing")
+    audit_checkpoints = state.get("audit_checkpoints")
+    if audit_checkpoints is not None and not isinstance(audit_checkpoints, dict):
+        errors.append("audit_checkpoints must be an object when present")
+    auditor_evidence = state.get("auditor_evidence")
+    if auditor_evidence is not None and not isinstance(auditor_evidence, dict):
+        errors.append("auditor_evidence must be an object when present")
     return _gate("FAIL" if errors else "PASS", *errors)
 
 
@@ -173,6 +225,10 @@ def _approval_provenance_gate(state: dict[str, Any]) -> dict[str, Any]:
         if not isinstance(digest, str) or not HEX64.match(digest):
             errors.append(f"{asset_id}: locked asset requires a lowercase SHA-256")
             continue
+
+        audited = _audited_asset(state, str(asset_id))
+        if audited and audited.get("physical_sha256") and audited.get("physical_sha256") != digest:
+            errors.append(f"{asset_id}: candidate SHA-256 conflicts with auditor physical SHA-256")
 
         approval_id = asset.get("approval_id")
         if approval_id:
@@ -252,7 +308,11 @@ def _module_origin_gate(state: dict[str, Any]) -> dict[str, Any]:
 def _transform_auth_gate(state: dict[str, Any]) -> dict[str, Any]:
     approvals = _approval_index(state)
     errors: list[str] = []
-    derivatives = [asset for asset in state.get("assets", []) if asset.get("status") == "LOCKED" and (asset.get("derivative_of") or asset.get("transform"))]
+    derivatives = [
+        asset
+        for asset in state.get("assets", [])
+        if asset.get("status") == "LOCKED" and (asset.get("derivative_of") or asset.get("transform"))
+    ]
     if not derivatives:
         return _gate("PASS", "no locked derivatives require transform authorization")
 
@@ -273,10 +333,77 @@ def _transform_auth_gate(state: dict[str, Any]) -> dict[str, Any]:
     return _gate("FAIL" if errors else "PASS", *errors)
 
 
+def _evidence_reconciliation_gate(state: dict[str, Any]) -> dict[str, Any]:
+    checkpoints = state.get("audit_checkpoints") or {}
+    if checkpoints.get("post_6_5_required") is not True:
+        return _gate("N/A", "post-6.5 evidence audit not required in this state")
+
+    evidence = _auditor_evidence(state)
+    if not evidence:
+        return _gate("UNVERIFIED", "post-6.5 auditor evidence missing")
+    if evidence.get("checkpoint") != "post-6.5":
+        return _gate("FAIL", "auditor evidence checkpoint must be post-6.5")
+
+    errors: list[str] = []
+    candidate_assets = _candidate_asset_index(state)
+    required_ids = _required_asset_ids(state)
+    if not required_ids:
+        required_ids = {
+            asset_id
+            for asset_id, asset in candidate_assets.items()
+            if asset.get("status") == "LOCKED"
+        }
+
+    for asset_id in sorted(required_ids):
+        usable, reason = _effective_asset_usable(state, asset_id)
+        if not usable:
+            errors.append(f"{asset_id}: {reason}")
+        audited = _audited_asset(state, asset_id)
+        candidate = candidate_assets.get(asset_id)
+        if audited and candidate and audited.get("physical_sha256") and candidate.get("sha256") != audited.get("physical_sha256"):
+            errors.append(f"{asset_id}: candidate SHA differs from auditor physical SHA")
+
+    set_gate = evidence.get("asset_set_gate") or {}
+    if set_gate.get("status") == "FAIL":
+        errors.extend(str(message) for message in set_gate.get("messages", []))
+
+    return _gate("FAIL" if errors else "PASS", *errors)
+
+
+def _pre_demo_asset_gate(state: dict[str, Any]) -> dict[str, Any]:
+    checkpoints = state.get("audit_checkpoints") or {}
+    if checkpoints.get("pre_9_required") is not True:
+        return _gate("N/A", "pre-9 evidence audit not required in this state")
+
+    evidence = _auditor_evidence(state)
+    if not evidence:
+        return _gate("UNVERIFIED", "pre-9 auditor evidence missing")
+    if evidence.get("checkpoint") != "pre-9":
+        return _gate("FAIL", "auditor evidence checkpoint must be pre-9")
+
+    errors: list[str] = []
+    required_ids = _required_asset_ids(state)
+    for asset_id in sorted(required_ids):
+        usable, reason = _effective_asset_usable(state, asset_id)
+        if not usable:
+            errors.append(f"{asset_id}: {reason}")
+
+    set_gate = evidence.get("asset_set_gate") or {}
+    if set_gate.get("status") != "PASS":
+        errors.append(f"auditor asset_set_gate must PASS, got {set_gate.get('status')!r}")
+        errors.extend(str(message) for message in set_gate.get("messages", []))
+
+    return _gate("FAIL" if errors else "PASS", *errors)
+
+
 def _asset_slot_gate(state: dict[str, Any]) -> dict[str, Any]:
-    assets = {asset.get("asset_id"): asset for asset in state.get("assets", []) if asset.get("asset_id")}
+    assets = _candidate_asset_index(state)
     contracts = state.get("asset_slot_contract", [])
-    impl_slots = {slot.get("slot_id"): slot for slot in state.get("implementation", {}).get("slots", []) if slot.get("slot_id")}
+    impl_slots = {
+        slot.get("slot_id"): slot
+        for slot in state.get("implementation", {}).get("slots", [])
+        if slot.get("slot_id")
+    }
     if not contracts:
         return _gate("N/A", "no asset-slot contract")
 
@@ -303,13 +430,27 @@ def _asset_slot_gate(state: dict[str, Any]) -> dict[str, Any]:
             if slot_id not in allowed_slots:
                 errors.append(f"{slot_id}: asset {asset_id} is not allowed in this slot")
 
+            audited = _audited_asset(state, str(asset_id))
+            if audited:
+                usable, reason = _effective_asset_usable(state, str(asset_id))
+                if not usable:
+                    errors.append(f"{slot_id}: auditor rejects asset {asset_id}: {reason}")
+                if audited.get("physical_sha256") and audited.get("physical_sha256") != asset.get("sha256"):
+                    errors.append(f"{slot_id}: asset {asset_id} candidate SHA conflicts with auditor physical SHA")
+            elif (state.get("audit_checkpoints") or {}).get("post_6_5_required") or (state.get("audit_checkpoints") or {}).get("pre_9_required"):
+                errors.append(f"{slot_id}: required asset {asset_id} has no auditor evidence")
+
     return _gate("FAIL" if errors else "PASS", *errors)
 
 
 def _delivery_parity_gate(state: dict[str, Any]) -> dict[str, Any]:
     plan = state.get("locked_module_plan", {})
     plan_index = {m.get("module_id"): m for m in plan.get("modules", []) if m.get("module_id")}
-    impl_index = {s.get("module_id"): s for s in state.get("implementation", {}).get("slots", []) if s.get("module_id")}
+    impl_index = {
+        s.get("module_id"): s
+        for s in state.get("implementation", {}).get("slots", [])
+        if s.get("module_id")
+    }
     if not plan_index and not impl_index:
         return _gate("N/A", "no planned or implemented modules")
 
@@ -333,7 +474,9 @@ def validate_state(state: dict[str, Any], policy: dict[str, Any] | None = None) 
         "APPROVAL_PROVENANCE_GATE": _approval_provenance_gate(state),
         "MODULE_ORIGIN_GATE": _module_origin_gate(state),
         "TRANSFORM_AUTH_GATE": _transform_auth_gate(state),
+        "EVIDENCE_RECONCILIATION_GATE": _evidence_reconciliation_gate(state),
         "ASSET_SLOT_GATE": _asset_slot_gate(state),
+        "PRE_DEMO_ASSET_GATE": _pre_demo_asset_gate(state),
         "DELIVERY_PARITY_GATE": _delivery_parity_gate(state),
     }
     statuses = {gate["status"] for gate in gates.values()}
@@ -346,7 +489,7 @@ def validate_state(state: dict[str, Any], policy: dict[str, Any] | None = None) 
     return {
         "overall_status": overall,
         "gates": gates,
-        "note": "declared_gate_results is intentionally ignored; results are computed from source state",
+        "note": "declared_gate_results is intentionally ignored; auditor evidence overrides planner asset eligibility when present",
     }
 
 

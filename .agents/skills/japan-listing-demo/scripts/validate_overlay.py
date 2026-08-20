@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Validate japan-listing-demo as a standalone public Skill distribution."""
+"""Validate japan-listing-demo and its sibling evidence auditor distribution."""
 
 from __future__ import annotations
 
@@ -11,6 +11,7 @@ from pathlib import Path
 SKILL_DIR = Path(__file__).resolve().parents[1]
 REPO_ROOT = SKILL_DIR.parents[2]
 SKILL_FILE = SKILL_DIR / "SKILL.md"
+AUDITOR_DIR = REPO_ROOT / ".agents" / "skills" / "listing-evidence-auditor"
 
 REQUIRED_CORE_FILES = [
     SKILL_DIR / "core" / "manifest.yaml",
@@ -47,6 +48,7 @@ REQUIRED_JAPAN_FILES = [
     SKILL_DIR / "evals" / "channels.md",
     SKILL_DIR / "evals" / "delivery-integrity.md",
     SKILL_DIR / "evals" / "executable-gates.md",
+    SKILL_DIR / "evals" / "evidence-auditor.md",
     SKILL_DIR / "data" / "channel-policy-limits.json",
     SKILL_DIR / "templates" / "project-state.example.json",
     SKILL_DIR / "scripts" / "validate_project_state.py",
@@ -54,11 +56,23 @@ REQUIRED_JAPAN_FILES = [
     SKILL_DIR / "scripts" / "package_skill.py",
 ]
 
+REQUIRED_AUDITOR_FILES = [
+    AUDITOR_DIR / "SKILL.md",
+    AUDITOR_DIR / "agents" / "openai.yaml",
+    AUDITOR_DIR / "references" / "audit-contract.md",
+    AUDITOR_DIR / "scripts" / "fingerprint_assets.py",
+    AUDITOR_DIR / "scripts" / "reconcile_evidence.py",
+    AUDITOR_DIR / "scripts" / "selftest_auditor.py",
+    AUDITOR_DIR / "templates" / "audit-input.example.json",
+    AUDITOR_DIR / "templates" / "semantic-review.example.json",
+]
+
 REQUIRED_REPO_FILES = [
     REPO_ROOT / "README.md",
     REPO_ROOT / "CHANGELOG.md",
     REPO_ROOT / "VERSION",
     REPO_ROOT / "docs" / "install.md",
+    REPO_ROOT / "scripts" / "package_codex_bundle.py",
 ]
 
 CATEGORY_LEAKAGE_TERMS = [
@@ -90,6 +104,8 @@ GUARDED_FILES = [
     SKILL_DIR / "profiles" / "channels" / "yahoo-shopping.md",
     SKILL_DIR / "profiles" / "channels" / "dtc.md",
     SKILL_DIR / "profiles" / "channels" / "retailer-pdp.md",
+    AUDITOR_DIR / "SKILL.md",
+    AUDITOR_DIR / "references" / "audit-contract.md",
 ]
 
 
@@ -110,8 +126,22 @@ def parse_frontmatter(text: str) -> dict[str, str]:
     return values
 
 
+def run_selftest(path: Path, label: str) -> str:
+    result = subprocess.run(
+        [sys.executable, str(path)],
+        cwd=REPO_ROOT,
+        capture_output=True,
+        text=True,
+    )
+    if result.returncode != 0:
+        print(result.stdout)
+        print(result.stderr, file=sys.stderr)
+        fail(f"{label} self-tests failed")
+    return result.stdout.strip()
+
+
 def main() -> int:
-    required = REQUIRED_CORE_FILES + REQUIRED_JAPAN_FILES + REQUIRED_REPO_FILES
+    required = REQUIRED_CORE_FILES + REQUIRED_JAPAN_FILES + REQUIRED_AUDITOR_FILES + REQUIRED_REPO_FILES
     missing = [str(path.relative_to(REPO_ROOT)) for path in required if not path.exists()]
     if missing:
         fail(f"missing standalone files: {', '.join(missing)}")
@@ -128,16 +158,21 @@ def main() -> int:
         if re.search(pattern, skill_text, flags=re.I | re.S):
             fail(f"runtime dependency wording found in SKILL.md: {pattern}")
 
+    auditor_text = (AUDITOR_DIR / "SKILL.md").read_text(encoding="utf-8")
+    auditor_frontmatter = parse_frontmatter(auditor_text)
+    if auditor_frontmatter.get("name") != "listing-evidence-auditor":
+        fail("auditor frontmatter name must be listing-evidence-auditor")
+
     manifest = (SKILL_DIR / "core" / "manifest.yaml").read_text(encoding="utf-8")
     for value in ["heymio/gtm-listing-demo", "0.2.0", "b882526f5a683235d30f562006cf1984a9f0d9f9", "standalone"]:
         if value.casefold() not in manifest.casefold():
             fail(f"core manifest is missing provenance value: {value}")
 
     version = (REPO_ROOT / "VERSION").read_text(encoding="utf-8").strip()
-    if version != "0.2.5":
-        fail(f"VERSION must be 0.2.5, found {version!r}")
+    if version != "0.2.6":
+        fail(f"VERSION must be 0.2.6, found {version!r}")
 
-    all_text = "\n".join(path.read_text(encoding="utf-8") for path in required)
+    all_text = "\n".join(path.read_text(encoding="utf-8") for path in required if path.suffix in {".md", ".yaml", ".txt"})
     placeholders = re.findall(r"\b(?:TODO|TBD|FIXME)\b", all_text, flags=re.I)
     if placeholders:
         fail(f"placeholder terms found: {sorted(set(placeholders))}")
@@ -155,89 +190,50 @@ def main() -> int:
         if re.search(pattern, locale_and_market_text, flags=re.I):
             fail(f"unsupported Japan persona statement found: {pattern}")
 
-    evidence_contract = (SKILL_DIR / "references" / "japan-market-evidence.md").read_text(encoding="utf-8")
-    for field in ["source", "date", "category", "channel", "evidence type", "confidence", "allowed usage"]:
-        if field not in evidence_contract.casefold():
-            fail(f"Japan market evidence contract is missing: {field}")
-
     eval_text = "\n".join(
         (SKILL_DIR / "evals" / name).read_text(encoding="utf-8")
-        for name in ["core.md", "cross-category.md", "channels.md", "delivery-integrity.md", "executable-gates.md"]
+        for name in ["core.md", "cross-category.md", "channels.md", "delivery-integrity.md", "executable-gates.md", "evidence-auditor.md"]
     )
     for scenario in [
-        "Standalone Japan team installation", "Major-stage checkpoint by default",
-        "User transition command exits current stage", "Frame retry budget prevents loops",
-        "Explicit autonomous mode is opt-in", "Explicit checkpoint request must be respected",
-        "Japan market without category evidence", "Japan market with a non-Japanese locale",
-        "Rakuten project must not inherit Amazon modules", "Amazon channel-native demo requires frontend reference intake",
-        "User-provided frontend reference has priority", "Platform rules are not frontend visual evidence",
-        "Frontend Fidelity Gate blocks invented channel shells", "Channel-native demo shell comes from reference evidence",
-        "Non-Amazon channel-native demos use the same reference contract", "Stage Completion Manifest blocks false completion",
-        "Approved asset cannot be silently replaced downstream", "Asset-to-Slot Contract rejects cross-slot asset leakage",
-        "Topic coverage does not prove module fit", "Native interaction is planned before production",
-        "Planned-to-Implemented Parity Gate catches missing interaction", "P0 differentiator requires visual proof",
-        "Asset Readiness Preflight happens before late visual discovery", "Authoritative change reopens only impacted work",
-        "Amazon Premium A+ module budget is machine enforced", "Locked module plan cannot grow in Stage 9",
-        "Interaction cannot drift after module approval", "Cropped derivative requires transform authorization",
-        "Locked asset requires approval provenance", "Exact recovery can be machine verified",
-        "Agent-authored PASS fields are ignored", "Gate-unavailable environment cannot self-certify",
-        "Category conclusions must not leak across projects",
+        "Candidate Gallery claim loses to auditor visual-role mismatch",
+        "Same filename with changed bytes loses prior approval",
+        "Inline self-audit cannot unlock Stage 9",
+        "One invalidated member fails the complete required set",
     ]:
         if scenario not in eval_text:
-            fail(f"missing evaluation scenario: {scenario}")
+            fail(f"missing evidence-auditor evaluation scenario: {scenario}")
 
     workflow = (SKILL_DIR / "core" / "workflow.md").read_text(encoding="utf-8")
     openai_yaml = (SKILL_DIR / "agents" / "openai.yaml").read_text(encoding="utf-8")
-    execution_policy = "\n".join([skill_text, workflow, openai_yaml]).casefold()
-    if "continuous execution by default" in execution_policy:
-        fail("continuous execution must not be the default in v0.2.5")
-    for phrase in ["checkpointed execution by default", "major stage checkpoint", "transition command", "retry budget", "needs revision", "autonomous mode"]:
-        if phrase not in execution_policy:
-            fail(f"checkpointed-execution policy is missing: {phrase}")
-    if "human review gate" in workflow.casefold():
-        fail("legacy Human Review Gate wording must be replaced with major-stage checkpoint semantics")
-
-    native_demo = (SKILL_DIR / "references" / "channel-native-demo.md").read_text(encoding="utf-8")
-    delivery = (SKILL_DIR / "references" / "delivery-integrity.md").read_text(encoding="utf-8")
-    executable = (SKILL_DIR / "references" / "executable-gates.md").read_text(encoding="utf-8")
-    amazon_profile = (SKILL_DIR / "profiles" / "channels" / "amazon-jp.md").read_text(encoding="utf-8")
-    policy_text = "\n".join([skill_text, workflow, openai_yaml, native_demo, delivery, executable, amazon_profile]).casefold()
+    policy_text = "\n".join([skill_text, workflow, openai_yaml, auditor_text]).casefold()
     for phrase in [
-        "channel frontend reference pack", "frontend fidelity gate", "primary reference", "content review demo",
-        "stage completion manifest", "asset readiness preflight", "asset-to-slot contract", "approved asset",
-        "asset_slot_gate", "module_fit_gate", "content_coverage", "delivery_parity_gate",
-        "differentiator_proof_gate", "change impact map", "project state manifest",
-        "channel_module_budget_gate", "module_origin_gate", "transform_auth_gate",
-        "approval_provenance_gate", "external validator", "unverified",
+        "checkpointed execution by default",
+        "listing-evidence-auditor",
+        "evidence_reconciliation_gate",
+        "pre_demo_asset_gate",
+        "stage 8.5",
+        "effective state",
+        "human_review_required",
+        "independent context",
     ]:
         if phrase not in policy_text:
-            fail(f"required policy is missing: {phrase}")
-    if "official rules do not substitute" not in policy_text:
-        fail("must state that official platform rules do not substitute for frontend visual evidence")
+            fail(f"required v0.2.6 policy is missing: {phrase}")
 
-    readme = (REPO_ROOT / "README.md").read_text(encoding="utf-8")
-    install = (REPO_ROOT / "docs" / "install.md").read_text(encoding="utf-8")
+    readme = (REPO_ROOT / "README.md").read_text(encoding="utf-8").casefold()
+    install = (REPO_ROOT / "docs" / "install.md").read_text(encoding="utf-8").casefold()
     for document_name, document in [("README.md", readme), ("docs/install.md", install)]:
-        doc = document.casefold()
-        for phrase in ["checkpoint", "frontend", "reference", "stage completion manifest", "asset-to-slot", "project state manifest", "external validator"]:
-            if phrase not in doc:
+        for phrase in ["listing-evidence-auditor", "one repository", "human_review_required", "pre_demo_asset_gate"]:
+            if phrase not in document:
                 fail(f"{document_name} must explain: {phrase}")
 
-    selftest = subprocess.run(
-        [sys.executable, str(SKILL_DIR / "scripts" / "selftest_project_state_validator.py")],
-        cwd=REPO_ROOT,
-        capture_output=True,
-        text=True,
-    )
-    if selftest.returncode != 0:
-        print(selftest.stdout)
-        print(selftest.stderr, file=sys.stderr)
-        fail("project-state validator self-tests failed")
+    auditor_selftest = run_selftest(AUDITOR_DIR / "scripts" / "selftest_auditor.py", "evidence auditor")
+    project_state_selftest = run_selftest(SKILL_DIR / "scripts" / "selftest_project_state_validator.py", "project-state validator")
 
-    print(selftest.stdout.strip())
-    print("PASS: japan-listing-demo standalone distribution is valid")
+    print(auditor_selftest)
+    print(project_state_selftest)
+    print("PASS: japan-listing-demo v0.2.6 distribution is valid")
     print(f"PASS: {len(required)} required files exist")
-    print("PASS: executable project-state gates are packaged and self-tested")
+    print("PASS: sibling evidence auditor and effective-state gates are packaged and self-tested")
     return 0
 
 

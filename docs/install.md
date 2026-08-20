@@ -1,170 +1,213 @@
 # japan-listing-demo installation and use
 
-## Team installation: one Skill
+## Recommended team setup: one repository
 
-Japan-team users install only:
-
-```text
-japan-listing-demo
-```
-
-No second repository or Skill ZIP is required.
-
-## Default execution behavior: Major Stage Checkpoints
-
-For each numbered workflow stage:
-
-1. complete the stage to a reviewable state;
-2. emit a **Stage Completion Manifest**;
-3. show output, assumptions, and open items;
-4. stop at the Major Stage Checkpoint;
-5. wait for the user's review before the next numbered stage.
-
-A completed subset does not make a stage complete. A Transition Command can advance a `PARTIAL` stage, but does not relabel it `COMPLETE`.
-
-## Transition Commands and Retry Budget
-
-`继续 / 下一步 / go / go next / next / 先这样 / 这张先过` normally mean move to the next numbered stage unless the user explicitly asks to keep improving the current artifact.
-
-The same artifact/problem has at most two autonomous retries without new evidence or direction.
-
-## Delivery integrity
-
-Read `references/delivery-integrity.md`.
-
-The workflow uses:
-
-- Asset Readiness Preflight;
-- stable approved Asset IDs;
-- Asset-to-Slot Contract;
-- separate `CONTENT_COVERAGE` and `MODULE_FIT_GATE`;
-- Differentiator Proof Matrix;
-- Change Impact Map;
-- planned-to-implemented parity.
-
-Approved assets cannot be silently substituted downstream. A material crop/recomposition/role change creates a derivative with provenance.
-
-## Project State Manifest and external validator
-
-Read `references/executable-gates.md`.
-
-Maintain one machine-readable **Project State Manifest**. Start from:
+Use one public repository:
 
 ```text
-.agents/skills/japan-listing-demo/templates/project-state.example.json
+heymio/japan-listing-demo
 ```
 
-Run the **external validator**:
+It contains two sibling Skills:
+
+```text
+.agents/skills/japan-listing-demo/
+.agents/skills/listing-evidence-auditor/
+```
+
+Normal team users invoke only:
+
+```text
+$japan-listing-demo
+```
+
+The main workflow delegates to `listing-evidence-auditor` automatically. No second repository is required.
+
+## Why two Skills live in one repository
+
+`japan-listing-demo` plans and produces listing work. `listing-evidence-auditor` independently checks whether the exact physical files really match the planner's asset claims.
+
+The separation prevents a planner-authored Candidate State from becoming its own evidence source.
+
+## Default execution behavior
+
+The workflow uses Major Stage Checkpoints. Each numbered stage emits a Stage Completion Manifest and waits for review unless the current request explicitly opts into Autonomous Mode.
+
+`继续 / 下一步 / go / next / 先这样` normally advance the workflow; they do not authorize more retries or upgrade unresolved evidence.
+
+## Evidence-audit checkpoints
+
+### Post-6.5
+
+```text
+6.5A Candidate Asset Registry
+→ listing-evidence-auditor
+→ EVIDENCE_RECONCILIATION_GATE
+→ Effective State
+→ Stage 7
+```
+
+The Candidate Asset Registry is assertion state. Asset IDs, filenames, claimed role, claimed provenance, agent-authored hashes, and `LOCKED` status are not final physical evidence.
+
+`listing-evidence-auditor` recomputes:
+
+- actual SHA-256;
+- allowed project-root path and file existence;
+- file signature / supported dimensions;
+- provenance;
+- exact-hash approval binding;
+- semantic visual role;
+- required asset-set completeness.
+
+Stage 7 may plan around explicit gaps, but final Asset-to-Slot bindings may use only:
+
+```text
+VERIFIED
+HUMAN_APPROVED
+```
+
+### Stage 8.5 before Stage 9
+
+```text
+Stage 8 final visual files
+→ Stage 8.5 Pre-Demo Evidence Audit
+→ listing-evidence-auditor
+→ PRE_DEMO_ASSET_GATE
+→ Stage 9
+```
+
+Every final required file referenced by the locked Demo plan is re-audited after edits/transforms. `PRE_DEMO_ASSET_GATE` must PASS before final channel-native asset consumption.
+
+One required `INVALIDATED`, `UNVERIFIED`, `PHYSICALLY_VERIFIED_ONLY`, or `HUMAN_REVIEW_REQUIRED` asset blocks final Stage 9 assembly.
+
+## Independent context requirement
+
+Semantic visual-role auditing should run in an **independent context** / isolated subagent whenever supported.
+
+Only send the auditor the audit packet and evidence required to inspect the files. Do not send the planner's desired PASS result.
+
+If the runtime cannot provide an independent context:
+
+- deterministic physical fingerprinting can still run;
+- same-agent semantic review cannot self-certify `VERIFIED`;
+- unresolved semantic evidence remains `UNVERIFIED` / `HUMAN_REVIEW_REQUIRED`;
+- the user may resolve the ambiguity only by explicitly approving the exact physical SHA-256 + role + scope.
+
+Loading the auditor Skill in the same reasoning context is not independent auditing.
+
+## Approval provenance
+
+Asset approval is tied to:
+
+```text
+exact physical SHA-256
++ approved visual role
++ approved slot/page/offer scope
+```
+
+A same-name replacement with different bytes does not inherit approval.
+
+A deterministic crop/recomposition/resize/background replacement/role change remains a derivative and needs transform authorization.
+
+## Project State external validator
+
+Maintain one machine-readable Project State Manifest and run:
 
 ```bash
 python .agents/skills/japan-listing-demo/scripts/validate_project_state.py path/to/project-state.json --json
 ```
 
-It computes:
+It computes the existing v0.2.5 gates plus v0.2.6 evidence gates:
 
 ```text
 CHANNEL_MODULE_BUDGET_GATE
 APPROVAL_PROVENANCE_GATE
 MODULE_ORIGIN_GATE
 TRANSFORM_AUTH_GATE
+EVIDENCE_RECONCILIATION_GATE
 ASSET_SLOT_GATE
+PRE_DEMO_ASSET_GATE
 DELIVERY_PARITY_GATE
 ```
 
-Do not trust agent-authored `declared_gate_results`. The validator ignores that field.
-
-If the validator cannot execute, applicable machine gates remain:
-
-```text
-UNVERIFIED
-```
-
-The agent must not manually self-certify PASS.
-
-### Approval provenance
-
-A `LOCKED` asset requires either:
-
-- a user approval event bound to the exact current asset hash; or
-- exact SHA-256 recovery of the previously locked asset.
-
-Filename similarity or visual resemblance does not count as exact recovery.
-
-A deterministic crop is still a transform. Material derivatives require a transform approval event and `TRANSFORM_AUTH_GATE`.
-
-### Locked module plan
-
-Stage 7 produces the module architecture, canonical `plan_hash`, and user approval event for that exact hash.
-
-Stage 9 must consume that exact plan hash. It cannot add/remove modules, change native type/interaction, or retrofit a carousel and then rewrite the plan retroactively.
+Agent-authored `declared_gate_results` are ignored. If validator/auditor execution is unavailable, applicable status remains `UNVERIFIED`, not manual PASS.
 
 ## Amazon.co.jp module budget
 
-The packaged executable policy for this Skill version is:
+Current packaged executable ceiling:
 
 ```text
-Basic A+   max 5 modules
-Premium A+ max 7 modules
+Basic A+    max 5 modules
+Premium A+  max 7 modules
 ```
 
-Brand Story is separate from the Premium A+ module budget.
+Brand Story is separate. Topic count is not module count.
 
-The project may use a lower current-account limit. It cannot raise the packaged ceiling by editing its own Project State Manifest.
+## Frontend reference workflow
 
-## Channel-native demo frontend reference workflow
-
-When the requested deliverable should look like a real Amazon.co.jp, Rakuten, Yahoo! Shopping, retailer, or DTC frontend, the Skill must not generate the shell from memory.
-
-At Stage 5.5:
-
-1. verify Platform Capability;
-2. ask whether the user has a preferred current Reference URL / ASIN / page / screenshot set;
-3. use a valid user-supplied reference as candidate Primary Reference;
-4. otherwise research 1–3 current consumer-facing references;
-5. visually inspect material desktop/mobile shell, section order, interactions, and ownership;
-6. output a Channel Frontend Reference Pack.
+For channel-native demos, Stage 5.5 still requires a current consumer-facing frontend reference and Channel Frontend Reference Pack.
 
 **Official rules do not substitute for frontend visual evidence.**
 
-Immediately before Stage 9, run `FRONTEND_FIDELITY_GATE`. If it fails, output a clearly named `Content Review Demo` rather than inventing a channel-native shell.
+Run `FRONTEND_FIDELITY_GATE` before native Demo Assembly. If it fails, use `Content Review Demo` rather than fabricating channel chrome.
 
-## Autonomous Mode is optional
+## Recommended repository / Codex distribution
 
-End-to-end continuous execution is opt-in for the current request only. It does not bypass Stage Completion Manifest, executable, approval-provenance, asset-slot, module-fit, differentiator-proof, parity, claim, or frontend-fidelity gates.
+Package both sibling Skills:
+
+```bash
+python scripts/package_codex_bundle.py
+```
+
+Output:
+
+```text
+dist/japan-listing-demo-codex-bundle.zip
+```
+
+This is the recommended package when the execution environment can isolate the auditor context.
+
+## Compatibility single-Skill ZIP
+
+Build:
+
+```bash
+python .agents/skills/japan-listing-demo/scripts/package_skill.py
+```
+
+Output:
+
+```text
+dist/japan-listing-demo.skill.zip
+```
+
+This compatibility archive contains the main Skill only. It includes an explicit `SINGLE_CONTEXT_LIMITATION.txt` and **cannot claim an independent semantic evidence audit**.
+
+In this mode semantic evidence remains `UNVERIFIED` / `HUMAN_REVIEW_REQUIRED` unless the user explicitly approves exact hash + role/scope.
+
+## Full validation
+
+```bash
+python .agents/skills/listing-evidence-auditor/scripts/selftest_auditor.py
+python .agents/skills/japan-listing-demo/scripts/selftest_project_state_validator.py
+python .agents/skills/japan-listing-demo/scripts/validate_overlay.py
+python .agents/skills/japan-listing-demo/scripts/package_skill.py
+python scripts/package_codex_bundle.py
+python -m zipfile -l dist/japan-listing-demo.skill.zip
+python -m zipfile -l dist/japan-listing-demo-codex-bundle.zip
+```
 
 ## Recommended prompt
 
 ```text
-Use the standalone japan-listing-demo Skill.
-按默认 Major Stage Checkpoint 执行；每个 numbered stage 做完后给我 Stage Completion Manifest。
-如果我说“继续 / 下一步 / go next”，立即推进，不要继续重做当前 frame；同一问题最多自动重试两次。
-提前做 Asset Readiness Preflight；已通过素材用稳定 Asset ID 绑定 slot。
-CONTENT_COVERAGE 和 MODULE_FIT_GATE 分开检查；不要在 Demo 阶段把静态图机械切成 slide/carousel。
-维护 Project State Manifest，并用 external validator 计算 CHANNEL_MODULE_BUDGET_GATE / APPROVAL_PROVENANCE_GATE / MODULE_ORIGIN_GATE / TRANSFORM_AUTH_GATE / ASSET_SLOT_GATE / DELIVERY_PARITY_GATE。
-不要相信 declared_gate_results；validator 不能运行时保持 UNVERIFIED。
-如果要生成 channel-native Demo，Stage 5.5 先问我是否有参考 URL / ASIN / 页面截图；没有则研究 1–3 个当前参考并让我确认 Primary Reference。
-FRONTEND_FIDELITY_GATE 通过前不要把内容 Review 页面叫原生渠道 PDP Demo。
+Use $japan-listing-demo.
+按默认 Major Stage Checkpoint 执行。
+Stage 6.5 后自动调用 listing-evidence-auditor，Candidate Asset Registry 不能自己变成有效证据；输出 EVIDENCE_RECONCILIATION_GATE。
+Stage 8 后必须执行 Stage 8.5 Pre-Demo Evidence Audit；PRE_DEMO_ASSET_GATE 通过前不要进入最终 Stage 9 原生渠道 Demo。
+如果无法独立运行 semantic auditor，不要自己审核自己并 PASS；保持 HUMAN_REVIEW_REQUIRED / UNVERIFIED，或者让我针对 exact physical hash + role + scope 审批。
+继续使用 Project State external validator、Frontend Fidelity Gate、module budget / origin / transform / slot / parity gates。
 ```
 
-## Build the ZIP
+## Optional private overlay
 
-```bash
-python .agents/skills/japan-listing-demo/scripts/validate_overlay.py
-python .agents/skills/japan-listing-demo/scripts/package_skill.py
-```
-
-## Optional private company overlay
-
-Private overlays may add confidential product evidence, pricing/SKU decisions, unreleased capabilities, private design assets, internal channel access, and approval rules.
-
-Recommended precedence:
-
-```text
-current user request
-> current approved project evidence
-> optional private brand overlay
-> standalone japan-listing-demo
-> older project material
-```
-
-Do not copy confidential material into this public repository.
+Private overlays may add confidential product evidence, pricing/SKU decisions, unreleased capabilities, private design assets, internal channel access, and approval rules. Do not copy confidential material into this public repository.
