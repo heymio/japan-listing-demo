@@ -94,6 +94,36 @@ def inspect_image_bytes(data: bytes) -> tuple[str | None, int | None, int | None
     return None, None, None
 
 
+def _require_unique_identifier(packet: dict[str, Any], list_key: str, id_key: str) -> None:
+    items = packet.get(list_key, [])
+    if not isinstance(items, list):
+        raise ValueError(f"{list_key} must be a list")
+    seen: set[str] = set()
+    for index, item in enumerate(items):
+        if not isinstance(item, dict):
+            raise ValueError(f"{list_key}[{index}] must be an object")
+        value = item.get(id_key)
+        if not isinstance(value, str) or not value:
+            raise ValueError(f"{list_key}[{index}].{id_key} must be a non-empty string")
+        if value in seen:
+            raise ValueError(f"duplicate {list_key}.{id_key}: {value}")
+        seen.add(value)
+
+
+def validate_audit_packet(packet: dict[str, Any]) -> None:
+    """Reject ambiguous audit identities before any list is indexed into a dict."""
+    if not isinstance(packet, dict):
+        raise ValueError("audit packet root must be an object")
+    for list_key, id_key in [
+        ("assets", "asset_id"),
+        ("approval_events", "approval_event_id"),
+        ("prior_locked_assets", "asset_id"),
+        ("slots", "slot_id"),
+        ("expected_visual_roles", "asset_id"),
+    ]:
+        _require_unique_identifier(packet, list_key, id_key)
+
+
 def fingerprint_asset(path: Path, project_root: Path) -> dict[str, Any]:
     root = project_root.resolve()
     resolved = path.resolve()
@@ -141,11 +171,10 @@ def fingerprint_asset(path: Path, project_root: Path) -> dict[str, Any]:
 
 
 def fingerprint_packet(packet: dict[str, Any], project_root: Path) -> dict[str, Any]:
+    validate_audit_packet(packet)
     assets: dict[str, Any] = {}
     for asset in packet.get("assets", []):
-        asset_id = asset.get("asset_id")
-        if not isinstance(asset_id, str) or not asset_id:
-            continue
+        asset_id = asset["asset_id"]
         raw_path = Path(str(asset.get("path", "")))
         path = raw_path if raw_path.is_absolute() else project_root / raw_path
         result = fingerprint_asset(path, project_root)
@@ -169,10 +198,10 @@ def main() -> int:
 
     try:
         packet = json.loads(args.audit_input.read_text(encoding="utf-8"))
-    except (OSError, UnicodeError, json.JSONDecodeError) as exc:
+        result = fingerprint_packet(packet, args.project_root)
+    except (OSError, UnicodeError, json.JSONDecodeError, ValueError) as exc:
         print(f"FAIL: invalid audit input: {exc}")
         return 1
-    result = fingerprint_packet(packet, args.project_root)
     text = json.dumps(result, ensure_ascii=False, indent=2, sort_keys=True)
     if args.output:
         args.output.parent.mkdir(parents=True, exist_ok=True)
