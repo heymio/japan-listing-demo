@@ -11,7 +11,7 @@ Are the final artifacts exact, safe, channel-correct, and ready to assemble/deli
 
 ## Plane boundary
 
-This Skill owns Stage 8.5, Stage 9, and Stage 10 only. It does not own Consumer Strategy, VOC research, or visual generation brief design.
+This Skill owns Stage 8.5, Stage 9, and Stage 10 only. It does not own upstream strategy, market-research, or creative-brief design.
 
 ## Inputs
 
