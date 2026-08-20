@@ -36,7 +36,7 @@ Several related messages may be packed into one native module when the interacti
 
 ## Gallery and enhanced content
 
-Gallery and enhanced-content assets solve different shopper jobs and should be planned as distinct final roles even when they share a topic. Do not assume a later crop/reframe will make one role satisfy the other.
+Gallery-native and enhanced-content assets are **separate production roles** with different shopper jobs. They remain separate required roles even when they share a topic. Do not assume a later crop/reframe will make one role satisfy the other.
 
 ## Interaction planning
 
