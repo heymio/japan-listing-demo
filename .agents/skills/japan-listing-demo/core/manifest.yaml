@@ -1,5 +1,5 @@
 distribution: standalone
-distribution_version: 0.2.5
+distribution_version: 0.2.6
 upstream:
   repository: heymio/gtm-listing-demo
   version: 0.2.0
@@ -63,10 +63,33 @@ distribution_patches:
       - scripts/validate_overlay.py
       - scripts/package_skill.py
       - evals/executable-gates.md
+  - id: independent-evidence-auditor-v0.2.6
+    purpose: separate planner Candidate State from real-artifact Evidence State by independently recomputing physical file identity, provenance, exact-hash approval, semantic visual role, and required asset-set completeness before final asset binding and Demo Assembly
+    files:
+      - ../listing-evidence-auditor/SKILL.md
+      - ../listing-evidence-auditor/agents/openai.yaml
+      - ../listing-evidence-auditor/references/audit-contract.md
+      - ../listing-evidence-auditor/scripts/fingerprint_assets.py
+      - ../listing-evidence-auditor/scripts/reconcile_evidence.py
+      - ../listing-evidence-auditor/scripts/selftest_auditor.py
+      - core/workflow.md
+      - core/contracts.md
+      - core/qa.md
+      - SKILL.md
+      - agents/openai.yaml
+      - references/qa.md
+      - templates/project-state.example.json
+      - scripts/validate_project_state.py
+      - scripts/selftest_project_state_validator.py
+      - scripts/validate_overlay.py
+      - scripts/package_skill.py
+      - evals/evidence-auditor.md
+      - ../../../scripts/package_codex_bundle.py
 update_policy:
   - review upstream changelog
   - update snapshot in a feature branch
   - preserve or deliberately revise documented distribution patches
-  - run standalone, Japan, channel, cross-category, frontend-fidelity, delivery-integrity, and executable-gate evals
+  - run standalone, Japan, channel, cross-category, frontend-fidelity, delivery-integrity, executable-gate, and evidence-auditor evals
+  - run both project-state and evidence-auditor self-tests
   - release only after CI passes
 runtime_dependency: none
