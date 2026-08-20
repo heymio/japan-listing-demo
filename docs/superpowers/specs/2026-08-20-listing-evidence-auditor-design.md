@@ -397,7 +397,7 @@ Primary distribution target: repository/Codex workflow.
 
 The existing standalone `japan-listing-demo.skill.zip` remains supported for compatibility, but a single-context archive cannot claim independent semantic audit. In that environment, semantic evidence must remain `UNVERIFIED` unless explicit human review supplies the approval.
 
-The repository may additionally package a Codex/project bundle containing both sibling Skills; this does not change the user-facing invocation.
+The repository will additionally package a Codex/project bundle containing both sibling Skills. This preserves one repository / one project setup and does not change the user-facing invocation.
 
 ## 18. Error handling
 
