@@ -1,74 +1,152 @@
 # japan-listing-demo
 
-`japan-listing-demo` is a **standalone public Skill** for turning product evidence into Japan-market listing strategy, channel-specific content architecture, visual briefs, and channel-native interactive review demos.
+`japan-listing-demo` turns product evidence into Japan-market listing strategy, channel-specific content architecture, visual briefs, and channel-native review demos.
 
-## One repository, one ZIP, one Skill
+## One repository, one normal invocation
 
-Japan-team users install and invoke only:
+Japan-team repository/Codex users use **one repository**:
 
 ```text
-japan-listing-demo
+heymio/japan-listing-demo
 ```
 
-No second generic-core Skill is required.
+The repository now contains two sibling Skills:
 
-Invoke:
+```text
+.agents/skills/
+├── japan-listing-demo/
+└── listing-evidence-auditor/
+```
+
+Normal users still invoke only:
 
 ```text
 $japan-listing-demo
 ```
 
-## Checkpointed execution by default
+The main Skill delegates asset-evidence reconciliation to `listing-evidence-auditor` automatically at the required checkpoints. Users do not need to run the auditor manually in the normal repository/Codex workflow.
 
-The Skill uses **Major Stage Checkpoints** by default. Each numbered stage ends with a truthful **Stage Completion Manifest**:
+## Why the evidence auditor exists
 
-```text
-planned
-completed
-approved / locked
-needs revision
-missing
-blocked
-open items
-STAGE_STATUS = COMPLETE / PARTIAL / BLOCKED
-```
+A machine-readable Project State can be internally consistent and still be wrong about the actual files. Asset IDs, filenames, planner-authored hashes, claimed provenance, and `LOCKED` status are therefore not enough.
 
-A completed subset does not make a stage complete.
-
-When the user says `继续 / 下一步 / go / next / 先这样`, the Skill stops current retries, locks the real stage status, and advances. The same artifact/problem has at most two autonomous retries without new evidence or direction.
-
-## Delivery integrity
-
-The Skill prevents common downstream drift through:
-
-- **Asset Readiness Preflight**;
-- stable approved Asset IDs;
-- **Asset-to-Slot Contract**;
-- separate `CONTENT_COVERAGE` and `MODULE_FIT_GATE`;
-- interaction planning before production;
-- `DIFFERENTIATOR_PROOF_GATE`;
-- Change Impact Map for targeted `REOPEN`;
-- planned-to-implemented parity checks.
-
-Approved assets must not be silently replaced by assets from another slot class. A material crop, recomposition, background change, or role change creates a derivative with provenance.
-
-## Executable gates: no self-certified PASS
-
-Critical structural gates use a machine-readable **Project State Manifest** and an **external validator**.
-
-Start from:
+`listing-evidence-auditor` checks:
 
 ```text
-.agents/skills/japan-listing-demo/templates/project-state.example.json
+Candidate State
+↕
+physical file
+↕
+approval record
+↕
+semantic visual role
+↕
+required asset set
 ```
 
-Validate with:
+It recomputes physical SHA-256, path/file identity, supported image dimensions/signature, provenance, exact-hash approval binding, semantic role, slot scope, and set completeness.
 
-```bash
-python .agents/skills/japan-listing-demo/scripts/validate_project_state.py path/to/project-state.json --json
+## Candidate State → Auditor Evidence → Effective State
+
+The workflow separates:
+
+```text
+Agent-authored Candidate State
++
+Auditor-authored Evidence State
+=
+Effective State
 ```
 
-The external validator computes:
+For downstream asset eligibility:
+
+```text
+Auditor Evidence State > Candidate Asset Status
+```
+
+A planner-authored `LOCKED` value cannot override an auditor result such as:
+
+```text
+INVALIDATED
+UNVERIFIED
+PHYSICALLY_VERIFIED_ONLY
+HUMAN_REVIEW_REQUIRED
+```
+
+Only these asset states are final-consumable:
+
+```text
+VERIFIED
+HUMAN_APPROVED
+```
+
+## Mandatory evidence-audit checkpoints
+
+### After Stage 6.5
+
+```text
+6.5A Candidate Asset Registry
+↓
+listing-evidence-auditor
+↓
+EVIDENCE_RECONCILIATION_GATE
+↓
+Effective State
+↓
+Stage 7
+```
+
+Stage 7 may continue planning with visible gaps, but final Asset-to-Slot bindings cannot lock non-final-consumable assets.
+
+### Stage 8.5 before Demo Assembly
+
+```text
+Stage 8 Visual Production
+↓
+Stage 8.5 Pre-Demo Evidence Audit
+↓
+listing-evidence-auditor
+↓
+PRE_DEMO_ASSET_GATE
+↓
+Stage 9
+```
+
+`PRE_DEMO_ASSET_GATE` passes only when every required asset referenced by the locked Demo plan is `VERIFIED` or `HUMAN_APPROVED` and the required asset set is complete.
+
+One invalidated/unverified required asset blocks final channel-native Demo assembly.
+
+## Independent semantic review
+
+Semantic visual-role auditing should run in an **independent context** / isolated subagent when the runtime supports it.
+
+The auditor receives only the audit packet and evidence needed to inspect the assets. It should not receive the planner's desired PASS conclusion.
+
+If an independent context is unavailable:
+
+- deterministic physical checks can still run;
+- same-agent semantic review cannot self-certify `VERIFIED`;
+- semantic evidence remains `UNVERIFIED` / `HUMAN_REVIEW_REQUIRED` unless the user explicitly approves the exact physical SHA-256 + role + scope.
+
+Loading the auditor instructions in the same reasoning context is not considered independent auditing.
+
+## Exact approval binding
+
+Approval is tied to exact content identity:
+
+```text
+physical SHA-256
++ visual role
++ approved slot/page/offer scope
+```
+
+A same-name replacement with different bytes does not inherit approval.
+
+A deterministic crop/recomposition/resize/background replacement/role change is still a derivative and requires transform provenance/authorization.
+
+## Existing executable gates remain active
+
+v0.2.5 Project State validation is retained:
 
 ```text
 CHANNEL_MODULE_BUDGET_GATE
@@ -79,105 +157,100 @@ ASSET_SLOT_GATE
 DELIVERY_PARITY_GATE
 ```
 
-Agent-authored fields such as `declared_gate_results` are ignored.
-
-If validator execution is unavailable, applicable executable gates remain:
+v0.2.6 adds:
 
 ```text
-UNVERIFIED
+EVIDENCE_RECONCILIATION_GATE
+PRE_DEMO_ASSET_GATE
 ```
 
-The agent must not manually self-certify PASS.
+Agent-authored `declared_gate_results` are ignored.
 
-### Locked module plans
-
-Stage 7 creates one locked module plan with stable module IDs, native module type, interaction, Asset IDs, approval stage, and canonical `plan_hash`.
-
-Stage 9 must consume the exact plan hash. It cannot add a module, change static to carousel, remove a planned module, or retrofit interaction and then rewrite the plan retroactively.
-
-### Approval provenance
-
-A `LOCKED` asset requires either:
-
-- a matching user approval event bound to the current asset hash; or
-- exact SHA-256 recovery of a previously locked asset.
-
-Filename similarity or visual resemblance is not exact recovery. A found file may remain `RECOVERED_UNAPPROVED` until valid provenance exists.
-
-A deterministic crop is still a transform. Material derivatives require transform authorization and `TRANSFORM_AUTH_GATE`.
-
-## Amazon.co.jp executable module limit
-
-The packaged channel-policy file contains the current machine-enforced A+ ceilings used by this Skill version:
+For Amazon.co.jp the packaged current A+ ceilings remain machine-enforced:
 
 ```text
-Basic A+   5 modules
-Premium A+ 7 modules
+Basic A+    max 5 modules
+Premium A+  max 7 modules
 ```
 
-Brand Story is handled separately from the Premium A+ module budget.
+Brand Story is separate. Content-topic count is not module count.
 
-Before an Amazon A+ module plan is locked, `CHANNEL_MODULE_BUDGET_GATE` compares the packaged ceiling, the current project/account limit, and the planned module count.
+## Channel-native frontend fidelity
 
-Content-topic count is not module count. Multiple messages must be packed into the verified native module budget rather than creating one module per topic.
+Before generating a channel-native Demo, Stage 5.5 still requires a current consumer-facing reference:
 
-## Channel-native demos require frontend references
-
-A Platform Capability Map is not enough to generate a native-looking page.
-
-At Stage 5.5, the Skill must:
-
-1. verify current platform/account capability;
-2. ask whether the user has a preferred current **Reference URL**, ASIN, retailer/store page, design-system reference, screenshot set, or PDF;
-3. use a valid user reference as candidate Primary Reference;
-4. otherwise research 1–3 current consumer-facing references;
-5. visually inspect material desktop/mobile shell, section order, interactions, and ownership;
-6. produce a **Channel Frontend Reference Pack**.
+1. verify Platform Capability;
+2. ask for preferred current Reference URL / ASIN / retailer/store page / screenshot set;
+3. otherwise research 1–3 current comparable pages;
+4. build a Channel Frontend Reference Pack;
+5. run `FRONTEND_FIDELITY_GATE` before Stage 9.
 
 **Official rules do not substitute for frontend visual evidence.**
 
-Immediately before Stage 9, run `FRONTEND_FIDELITY_GATE`. If it fails, the fallback must be named:
+If frontend fidelity fails, output a clearly named `Content Review Demo` instead of inventing channel chrome.
 
-```text
-Content Review Demo
-```
+## Checkpointed execution
 
-The Skill must not invent marketplace chrome and call it a channel-native PDP/demo.
+The workflow still uses Major Stage Checkpoints and Stage Completion Manifest by default. `继续 / 下一步 / go / next / 先这样` advances the workflow rather than triggering an unbounded retry loop.
 
-## Quick-start prompt
+## Distribution
 
-```text
-Use the standalone japan-listing-demo Skill.
-按默认 Major Stage Checkpoint 执行；每个 numbered stage 给我 Stage Completion Manifest。
-如果我说“继续 / 下一步 / go next”，立即推进，不要继续重做当前 frame；同一问题最多自动重试两次。
-提前做 Asset Readiness Preflight；已通过素材用稳定 Asset ID 绑定 slot。
-CONTENT_COVERAGE 与 MODULE_FIT_GATE 分开检查，不要在 Demo 阶段把静态图机械切成 slide/carousel。
-维护 Project State Manifest，并使用 external validator 计算 CHANNEL_MODULE_BUDGET_GATE / APPROVAL_PROVENANCE_GATE / MODULE_ORIGIN_GATE / TRANSFORM_AUTH_GATE / ASSET_SLOT_GATE / DELIVERY_PARITY_GATE。
-不要相信或生成 declared_gate_results；validator 不能运行时保持 UNVERIFIED。
-如果要生成 channel-native Demo，Stage 5.5 先问我是否有参考 URL / ASIN / 页面截图；没有则研究 1–3 个当前参考并让我确认 Primary Reference。
-FRONTEND_FIDELITY_GATE 通过前不要把内容 Review 页面叫原生渠道 PDP Demo。
-```
+### Recommended: repository / Codex bundle
 
-## Validation and packaging
+For the full separation-of-duties workflow use the repository or the two-Skill bundle:
 
 ```bash
-python .agents/skills/japan-listing-demo/scripts/validate_overlay.py
+python scripts/package_codex_bundle.py
+```
+
+Output:
+
+```text
+dist/japan-listing-demo-codex-bundle.zip
+```
+
+This contains both sibling Skills.
+
+### Compatibility single-Skill ZIP
+
+The legacy-compatible main Skill archive remains available:
+
+```bash
 python .agents/skills/japan-listing-demo/scripts/package_skill.py
 ```
 
-The package output is:
+Output:
 
 ```text
 dist/japan-listing-demo.skill.zip
 ```
 
-## Optional private use
+This is a **single-context compatibility package**. It cannot claim an independent semantic evidence audit. When `listing-evidence-auditor` cannot run in an independent context, unresolved semantic evidence remains `UNVERIFIED` / `HUMAN_REVIEW_REQUIRED` unless the user approves the exact asset hash + role/scope.
 
-Private brand overlays may add confidential product facts, pricing, claims, design links/assets, account capabilities, and approvals. Public Japan-team use remains one Skill.
+## Validation
+
+```bash
+python .agents/skills/listing-evidence-auditor/scripts/selftest_auditor.py
+python .agents/skills/japan-listing-demo/scripts/selftest_project_state_validator.py
+python .agents/skills/japan-listing-demo/scripts/validate_overlay.py
+python .agents/skills/japan-listing-demo/scripts/package_skill.py
+python scripts/package_codex_bundle.py
+```
+
+## Quick-start prompt
+
+```text
+Use $japan-listing-demo.
+按默认 Major Stage Checkpoint 执行。
+Candidate Asset Registry 不视为真实素材证据；Stage 6.5 后自动调用 listing-evidence-auditor，并给我 EVIDENCE_RECONCILIATION_GATE。
+Stage 8 后必须执行 Stage 8.5 Pre-Demo Evidence Audit；PRE_DEMO_ASSET_GATE 通过前不要进入最终 Stage 9 原生渠道 Demo。
+如果无法独立运行 semantic auditor，不要自己审核自己并 PASS，保持 HUMAN_REVIEW_REQUIRED / UNVERIFIED，或者让我针对 exact hash + role + scope 审批。
+继续使用 Project State external validator、Frontend Fidelity Gate、module budget / origin / transform / slot / parity gates。
+```
 
 ## Version
 
-`0.2.5`
+`0.2.6`
 
 ## License
 
