@@ -58,6 +58,13 @@ def test_router_uses_five_formal_state_objects() -> None:
         assert phrase in text
 
 
+def test_one_install_archive_has_embedded_skill_resolution() -> None:
+    text = read(SKILL_DIR / "SKILL.md").casefold()
+    assert "internal-skills" in text
+    assert "single-context" in text
+    assert "listing-planning" in text and "listing-production" in text and "listing-hardening" in text
+
+
 def main() -> int:
     tests = [v for k, v in globals().items() if k.startswith("test_") and callable(v)]
     for test in tests:
