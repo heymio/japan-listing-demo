@@ -1,9 +1,18 @@
 #!/usr/bin/env python3
 """Regression tests for the listing-planning Skill."""
 
+import sys
 from pathlib import Path
 
 SKILL_DIR = Path(__file__).resolve().parents[1]
+SCRIPT_DIR = SKILL_DIR / "scripts"
+sys.path.insert(0, str(SCRIPT_DIR))
+
+from validate_planning_contracts import (  # noqa: E402
+    validate_creative_strategy,
+    validate_production_handoff,
+    validate_project_brief,
+)
 
 
 def read(path: Path) -> str:
@@ -54,6 +63,24 @@ def test_planning_references_do_not_own_final_hardening() -> None:
     ).casefold()
     for forbidden in ["provenance_conflict", "exact_recovery_verified", "delivery_parity_gate"]:
         assert forbidden not in joined
+
+
+def test_planning_templates_validate() -> None:
+    templates = SKILL_DIR / "templates"
+    cases = [
+        ("project-brief.example.yaml", validate_project_brief),
+        ("creative-strategy.example.yaml", validate_creative_strategy),
+        ("production-handoff.example.yaml", validate_production_handoff),
+    ]
+    for filename, validator in cases:
+        errors = validator(read(templates / filename))
+        assert errors == [], (filename, errors)
+
+
+def test_production_handoff_rejects_control_plane_fields() -> None:
+    text = """production_handoff:\n  project:\n  asset_set: []\n  project_state_manifest: {}\n"""
+    errors = validate_production_handoff(text)
+    assert any("project_state_manifest" in error for error in errors)
 
 
 def main() -> int:
