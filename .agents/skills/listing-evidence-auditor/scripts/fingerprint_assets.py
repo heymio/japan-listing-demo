@@ -125,8 +125,18 @@ def fingerprint_asset(path: Path, project_root: Path) -> dict[str, Any]:
     result["width"] = width
     result["height"] = height
 
-    if result["extension_family"] and family and result["extension_family"] != family:
+    extension = result["extension_family"]
+    if extension is None:
+        result["errors"].append("unsupported image extension")
+    if family is None:
+        result["errors"].append("invalid or unsupported image signature")
+    elif extension is not None and extension != family:
         result["errors"].append("extension/signature mismatch")
+    if family is not None and (
+        not isinstance(width, int) or isinstance(width, bool) or width <= 0
+        or not isinstance(height, int) or isinstance(height, bool) or height <= 0
+    ):
+        result["errors"].append("invalid or missing image dimensions")
     return result
 
 
@@ -157,7 +167,11 @@ def main() -> int:
     parser.add_argument("--output", type=Path)
     args = parser.parse_args()
 
-    packet = json.loads(args.audit_input.read_text(encoding="utf-8"))
+    try:
+        packet = json.loads(args.audit_input.read_text(encoding="utf-8"))
+    except (OSError, UnicodeError, json.JSONDecodeError) as exc:
+        print(f"FAIL: invalid audit input: {exc}")
+        return 1
     result = fingerprint_packet(packet, args.project_root)
     text = json.dumps(result, ensure_ascii=False, indent=2, sort_keys=True)
     if args.output:
