@@ -11,6 +11,7 @@ from pathlib import Path
 MAIN_SKILL = Path(__file__).resolve().parents[1]
 REPO_ROOT = MAIN_SKILL.parents[2]
 SKILLS_ROOT = REPO_ROOT / ".agents" / "skills"
+THIS_FILE = Path(__file__).resolve()
 
 SKILL_NAMES = [
     "japan-listing-demo",
@@ -37,6 +38,7 @@ REQUIRED_FILES = [
     SKILLS["listing-planning"] / "references" / "source-authority.md",
     SKILLS["listing-planning"] / "references" / "market-research.md",
     SKILLS["listing-planning"] / "references" / "localization.md",
+    SKILLS["listing-planning"] / "references" / "claim-compliance.md",
     SKILLS["listing-planning"] / "references" / "channel-planning.md",
     SKILLS["listing-planning"] / "references" / "module-fit.md",
     SKILLS["listing-planning"] / "references" / "planning-qa.md",
@@ -100,6 +102,14 @@ REQUIRED_FILES = [
 LEGACY_RUNTIME_FILES = [
     MAIN_SKILL / "core" / "workflow.md",
     MAIN_SKILL / "core" / "contracts.md",
+    MAIN_SKILL / "core" / "market-research.md",
+    MAIN_SKILL / "core" / "localization.md",
+    MAIN_SKILL / "core" / "visual-evidence.md",
+    MAIN_SKILL / "core" / "qa.md",
+    MAIN_SKILL / "references" / "core-snapshot.md",
+    MAIN_SKILL / "references" / "japan-market-evidence.md",
+    MAIN_SKILL / "references" / "ja-jp-localization.md",
+    MAIN_SKILL / "references" / "japan-claim-compliance.md",
     MAIN_SKILL / "references" / "delivery-integrity.md",
     MAIN_SKILL / "references" / "executable-gates.md",
     MAIN_SKILL / "references" / "channel-native-demo.md",
@@ -111,17 +121,33 @@ LEGACY_RUNTIME_FILES = [
     MAIN_SKILL / "profiles" / "channels" / "retailer-pdp.md",
 ]
 
+# Split literals keep the guard definitions from matching their own source file.
 CATEGORY_LEAKAGE_TERMS = [
-    "SwitchBot", "Solar PTC", "ViewStation", "防犯カメラ", "玄関", "駐車場",
-    "robot vacuum", "smart lock", "smart lighting", "pet tech",
+    "Switch" + "Bot",
+    "Solar" + " PTC",
+    "View" + "Station",
+    "防犯" + "カメラ",
+    "玄" + "関",
+    "駐" + "車場",
+    "robot " + "vacuum",
+    "smart " + "lock",
+    "smart " + "lighting",
+    "pet " + "tech",
 ]
 PERSONA_LEAKAGE_PATTERNS = [
-    r"Japanese consumers prefer", r"Japanese users care", r"Japanese shoppers usually",
-    r"日本ユーザーは", r"日本の消費者は", r"日本人は.*好む",
+    r"Japanese consumers prefer",
+    r"Japanese users care",
+    r"Japanese shoppers usually",
+    r"日本ユーザーは",
+    r"日本の消費者は",
+    r"日本人は.*好む",
 ]
 ROUTER_FORBIDDEN = [
-    "sha-256", "provenance_conflict", "pre_demo_asset_gate",
-    "delivery_parity_gate", "declared_gate_results",
+    "sha-256",
+    "provenance_conflict",
+    "pre_demo_asset_gate",
+    "delivery_parity_gate",
+    "declared_gate_results",
 ]
 
 
@@ -143,7 +169,12 @@ def parse_frontmatter(text: str) -> dict[str, str]:
 
 
 def run_selftest(path: Path, label: str) -> str:
-    result = subprocess.run([sys.executable, str(path)], cwd=REPO_ROOT, capture_output=True, text=True)
+    result = subprocess.run(
+        [sys.executable, str(path)],
+        cwd=REPO_ROOT,
+        capture_output=True,
+        text=True,
+    )
     if result.returncode != 0:
         print(result.stdout)
         print(result.stderr, file=sys.stderr)
@@ -153,8 +184,11 @@ def run_selftest(path: Path, label: str) -> str:
 
 def text_files_under(root: Path) -> list[Path]:
     return [
-        path for path in root.rglob("*")
-        if path.is_file() and path.suffix.lower() in {".md", ".yaml", ".yml", ".json", ".txt", ".py"}
+        path
+        for path in root.rglob("*")
+        if path.is_file()
+        and path.resolve() != THIS_FILE
+        and path.suffix.lower() in {".md", ".yaml", ".yml", ".json", ".txt", ".py"}
         and "__pycache__" not in path.parts
     ]
 
@@ -189,8 +223,15 @@ def main() -> int:
 
     routing_text = (MAIN_SKILL / "references" / "routing.md").read_text(encoding="utf-8").casefold()
     for phrase in [
-        "stage 0–7", "listing-planning", "stage 7.5–8", "listing-production",
-        "stage 8.5–10", "listing-hardening", "done:", "open:", "next:",
+        "stage 0–7",
+        "listing-planning",
+        "stage 7.5–8",
+        "listing-production",
+        "stage 8.5–10",
+        "listing-hardening",
+        "done:",
+        "open:",
+        "next:",
     ]:
         if phrase.casefold() not in routing_text:
             fail(f"router contract missing: {phrase}")
@@ -200,18 +241,33 @@ def main() -> int:
         fail(f"VERSION must be 0.3.0, found {version!r}")
 
     manifest = (MAIN_SKILL / "core" / "manifest.yaml").read_text(encoding="utf-8").casefold()
-    for phrase in ["standalone", "listing-planning", "listing-production", "listing-hardening", "listing-evidence-auditor"]:
+    for phrase in [
+        "standalone",
+        "listing-planning",
+        "listing-production",
+        "listing-hardening",
+        "listing-evidence-auditor",
+    ]:
         if phrase not in manifest:
             fail(f"core manifest missing v0.3.0 architecture marker: {phrase}")
 
     active_files: list[Path] = []
     for directory in SKILLS.values():
         active_files.extend(text_files_under(directory))
-    active_text = "\n".join(path.read_text(encoding="utf-8") for path in active_files)
-    for term in CATEGORY_LEAKAGE_TERMS:
-        if term.casefold() in active_text.casefold():
-            fail(f"category/private-project leakage found in active public Skills: {term}")
 
+    for term in CATEGORY_LEAKAGE_TERMS:
+        offenders = [
+            str(path.relative_to(REPO_ROOT))
+            for path in active_files
+            if term.casefold() in path.read_text(encoding="utf-8").casefold()
+        ]
+        if offenders:
+            fail(
+                f"category/private-project leakage found for {term!r}: "
+                + ", ".join(offenders)
+            )
+
+    active_text = "\n".join(path.read_text(encoding="utf-8") for path in active_files)
     planning_locale = "\n".join(
         (SKILLS["listing-planning"] / "references" / name).read_text(encoding="utf-8")
         for name in ["market-research.md", "localization.md"]
@@ -228,9 +284,25 @@ def main() -> int:
     install = (REPO_ROOT / "docs" / "install.md").read_text(encoding="utf-8").casefold()
     gpt_guide = (REPO_ROOT / "docs" / "team-gpt-setup.md").read_text(encoding="utf-8").casefold()
     for document_name, document, phrases in [
-        ("README.md", readme, ["one repository", "$japan-listing-demo", "listing-planning", "listing-production", "listing-hardening"]),
-        ("docs/install.md", install, ["one repository", "$japan-listing-demo", "listing-evidence-auditor"]),
-        ("docs/team-gpt-setup.md", gpt_guide, ["gpt = optional ux shell", "skills = versioned execution architecture", "auditor/scripts = hard verification"]),
+        (
+            "README.md",
+            readme,
+            ["one repository", "$japan-listing-demo", "listing-planning", "listing-production", "listing-hardening"],
+        ),
+        (
+            "docs/install.md",
+            install,
+            ["one repository", "$japan-listing-demo", "listing-evidence-auditor"],
+        ),
+        (
+            "docs/team-gpt-setup.md",
+            gpt_guide,
+            [
+                "gpt = optional ux shell",
+                "skills = versioned execution architecture",
+                "auditor/scripts = hard verification",
+            ],
+        ),
     ]:
         for phrase in phrases:
             if phrase.casefold() not in document:
