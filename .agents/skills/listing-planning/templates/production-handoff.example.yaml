@@ -1,0 +1,59 @@
+production_handoff:
+  project:
+    market: JP
+    channel: amazon-jp
+    locale: ja-JP
+    product: Example Product
+
+  page_plan:
+    gallery:
+      - G1
+      - G2
+    enhanced_content:
+      - A1
+    other_required_regions: []
+
+  asset_set:
+    - asset_id: G1
+      role: gallery-native
+      slot: G1
+      primary_message: Core positioning
+      status: READY
+    - asset_id: G2
+      role: gallery-native
+      slot: G2
+      primary_message: Primary proof
+      status: READY
+    - asset_id: A1
+      role: enhanced-content
+      slot: A1
+      primary_message: Expanded explanation
+      status: READY
+
+  source_assets:
+    - source_id: SRC-P01
+      role: real-product-source
+      required_by:
+        - G1
+        - G2
+        - A1
+
+  product_invariants:
+    - preserve exact product geometry
+    - preserve exact product color and material
+
+  creative_strategy_ref: creative-strategy.yaml
+
+  global_visual_direction:
+    - product-first commercial hierarchy
+    - realistic environment when a scene is needed
+
+  visual_benchmark_refs:
+    - BENCH-01
+
+  prohibited:
+    - unsupported claims
+    - invented product structure
+    - automatic cross-role asset substitution
+
+  blocked_assets: []

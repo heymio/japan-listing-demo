@@ -1,0 +1,6 @@
+interface:
+  display_name: "Listing Production"
+  short_description: "Focused Stage 7.5–8 listing asset production from one-job Asset Packets"
+  default_prompt: "Produce Stage 7.5–8 artifacts directly from the Production Handoff, Creative Strategy Kernel, one current Asset Packet, referenced source assets, and approved benchmarks/patterns. Default to artifact-first output. Keep Gallery and enhanced-content roles separate, preserve exact product identity from real sources, return BLOCKED for missing upstream facts, and keep control-plane/auditor/gate narration out of production prompts. USER_APPROVED is creative approval only, not delivery verification."
+policy:
+  allow_implicit_invocation: true

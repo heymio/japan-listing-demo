@@ -1,203 +1,147 @@
 # japan-listing-demo
 
-`japan-listing-demo` turns product evidence into Japan-market listing strategy, channel-specific content architecture, visual briefs, and channel-native review demos.
+`japan-listing-demo` turns product evidence into Japan-market listing strategy, channel-specific content architecture, focused visual production, and verified review demos.
 
 ## One repository, one normal invocation
 
-Japan-team repository/Codex users use **one repository**:
+Use **one repository**:
 
 ```text
 heymio/japan-listing-demo
 ```
 
-The repository now contains two sibling Skills:
-
-```text
-.agents/skills/
-├── japan-listing-demo/
-└── listing-evidence-auditor/
-```
-
-Normal users still invoke only:
+Normal users invoke only:
 
 ```text
 $japan-listing-demo
 ```
 
-The main Skill delegates asset-evidence reconciliation to `listing-evidence-auditor` automatically at the required checkpoints. Users do not need to run the auditor manually in the normal repository/Codex workflow.
+A normal project can run in one Chat from source intake through strategy, visual production, hardening, and demo review.
 
-## Why the evidence auditor exists
+## Team Golden Path
 
-A machine-readable Project State can be internally consistent and still be wrong about the actual files. Asset IDs, filenames, planner-authored hashes, claimed provenance, and `LOCKED` status are therefore not enough.
-
-`listing-evidence-auditor` checks:
+The user-facing workflow is deliberately simple:
 
 ```text
-Candidate State
-↕
-physical file
-↕
-approval record
-↕
-semantic visual role
-↕
-required asset set
-```
-
-It recomputes physical SHA-256, path/file identity, supported image dimensions/signature, provenance, exact-hash approval binding, semantic role, slot scope, and set completeness.
-
-## Candidate State → Auditor Evidence → Effective State
-
-The workflow separates:
-
-```text
-Agent-authored Candidate State
-+
-Auditor-authored Evidence State
-=
-Effective State
-```
-
-For downstream asset eligibility:
-
-```text
-Auditor Evidence State > Candidate Asset Status
-```
-
-A planner-authored `LOCKED` value cannot override an auditor result such as:
-
-```text
-INVALIDATED
-UNVERIFIED
-PHYSICALLY_VERIFIED_ONLY
-HUMAN_REVIEW_REQUIRED
-```
-
-Only these asset states are final-consumable:
-
-```text
-VERIFIED
-HUMAN_APPROVED
-```
-
-## Mandatory evidence-audit checkpoints
-
-### After Stage 6.5
-
-```text
-6.5A Candidate Asset Registry
+Upload product/GTM/source materials
 ↓
+Review Product / Offer / Claim baseline
+↓
+Review Consumer / Market Strategy
+↓
+Review channel page plan
+↓
+Review Creative Strategy / complete production asset set
+↓
+Review generated visuals
+↓
+Review verified demo
+```
+
+Normal checkpoints use `Done / Open / Next`. `继续 / 下一步 / go / next / 先这样` advances the workflow instead of triggering an unbounded retry loop.
+
+## Creative-first architecture
+
+v0.3.0 separates the workflow into stage-local execution planes behind a thin router:
+
+```text
+$japan-listing-demo
+        ↓
+Thin Router
+        ↓
+listing-planning      Stage 0–7
+        ↓
+listing-production    Stage 7.5–8
+        ↓
+listing-hardening     Stage 8.5–10
+        ↓
 listing-evidence-auditor
-↓
-EVIDENCE_RECONCILIATION_GATE
-↓
-Effective State
-↓
-Stage 7
 ```
 
-Stage 7 may continue planning with visible gaps, but final Asset-to-Slot bindings cannot lock non-final-consumable assets.
-
-### Stage 8.5 before Demo Assembly
+The repository contains five sibling Skills:
 
 ```text
-Stage 8 Visual Production
-↓
-Stage 8.5 Pre-Demo Evidence Audit
-↓
-listing-evidence-auditor
-↓
-PRE_DEMO_ASSET_GATE
-↓
-Stage 9
+.agents/skills/
+├── japan-listing-demo/
+├── listing-planning/
+├── listing-production/
+├── listing-hardening/
+└── listing-evidence-auditor/
 ```
 
-`PRE_DEMO_ASSET_GATE` passes only when every required asset referenced by the locked Demo plan is `VERIFIED` or `HUMAN_APPROVED` and the required asset set is complete.
+Users do not manually invoke the internal stage Skills during the Golden Path.
 
-One invalidated/unverified required asset blocks final channel-native Demo assembly.
+### Planning: think deeply
 
-## Independent semantic review
+`listing-planning` preserves deep product, offer, claim, consumer, VOC, competitor, Japan localization, channel, Gallery/enhanced-content, module-budget, and module-fit reasoning.
 
-Semantic visual-role auditing should run in an **independent context** / isolated subagent when the runtime supports it.
+Planning ends with formal state objects instead of forwarding the whole conversation:
 
-The auditor receives only the audit packet and evidence needed to inspect the assets. It should not receive the planner's desired PASS conclusion.
+- Project Brief;
+- Creative Strategy Kernel;
+- Production Handoff;
+- Complete Demo-Required Production Set.
 
-If an independent context is unavailable:
+For a fresh project, Stage 6.5 is lightweight Source Asset Intake. Full project-wide evidence audit is not required before final assets exist. A targeted early audit is used only when inheriting/reusing a previously approved exact asset.
 
-- deterministic physical checks can still run;
-- same-agent semantic review cannot self-certify `VERIFIED`;
-- semantic evidence remains `UNVERIFIED` / `HUMAN_REVIEW_REQUIRED` unless the user explicitly approves the exact physical SHA-256 + role + scope.
+### Production: produce narrowly
 
-Loading the auditor instructions in the same reasoning context is not considered independent auditing.
+`listing-production` receives only the Creative Strategy Kernel, Production Handoff, current one-job Asset Packet, referenced source assets, and approved visual benchmarks/patterns.
 
-## Exact approval binding
+It is artifact-first: a request for one final Gallery or enhanced-content asset should produce that artifact rather than a workflow diagram, asset map, or production-plan infographic.
 
-Approval is tied to exact content identity:
+Production uses:
+
+- one-job Asset Packets;
+- Visual Pattern Library and Golden Examples;
+- compact Creative QA;
+- Asset Ledger;
+- `USER_APPROVED` creative state;
+- Production Freeze for complete-set accounting.
+
+**Creative Approval ≠ Evidence Verification.**
+
+### Hardening: verify rigorously
+
+`listing-hardening` owns final file identity, evidence audit, role/scope integrity, transform authorization, module origin, slot integrity, frontend fidelity, demo assembly, delivery parity, and Final QA.
+
+Stage 8.5 runs the mandatory full final-asset audit through `listing-evidence-auditor` before final channel-native Demo Assembly.
+
+Delivery State 0.2 keeps two separate questions explicit:
 
 ```text
-physical SHA-256
-+ visual role
-+ approved slot/page/offer scope
+PRODUCTION_FREEZE_GATE   → is the creatively approved set complete?
+PRE_DEMO_ASSET_GATE     → are the exact final files evidence-safe?
 ```
 
-A same-name replacement with different bytes does not inherit approval.
+Both matter. One cannot substitute for the other.
 
-A deterministic crop/recomposition/resize/background replacement/role change is still a derivative and requires transform provenance/authorization.
+## Channel-native planning and demo fidelity
 
-## Existing executable gates remain active
+Planning separates Platform Capability evidence from Frontend Visual evidence. Official rules do not substitute for current consumer-facing visual evidence.
 
-v0.2.5 Project State validation is retained:
+For channel-native work, Planning locks a Primary Reference and Channel Frontend Reference Pack. Hardening later verifies that the final demo follows the evidenced shell/order/ownership. When native fidelity cannot be supported, use a clearly labeled `Content Review Demo` rather than inventing channel chrome.
 
-```text
-CHANNEL_MODULE_BUDGET_GATE
-APPROVAL_PROVENANCE_GATE
-MODULE_ORIGIN_GATE
-TRANSFORM_AUTH_GATE
-ASSET_SLOT_GATE
-DELIVERY_PARITY_GATE
-```
-
-v0.2.6 adds:
-
-```text
-EVIDENCE_RECONCILIATION_GATE
-PRE_DEMO_ASSET_GATE
-```
-
-Agent-authored `declared_gate_results` are ignored.
-
-For Amazon.co.jp the packaged current A+ ceilings remain machine-enforced:
+For Amazon.co.jp the current packaged planning ceilings remain:
 
 ```text
 Basic A+    max 5 modules
 Premium A+  max 7 modules
 ```
 
-Brand Story is separate. Content-topic count is not module count.
+Brand Story is separate. `Message != Module`, and `CONTENT_COVERAGE` remains separate from `MODULE_FIT_GATE`.
 
-## Channel-native frontend fidelity
+## Evidence auditor
 
-Before generating a channel-native Demo, Stage 5.5 still requires a current consumer-facing reference:
+`listing-evidence-auditor` remains the exact-file trust boundary. It checks physical file identity, approval binding, provenance, semantic visual role, and required asset-set completeness.
 
-1. verify Platform Capability;
-2. ask for preferred current Reference URL / ASIN / retailer/store page / screenshot set;
-3. otherwise research 1–3 current comparable pages;
-4. build a Channel Frontend Reference Pack;
-5. run `FRONTEND_FIDELITY_GATE` before Stage 9.
-
-**Official rules do not substitute for frontend visual evidence.**
-
-If frontend fidelity fails, output a clearly named `Content Review Demo` instead of inventing channel chrome.
-
-## Checkpointed execution
-
-The workflow still uses Major Stage Checkpoints and Stage Completion Manifest by default. `继续 / 下一步 / go / next / 先这样` advances the workflow rather than triggering an unbounded retry loop.
+Loading the auditor inside the same model context does not create independent semantic review. If independent semantic review is unavailable, unresolved role evidence remains `UNVERIFIED` / `HUMAN_REVIEW_REQUIRED` unless resolved by an appropriate human or genuinely independent review.
 
 ## Distribution
 
-### Recommended: repository / Codex bundle
+### Recommended repository / Codex bundle
 
-For the full separation-of-duties workflow use the repository or the two-Skill bundle:
+Build the five-sibling-Skill bundle:
 
 ```bash
 python scripts/package_codex_bundle.py
@@ -209,11 +153,9 @@ Output:
 dist/japan-listing-demo-codex-bundle.zip
 ```
 
-This contains both sibling Skills.
+### One-install compatibility ZIP
 
-### Compatibility single-Skill ZIP
-
-The legacy-compatible main Skill archive remains available:
+Build:
 
 ```bash
 python .agents/skills/japan-listing-demo/scripts/package_skill.py
@@ -225,32 +167,39 @@ Output:
 dist/japan-listing-demo.skill.zip
 ```
 
-This is a **single-context compatibility package**. It cannot claim an independent semantic evidence audit. When `listing-evidence-auditor` cannot run in an independent context, unresolved semantic evidence remains `UNVERIFIED` / `HUMAN_REVIEW_REQUIRED` unless the user approves the exact asset hash + role/scope.
+This archive keeps one user-facing Skill and embeds the four internal stage/audit Skills under `japan-listing-demo/internal-skills/`. It remains a **single-context** package, so embedded auditor loading does not claim independent semantic review. `SINGLE_CONTEXT_LIMITATION.txt` documents that boundary.
 
 ## Validation
 
 ```bash
+python .agents/skills/listing-planning/scripts/selftest_planning.py
+python .agents/skills/listing-production/scripts/selftest_production.py
+python .agents/skills/listing-hardening/scripts/selftest_hardening.py
 python .agents/skills/listing-evidence-auditor/scripts/selftest_auditor.py
+python .agents/skills/japan-listing-demo/scripts/selftest_router.py
 python .agents/skills/japan-listing-demo/scripts/selftest_project_state_validator.py
 python .agents/skills/japan-listing-demo/scripts/validate_overlay.py
 python .agents/skills/japan-listing-demo/scripts/package_skill.py
 python scripts/package_codex_bundle.py
 ```
 
-## Quick-start prompt
+## Quick start
 
 ```text
 Use $japan-listing-demo.
 按默认 Major Stage Checkpoint 执行。
-Candidate Asset Registry 不视为真实素材证据；Stage 6.5 后自动调用 listing-evidence-auditor，并给我 EVIDENCE_RECONCILIATION_GATE。
-Stage 8 后必须执行 Stage 8.5 Pre-Demo Evidence Audit；PRE_DEMO_ASSET_GATE 通过前不要进入最终 Stage 9 原生渠道 Demo。
-如果无法独立运行 semantic auditor，不要自己审核自己并 PASS，保持 HUMAN_REVIEW_REQUIRED / UNVERIFIED，或者让我针对 exact hash + role + scope 审批。
-继续使用 Project State external validator、Frontend Fidelity Gate、module budget / origin / transform / slot / parity gates。
+从产品与市场策略开始，先确认页面结构和完整生产资产集，再逐张产出视觉；最终 Demo 前执行 Hardening。
 ```
+
+Ordinary team users should not need to understand Skill routing, file hashes, provenance, or validator internals.
+
+## Optional team GPT
+
+A thin team-facing Custom GPT can provide onboarding and project-entry UX, but it is not the execution source of truth. See `docs/team-gpt-setup.md`.
 
 ## Version
 
-`0.2.6`
+`0.3.0`
 
 ## License
 

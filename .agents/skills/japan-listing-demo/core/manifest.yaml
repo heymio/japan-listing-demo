@@ -1,95 +1,111 @@
 distribution: standalone
-distribution_version: 0.2.6
+distribution_version: 0.3.0
+normal_invocation: $japan-listing-demo
+
 upstream:
   repository: heymio/gtm-listing-demo
   version: 0.2.0
   commit: b882526f5a683235d30f562006cf1984a9f0d9f9
-snapshot_scope:
-  - workflow
-  - contracts
-  - market-research
-  - localization
-  - visual-evidence
-  - qa
-  - category-template
-  - core-evals
-distribution_patches:
+  provenance_note: historical standalone core provenance retained; v0.3.0 runtime ownership is stage-local
+
+runtime_architecture:
+  router:
+    skill: japan-listing-demo
+    purpose: stage routing, checkpoints, transition commands, retry budget, context firewall, exception routing
+  planning:
+    skill: listing-planning
+    stages: 0-7
+    purpose: deep product, offer, claim, consumer, market, Japan-localization, channel, message, page and module planning
+  production:
+    skill: listing-production
+    stages: 7.5-8
+    purpose: artifact-first production from Creative Strategy Kernel, Production Handoff and one-job Asset Packets
+  hardening:
+    skill: listing-hardening
+    stages: 8.5-10
+    purpose: exact final-file hardening, delivery validation, frontend fidelity, demo assembly, parity and final QA
+  auditor:
+    skill: listing-evidence-auditor
+    purpose: physical file identity, approval/provenance, semantic role and required-set evidence reconciliation
+
+state_objects:
+  - Project Brief
+  - Creative Strategy Kernel
+  - Production Handoff
+  - Asset Ledger / Production Freeze
+  - Delivery State
+
+delivery_state_schema: 0.2
+
+execution_principles:
+  - Think deeply. Produce narrowly. Verify rigorously.
+  - Plan lightly means light control-plane overhead, not shallow strategy.
+  - Fresh Stage 6.5 uses Source Asset Intake; full project-wide audit is not mandatory before final assets exist.
+  - Targeted early audit is reserved for inherited or previously approved exact assets intended for reuse.
+  - Stage 8.5 runs mandatory full final-asset hardening.
+  - Creative USER_APPROVED state is separate from evidence verification.
+  - Normal checkpoints use Done / Open / Next; full Stage Completion Manifest is exception-only.
+  - Transition commands advance immediately and same-artifact retries are bounded.
+
+distribution_modes:
+  repository_codex:
+    layout: five sibling Skills under .agents/skills
+    skills:
+      - japan-listing-demo
+      - listing-planning
+      - listing-production
+      - listing-hardening
+      - listing-evidence-auditor
+  compatibility_zip:
+    root_skill: japan-listing-demo
+    embedded_internal_skills:
+      - listing-planning
+      - listing-production
+      - listing-hardening
+      - listing-evidence-auditor
+    internal_path: japan-listing-demo/internal-skills
+    limitation: single-context semantic-audit limitation remains explicit
+
+machine_policy:
+  channel_limits: data/channel-policy-limits.json
+  canonical_delivery_validator: ../listing-hardening/scripts/validate_delivery_state.py
+  compatibility_validator: scripts/validate_project_state.py
+  retained_gate_families:
+    - CHANNEL_MODULE_BUDGET_GATE
+    - APPROVAL_PROVENANCE_GATE
+    - MODULE_ORIGIN_GATE
+    - TRANSFORM_AUTH_GATE
+    - EVIDENCE_RECONCILIATION_GATE
+    - PRODUCTION_FREEZE_GATE
+    - ASSET_SLOT_GATE
+    - PRE_DEMO_ASSET_GATE
+    - DELIVERY_PARITY_GATE
+
+historical_patches:
   - id: checkpointed-execution-v0.2.2
-    purpose: use major-stage human checkpoints by default while preventing repeated frame/subtask loops; transition commands advance immediately and repeated artifact retries are bounded
-    files:
-      - core/workflow.md
-      - SKILL.md
-      - agents/openai.yaml
+    retained_behavior: Major Stage Checkpoints, Transition Command, bounded Retry Budget
   - id: channel-native-demo-fidelity-v0.2.3
-    purpose: require current consumer-facing frontend references and a Frontend Fidelity Gate before labeling or assembling channel-native demos
-    files:
-      - core/workflow.md
-      - core/qa.md
-      - SKILL.md
-      - agents/openai.yaml
-      - references/channel-native-demo.md
-      - references/qa.md
-      - profiles/channels/amazon-jp.md
-      - profiles/channels/rakuten.md
-      - profiles/channels/yahoo-shopping.md
-      - profiles/channels/dtc.md
-      - profiles/channels/retailer-pdp.md
+    retained_behavior: Platform Capability versus Frontend Visual evidence, Primary Reference, Content Review Demo fallback
   - id: delivery-integrity-v0.2.4
-    purpose: prevent false stage completion, silent asset substitution, cross-slot leakage, module-fit errors, interaction drift, weak differentiator proof, and untargeted rework after authoritative changes
-    files:
-      - core/workflow.md
-      - core/contracts.md
-      - core/qa.md
-      - SKILL.md
-      - agents/openai.yaml
-      - references/delivery-integrity.md
-      - references/qa.md
-      - profiles/channels/amazon-jp.md
-      - evals/delivery-integrity.md
+    retained_behavior: role separation, module fit, asset-slot integrity, parity, targeted change impact
   - id: executable-gates-v0.2.5
-    purpose: prevent self-certified PASS by computing module-budget, approval-provenance, module-origin, transform-authorization, asset-slot, and parity gates from a machine-readable Project State Manifest
-    files:
-      - core/workflow.md
-      - core/contracts.md
-      - core/manifest.yaml
-      - SKILL.md
-      - agents/openai.yaml
-      - references/executable-gates.md
-      - profiles/channels/amazon-jp.md
-      - data/channel-policy-limits.json
-      - templates/project-state.example.json
-      - scripts/validate_project_state.py
-      - scripts/selftest_project_state_validator.py
-      - scripts/validate_overlay.py
-      - scripts/package_skill.py
-      - evals/executable-gates.md
+    retained_behavior: external machine validation, module budget/origin, transform and approval provenance
   - id: independent-evidence-auditor-v0.2.6
-    purpose: separate planner Candidate State from real-artifact Evidence State by independently recomputing physical file identity, provenance, exact-hash approval, semantic visual role, and required asset-set completeness before final asset binding and Demo Assembly
-    files:
-      - ../listing-evidence-auditor/SKILL.md
-      - ../listing-evidence-auditor/agents/openai.yaml
-      - ../listing-evidence-auditor/references/audit-contract.md
-      - ../listing-evidence-auditor/scripts/fingerprint_assets.py
-      - ../listing-evidence-auditor/scripts/reconcile_evidence.py
-      - ../listing-evidence-auditor/scripts/selftest_auditor.py
-      - core/workflow.md
-      - core/contracts.md
-      - core/qa.md
-      - SKILL.md
-      - agents/openai.yaml
-      - references/qa.md
-      - templates/project-state.example.json
-      - scripts/validate_project_state.py
-      - scripts/selftest_project_state_validator.py
-      - scripts/validate_overlay.py
-      - scripts/package_skill.py
-      - evals/evidence-auditor.md
-      - ../../../scripts/package_codex_bundle.py
+    retained_behavior: real-file fingerprinting, exact approval binding, semantic role and complete required-set audit
+  - id: creative-first-hardening-v0.3.0
+    purpose: separate deep Planning, focused Production and final Hardening behind a thin router while preserving delivery safeguards
+    skills:
+      - listing-planning
+      - listing-production
+      - listing-hardening
+      - listing-evidence-auditor
+
 update_policy:
-  - review upstream changelog
-  - update snapshot in a feature branch
-  - preserve or deliberately revise documented distribution patches
-  - run standalone, Japan, channel, cross-category, frontend-fidelity, delivery-integrity, executable-gate, and evidence-auditor evals
-  - run both project-state and evidence-auditor self-tests
-  - release only after CI passes
+  - review upstream and platform/channel changes before altering packaged policy
+  - preserve one repository and one normal user invocation
+  - keep public runtime examples category-neutral and free of confidential project data
+  - run Planning, Production, Hardening, Evidence Auditor, Router and compatibility validator self-tests
+  - validate both five-Skill Codex bundle and one-install compatibility archive
+  - release only after CI passes and human review is complete
+
 runtime_dependency: none

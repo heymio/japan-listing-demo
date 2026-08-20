@@ -1,0 +1,6 @@
+interface:
+  display_name: "Listing Planning"
+  short_description: "Deep product, consumer, Japan-market, and channel planning for listing production"
+  default_prompt: "Plan Stage 0–7 deeply. Preserve product/offer/claim truth, consumer/VOC/market reasoning, Japan localization, channel capability/frontend evidence, Gallery/A+ architecture, module budget and module fit. End Stage 7 with a Complete Demo-Required Production Set, Creative Strategy Kernel, and Production Handoff. Do not perform final visual production or delivery hardening."
+policy:
+  allow_implicit_invocation: true
