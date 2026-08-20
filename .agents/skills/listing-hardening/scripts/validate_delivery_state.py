@@ -124,6 +124,7 @@ def _schema_gate(state: Any) -> dict[str, Any]:
         impl_slots = []
     else:
         _duplicate_values(impl_slots, "slot_id", "implementation.slots", errors)
+        _duplicate_values(impl_slots, "module_id", "implementation.slots", errors)
         for index, slot in enumerate(impl_slots):
             if not isinstance(slot, dict):
                 continue
