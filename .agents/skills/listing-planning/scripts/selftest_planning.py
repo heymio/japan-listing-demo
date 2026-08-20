@@ -83,6 +83,25 @@ def test_production_handoff_rejects_control_plane_fields() -> None:
     assert any("project_state_manifest" in error for error in errors)
 
 
+def test_priority_proof_is_not_complete_asset_set() -> None:
+    text = read(SKILL_DIR / "SKILL.md").casefold()
+    assert "priority proof coverage" in text
+    assert "does not" in text and "complete" in text
+
+
+def test_gallery_and_enhanced_content_are_separate_production_roles() -> None:
+    text = read(SKILL_DIR / "references" / "module-fit.md").casefold()
+    assert "gallery-native" in text
+    assert "enhanced-content" in text
+    assert "separate" in text
+
+
+def test_fresh_project_does_not_require_full_stage_6_5_audit() -> None:
+    text = read(SKILL_DIR / "SKILL.md").casefold()
+    assert "full project-wide audit is not mandatory" in text
+    assert "targeted early audit" in text
+
+
 def main() -> int:
     tests = [v for k, v in globals().items() if k.startswith("test_") and callable(v)]
     for test in tests:
