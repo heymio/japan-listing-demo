@@ -7,6 +7,9 @@
       "declared_max_modules": 7
     }
   },
+  "audit_checkpoints": {
+    "pre_9_required": true
+  },
   "approval_events": [
     {
       "approval_id": "AP-ASSET-A01",
@@ -37,6 +40,20 @@
       "approval_id": "AP-ASSET-A01"
     }
   ],
+  "auditor_evidence": {
+    "checkpoint": "pre-9",
+    "independent_semantic": true,
+    "asset_set_gate": {
+      "status": "PASS",
+      "messages": []
+    },
+    "assets": {
+      "A01": {
+        "physical_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "effective_status": "VERIFIED"
+      }
+    }
+  },
   "locked_module_plan": {
     "status": "LOCKED",
     "approval_id": "AP-MODULE-PLAN",
