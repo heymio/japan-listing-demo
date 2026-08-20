@@ -3,142 +3,161 @@
 ## Distribution QA
 
 - The bundled core manifest, workflow, contracts, evidence, QA, category template, and core evals are present.
-- The repository and Skill ZIP can run without loading or installing a second Skill.
-- Team-facing instructions mention one repository, one ZIP, and one invocation.
-- Upstream provenance is recorded for maintainers but not exposed as a runtime requirement.
+- Repository/Codex distribution contains sibling `japan-listing-demo` and `listing-evidence-auditor` Skills.
+- Normal user-facing invocation remains `$japan-listing-demo`; the main workflow delegates the auditor at required checkpoints.
+- The compatibility single-Skill ZIP explicitly states that it cannot claim an independent semantic audit.
+- Upstream provenance is recorded for maintainers but not exposed as a second-repository runtime requirement.
 - Optional private overlays remain optional and separate.
 
 ## Execution Flow QA
 
 - **Checkpointed execution by default** is active.
-- Every numbered workflow stage ends at a **Major Stage Checkpoint** unless the user explicitly opts into Autonomous Mode for the current request.
-- Every advanced stage emits a **Stage Completion Manifest** with planned/completed/approved/needs-revision/missing/blocked/open items and `COMPLETE`, `PARTIAL`, or `BLOCKED` status.
-- The agent completes a useful batch inside the current stage and does not pause after every minor search, tool call, frame, or image.
-- A user Transition Command such as `继续`, `下一步`, `go`, `go next`, `next`, `先这样`, or `这张先过` stops further current-stage iteration and advances immediately unless the user explicitly asks to keep improving the current artifact.
-- A Transition Command locks the real stage status; `PARTIAL` is not rewritten as `COMPLETE`.
-- The same artifact/problem has a Retry Budget of at most two autonomous attempts without new user input or new evidence.
-- A Transition Command overrides the Retry Budget; the agent must not require a second `继续` before entering the next stage.
-- New authoritative evidence triggers a Change Impact Map rather than silent ignore or whole-project restart.
+- Every numbered workflow stage ends at a Major Stage Checkpoint unless user explicitly opts into Autonomous Mode for the current request.
+- Every advanced stage emits a truthful Stage Completion Manifest.
+- Transition Commands stop current iteration and advance immediately without turning `PARTIAL` into `COMPLETE` or unverified evidence into final evidence.
+- Same artifact/problem has Retry Budget at most two autonomous attempts without new input/evidence.
+- New authoritative facts or auditor evidence trigger targeted Change Impact rather than silent ignore or whole-project restart.
 
 ## Configuration QA
 
 - `market.country` is `JP`.
 - `locale`, `channel`, `category`, `offer`, and `page_targets` are explicit.
-- The requested locale is not inferred solely from the market.
+- Requested locale is not inferred solely from market.
 - One primary Japan channel profile is selected.
 - Brand/private overlays are separated from this public repository.
 
 ## Market evidence QA
 
 - Every market conclusion has source, date, category, channel, evidence type, confidence, and allowed usage.
-- Hypotheses are labeled and do not enter final consumer copy as facts.
-- Conflicting evidence remains visible until resolved.
+- Hypotheses do not enter final consumer copy as facts.
 - Search language, scenarios, and visual direction come from current project evidence.
-- Competitor execution is not treated as proof of account access or market preference.
+- Competitor execution is not proof of account access or market preference.
 
 ## Locale QA
 
 When `locale.id: ja-JP`:
 
-- copy has completed terminology, tone, ambiguity, and native-language review;
+- copy completes terminology, tone, ambiguity, and native-language review;
 - numbers, dates, currency, units, symbols, and punctuation match current channel requirements;
-- translation artifacts and internal placeholders are removed;
-- mobile headlines remain understandable without enlarging the page;
-- conditions remain attached to the claims they qualify.
+- translation artifacts/internal placeholders are removed;
+- mobile headlines remain understandable without zooming;
+- conditions remain attached to qualified claims.
 
 ## Channel QA
 
-- Current editable slots and account capabilities are verified.
-- Brand-controlled and platform- or retailer-controlled areas are separated.
-- Module names and limits belong to the selected channel.
-- A previous marketplace implementation does not define the current one.
-- Unsupported or unknown capabilities remain `UNKNOWN` or `PENDING`.
-- Mobile rendering and current content policies are checked.
-- Platform Capability evidence and Frontend Visual evidence are recorded separately.
-- `CONTENT_COVERAGE` and `MODULE_FIT_GATE` are separate results.
-- Native interactive modules have interaction logic and content packing planned before visual production.
+- Current editable slots/account capabilities are verified.
+- Brand-controlled and platform/retailer-controlled areas are separated.
+- Module names/limits belong to selected channel.
+- Unsupported capabilities remain `UNKNOWN` / `PENDING`.
+- Platform Capability and Frontend Visual evidence are separate.
+- `CONTENT_COVERAGE` and `MODULE_FIT_GATE` are separate.
+- Native interactive modules have interaction logic/content packing planned before production.
 
 ## Frontend Fidelity QA
 
-Run this section whenever the deliverable is intended to look like a real consumer-facing channel page.
+- A Channel Frontend Reference Pack exists for native demos.
+- User is asked for preferred current Reference URL / ASIN / retailer/store page / design reference / screenshot set.
+- Valid user-supplied reference is not silently replaced.
+- If none, 1–3 current comparable references are researched and a Primary Reference recommended.
+- **Official rules do not substitute** for current frontend visual evidence.
+- `FRONTEND_FIDELITY_GATE` runs before Stage 9 native naming/assembly.
+- Gate failure produces Content Review Demo rather than fabricated native shell.
+- Review Mode is overlay-only.
 
-- A **Channel Frontend Reference Pack** exists.
-- The user was asked whether they had a preferred current **Reference URL**, ASIN, retailer/store page, design-system reference, or screenshot set before native demo assembly.
-- A user-supplied valid reference is the candidate **Primary Reference** and is not silently replaced.
-- If the user supplied no reference, 1–3 current comparable consumer-facing references were researched and a Primary Reference was selected with reasons.
-- **Official rules do not substitute** for visual evidence of the current consumer-facing frontend.
-- The reference pack records capture date, access status, desktop evidence, mobile/app-web evidence, section order, brand/platform ownership, material interactions, responsive behavior, fidelity status, and open questions.
-- Text/DOM parsing alone is not labeled `HIGH` frontend fidelity.
-- Live-page access failures follow the Retry Budget; the workflow does not repeatedly retry an inaccessible page or invent the missing shell.
-- `FRONTEND_FIDELITY_GATE` runs immediately before Stage 9 for a channel-native demo.
-- A gate failure produces a clearly named **Content Review Demo**, not a falsely labeled **channel-native demo**.
-- A native demo reproduces the verified channel shell first and inserts approved project content only into verified brand-controlled regions.
-- Review Mode is an overlay and does not change the verified underlying Consumer Mode layout.
+## Candidate / Auditor / Effective State QA
 
-## Asset Readiness and Slot Integrity QA
+- Stage 6.5A Candidate Asset Registry is explicitly planner-authored assertion state.
+- Filenames, Asset IDs, candidate hashes, claimed role, claimed provenance, and candidate `LOCKED` do not by themselves establish physical truth.
+- `listing-evidence-auditor` writes a separate Auditor Evidence State and never rewrites Candidate State.
+- Effective State gives auditor evidence precedence for downstream asset eligibility.
+- Candidate status cannot override auditor `INVALIDATED`, `UNVERIFIED`, `PHYSICALLY_VERIFIED_ONLY`, or `HUMAN_REVIEW_REQUIRED`.
 
-- Stage 1 contains an **Asset Readiness Preflight** for asset classes expected later.
-- An **Approved Asset Registry** exists with stable Asset IDs and derivative provenance.
-- Approved assets are not silently swapped, recropped, recomposed, or reassigned to another role downstream.
-- An **Asset-to-Slot Contract** binds Asset IDs to page/offer, channel region/module, dimensions/aspect, crop/transform rule, interaction, and ownership.
-- `ASSET_SLOT_GATE` fails on cross-slot leakage, wrong page/offer, wrong dimensions/crop, or unapproved derivatives.
-- Gallery-native and enhanced-content assets remain distinct role classes unless an explicitly approved derivative says otherwise.
+## Physical File QA
 
-## Module Fit and Delivery Parity QA
+- Auditor recomputes SHA-256 from real file bytes.
+- Auditor validates allowed project-root path and file existence.
+- Byte size, signature family, supported image dimensions, and extension/signature mismatch are recomputed rather than copied from candidate metadata.
+- Missing file or path escape is surfaced; no silent substitute is created.
+- Same filename/Asset ID with changed bytes does not preserve exact-recovery approval.
 
-- Full content/topic coverage does not automatically pass module fit.
-- `MODULE_FIT_GATE` checks verified module availability, message grouping, interaction purpose, evidence, asset orientation/density, mobile behavior, frontend evidence, and channel constraints.
-- Independent static boards are not mechanically converted into carousel/slides only during Demo Assembly.
-- `DELIVERY_PARITY_GATE` compares planned versus implemented slot/module, interaction, Asset IDs, dimensions/aspect, message coverage, page/offer ownership, and channel region.
-- Missing modules, wrong source assets, wrong dimensions, or static substitutes for planned interactions fail parity even when the HTML opens successfully.
+## Provenance and Approval QA
 
-## Claim and compliance QA
+- Exact recovery requires current physical SHA-256, approved role, and approved scope to match prior locked evidence.
+- Human approval binds to exact physical SHA-256 + approved role + approved slot/page/offer scope.
+- Approval does not automatically carry across byte, role, or scope change.
+- Deterministic crop/recomposition/role change remains a derivative and requires authorization.
+- Auditor may verify but cannot create an explicit user approval event itself.
 
-- The verification queue includes only requirements relevant to the current project.
-- Volatile laws, platform rules, certification, pricing, availability, and service terms use current authoritative evidence.
-- Copy and visuals imply no broader claim than the evidence supports.
-- Comparisons, badges, rankings, endorsements, and quantified performance have current approval.
-- `PENDING CLAIM`, `PROHIBITED`, and `INTERNAL ONLY` content is excluded from consumer mode.
+## Semantic Role QA
+
+- Semantic review prefers an **independent context** or human review.
+- Audit packet excludes planner desired audit result and prior PASS conclusions.
+- Same-agent inline semantic review cannot become final independent `ROLE_MATCH`.
+- If independent semantic audit is unavailable and role is material, status remains `HUMAN_REVIEW_REQUIRED` / `UNVERIFIED` unless human explicitly approves exact hash + role/scope.
+- Visual role mismatch invalidates final downstream use even when Candidate State is internally coherent.
+
+## Stage 6.5 Evidence Reconciliation QA
+
+- Main workflow builds `audit-input.json` after candidate intake.
+- Auditor produces physical fingerprints, evidence audit, semantic role, provenance/approval result, and asset-set result.
+- `EVIDENCE_RECONCILIATION_GATE` is computed from auditor evidence.
+- Stage 7 may continue planning with visible gaps but final Asset-to-Slot binding may use only `VERIFIED` / `HUMAN_APPROVED` assets.
+
+## Stage 8.5 Pre-Demo QA
+
+- Stage 8.5 audits exact final files referenced by locked module plan/slot contract.
+- Physical SHA is recomputed after edits/transforms.
+- Approval carryover, provenance, semantic role, page/offer/slot scope, and required asset-set completeness are rechecked.
+- `PRE_DEMO_ASSET_GATE` passes only when all required assets are `VERIFIED` / `HUMAN_APPROVED` and auditor set gate passes.
+- One invalidated/unverified required member blocks Stage 9 final channel-native consumption.
+
+## Executable Gate QA
+
+- Project State Manifest exists for work that locks modules/assets or assembles demo.
+- External validator is used rather than agent-authored PASS prose.
+- `declared_gate_results` is ignored.
+- Missing validator/auditor execution leaves relevant gates `UNVERIFIED`.
+- `CHANNEL_MODULE_BUDGET_GATE`, `APPROVAL_PROVENANCE_GATE`, `MODULE_ORIGIN_GATE`, `TRANSFORM_AUTH_GATE`, `ASSET_SLOT_GATE`, and `DELIVERY_PARITY_GATE` remain active.
+- New `EVIDENCE_RECONCILIATION_GATE` and `PRE_DEMO_ASSET_GATE` are computed from Auditor Evidence State.
+- `ASSET_SLOT_GATE` uses auditor effective status and physical hash when available.
 
 ## Visual QA
 
-- Every module passes the bundled core Visual Evidence Matrix.
-- The visual subject and evidence object directly support the message.
-- Product, packaging, UI, controls, interfaces, and functional proof use approved real assets or explicit provisional labels.
-- Environment, casting, props, and interactions are project-specific and approved.
-- Text remains readable and correctly localized on mobile.
-- Visual-quality failure does not trigger an unbounded regeneration loop; retry and transition rules are enforced.
-- Every visualizable P0 differentiator has a Differentiator Proof Matrix entry.
-- `DIFFERENTIATOR_PROOF_GATE` requires direct proof or an explicitly approved alternative proof strategy; generic lifestyle imagery alone is not enough.
+- Every module passes Visual Evidence Matrix.
+- Visual subject/evidence object directly support message.
+- Product, packaging, UI, controls, interfaces, and functional proof use real approved evidence or explicit provisional labels.
+- Visualizable P0 differentiators have Differentiator Proof Matrix entries.
+- `DIFFERENTIATOR_PROOF_GATE` requires direct proof or explicit approved alternative.
 
 ## Change-control QA
 
-- New authoritative facts, approved offer/strategy changes, asset/UI changes, channel-reference changes, or claim/legal decisions trigger a **Change Impact Map**.
+- New authoritative facts, offer/strategy changes, asset/UI evidence, channel-reference changes, claim/legal decisions, or auditor invalidations trigger Change Impact Map.
 - Outputs are classified `UNAFFECTED`, `REVIEW`, `INVALIDATED`, or `REOPEN`.
-- Unaffected locked outputs are preserved.
-- Invalidated dependent outputs do not remain silently in final work.
-- The workflow does not restart the entire project unless dependency impact actually requires it.
+- Unaffected locked work is preserved.
+- Invalidated dependent outputs do not remain silently final.
 
-## Technical and review-mode QA
+## Technical and Review Mode QA
 
-- Gallery, tabs, carousels, comparisons, Q&A, and essential review interactions work on desktop and mobile when those interactions belong to the verified target shell.
-- Local review files use native or CSS-safe fallbacks when JavaScript support is uncertain.
-- Asset paths are complete.
+- Essential native/review interactions work desktop/mobile as required.
+- Asset paths resolve.
 - Standalone files have no missing local dependencies.
-- Review Mode exposes status and open items without changing Consumer Mode geometry.
-- Consumer Mode hides internal labels and unsupported details while preserving complete meaning.
-- Deliverable naming matches evidence: a native PDP/demo name is used only after `FRONTEND_FIDELITY_GATE` passes or the user explicitly approves a constrained `PARTIAL` scope.
+- Review Mode exposes internal status without changing Consumer Mode geometry.
+- Consumer Mode hides internal labels/statuses.
+- Channel-native naming matches evidence.
 
 ## Final Delivery QA
 
-Before calling the work complete:
+Before calling work complete:
 
 - Stage Completion Manifests are truthful;
-- required planned deliverables exist or reduced scope is explicitly approved;
+- planned deliverables exist or reduced scope is explicitly approved;
+- required Auditor Evidence State is present;
+- `EVIDENCE_RECONCILIATION_GATE` and `PRE_DEMO_ASSET_GATE` pass when required;
+- every final required asset is `VERIFIED` / `HUMAN_APPROVED`;
 - `ASSET_SLOT_GATE` passes;
 - `CONTENT_COVERAGE` is acceptable;
 - `MODULE_FIT_GATE` passes;
-- `DIFFERENTIATOR_PROOF_GATE` passes or has an approved alternative;
+- `DIFFERENTIATOR_PROOF_GATE` passes or approved alternative exists;
 - `DELIVERY_PARITY_GATE` passes;
 - channel-native work satisfies `FRONTEND_FIDELITY_GATE`;
-- passed checks and open items are reported separately.
+- passed checks and open items are separate.
