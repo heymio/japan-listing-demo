@@ -1,0 +1,29 @@
+creative_strategy:
+  target_user:
+    - evidence-backed primary shopper segment
+  core_tension: "Primary shopper tension to resolve"
+  core_promise: "Core consumer promise"
+  primary_purchase_reasons:
+    - id: P0-1
+      reason: Primary reason to buy
+  shopper_barriers:
+    - id: BARRIER-1
+      barrier: Main purchase hesitation
+  reasons_to_believe:
+    - id: RTB-1
+      evidence_ref: FACT-001
+      statement: Evidence-backed reason to believe
+  message_priority:
+    p0:
+      - P0-1
+    p1: []
+    p2: []
+  japan_implications:
+    - implication: Current JP market/channel implication supported by evidence
+      evidence_ref: MARKET-001
+  proof_principles:
+    - principle: Show the reason to buy through a direct evidence object when possible
+  visual_direction:
+    - principle: Product-first commercial visual hierarchy
+  visual_anti_patterns:
+    - pattern: Generic lifestyle image with no proof of the primary message
