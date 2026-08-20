@@ -1,0 +1,55 @@
+asset_id: AMZ-G1
+
+role:
+  channel: amazon-jp
+  region: gallery
+  slot: G1
+  asset_type: gallery-native
+
+objective:
+  shopper_task: Understand one primary purchase reason quickly
+  primary_message: Evidence-backed primary message
+
+strategy_context:
+  consumer_barrier: Main barrier this asset should resolve
+  core_tension: Strategic tension from the Creative Strategy Kernel
+  proof_principle: Show the message through a direct evidence object when possible
+
+evidence:
+  allowed:
+    - confirmed product fact
+  forbidden:
+    - unsupported superlative
+
+product_sources:
+  required:
+    - SRC-P01
+
+benchmark:
+  references:
+    - BENCH-01
+  learn_from:
+    - composition
+    - lighting
+    - hierarchy
+  reuse_asset: false
+
+composition:
+  product_role: hero
+  environment: project-defined realistic context
+  information_density: low
+  one_image_focus: true
+
+output:
+  aspect_ratio: "1:1"
+  final_role: Amazon Gallery
+  quantity: 1
+
+must_preserve:
+  - exact product geometry
+  - exact product color/material
+
+must_not_generate:
+  - workflow diagram
+  - production plan
+  - fictional product structure
