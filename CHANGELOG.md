@@ -1,17 +1,18 @@
 # Changelog
 
-## 0.3.1 — Validator integrity
+## 0.3.1 — Validator integrity hardening
 
-- Replaced planning handoff keyword-presence checks with parsed structural validation for the supported YAML contract profile, including type checks, duplicate-key/ID checks, malformed-input failures, and Production Handoff cross-reference checks.
-- Hardened real-file fingerprinting so supported image assets must have a valid PNG/JPEG/WebP signature, matching extension, positive dimensions, positive byte size, and no physical errors; a fake `.png` with non-image bytes is rejected.
-- Changed the normal Evidence Reconciler CLI to accept an audit packet plus project root and recompute fingerprints from the real files itself. It no longer accepts caller-supplied fingerprint JSON or a self-asserted `--independent-semantic` trust flag.
-- Kept a low-level reconciliation function for controlled host/test integrations, while a genuinely isolated host may explicitly call the real-file entrypoint with independent semantic provenance.
-- Strengthened `PRODUCTION_FREEZE_GATE` so creatively approved Asset IDs must equal the complete required Asset ID set, rather than only matching a count.
-- Added strict Delivery State schema fail-fast: malformed state returns `FAIL`, duplicate asset/module/slot/approval IDs are rejected, and semantic gates are skipped instead of throwing on invalid container types.
-- Preserved the v0.3.0 gate implementation as an internal hardening core and placed the new strict schema/freeze boundary in front of it, minimizing regression risk to existing gate behavior.
-- Updated the one-install compatibility ZIP so it packages both the strict hardening wrapper and its embedded compatibility core.
-- Removed the stray one-byte root file `x` and added a release-integrity check preventing its return.
-- This release does **not** change the v0.3.0 Planning → Production → Hardening workflow architecture or claim production-grade outcome validation.
+- Replaced Planning contract keyword-presence checks with structured parsing and type/reference validation for Project Brief, Creative Strategy Kernel, and Production Handoff.
+- Rejects malformed planning contract indentation, duplicate keys/IDs, invalid field types, missing required fields, dangling Asset-ID references, and control-plane leakage into Production Handoff.
+- Hardened image fingerprinting so supported final images must have a valid PNG/JPEG/WebP signature, matching extension, positive dimensions, positive byte size, and no physical errors; fake `.png` text files now fail.
+- Changed normal evidence reconciliation to recompute fingerprints from real project files instead of accepting caller-supplied fingerprint JSON as the trusted CLI input.
+- Removed the standalone CLI `--independent-semantic` switch; callers cannot promote their own semantic review to independent trust merely by passing a flag.
+- Audit packets now fail fast on duplicate `assets.asset_id`, `approval_events.approval_event_id`, `prior_locked_assets.asset_id`, `slots.slot_id`, or `expected_visual_roles.asset_id`, preventing silent dictionary overwrite.
+- Strengthened Delivery State schema fail-fast behavior. Malformed container types and duplicate identity fields stop semantic gates instead of causing tracebacks or ambiguous downstream results.
+- `implementation.slots[*].module_id` is now one-to-one with implementation slots; duplicate module IDs are rejected before Module Origin / Delivery Parity can collapse them into dictionaries.
+- `PRODUCTION_FREEZE_GATE` now compares the exact approved Asset-ID set against the required Asset-ID set instead of only comparing counts.
+- Removed the stray root `x` file and updated compatibility packaging for the strict hardening wrapper.
+- Architecture remains unchanged: Thin Router → Planning → Production → Hardening → Evidence Auditor. This release does not claim proven Japan-market output quality; Golden Set / team-pilot validation remains separate.
 
 ## 0.3.0 — Creative-first hardening architecture
 
