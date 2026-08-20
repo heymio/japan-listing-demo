@@ -202,6 +202,74 @@ def test_real_file_entrypoint_rejects_forged_nonexistent_asset() -> None:
     assert result["assets"]["G03"]["effective_status"] == "INVALIDATED"
 
 
+def test_duplicate_asset_id_cannot_hide_missing_file_behind_valid_file() -> None:
+    reconcile_from_files = getattr(reconcile_module, "reconcile_from_files", None)
+    assert callable(reconcile_from_files)
+    with TemporaryDirectory() as directory:
+        root = Path(directory)
+        valid = root / "valid.png"
+        valid.write_bytes(make_png(1, 1))
+        digest = hashlib.sha256(valid.read_bytes()).hexdigest()
+        packet = packet_for("A1", "missing.png")
+        duplicate = dict(packet["assets"][0])
+        duplicate["path"] = "valid.png"
+        duplicate["claimed_approval_event_id"] = "APP-1"
+        packet["assets"].append(duplicate)
+        packet["approval_events"] = [{
+            "approval_event_id": "APP-1",
+            "type": "explicit_user_approval",
+            "asset_id": "A1",
+            "sha256": digest,
+            "approved_role": "gallery-native",
+            "approved_slots": ["gallery-03"],
+        }]
+        packet["assets"][0]["claimed_approval_event_id"] = "APP-1"
+        try:
+            reconcile_from_files(packet, root, semantic_match("A1", "gallery-native", "human"))
+        except ValueError as exc:
+            assert "duplicate" in str(exc).casefold() and "asset_id" in str(exc).casefold()
+        else:
+            raise AssertionError("duplicate asset_id must fail-fast before dictionary overwrite")
+
+
+def test_duplicate_audit_packet_identifiers_fail_fast() -> None:
+    reconcile_from_files = getattr(reconcile_module, "reconcile_from_files", None)
+    assert callable(reconcile_from_files)
+    cases = []
+
+    packet = packet_for("A1", "a.png")
+    packet["approval_events"] = [
+        {"approval_event_id": "APP-1"},
+        {"approval_event_id": "APP-1"},
+    ]
+    cases.append(("approval_event_id", packet))
+
+    packet = packet_for("A1", "a.png")
+    packet["prior_locked_assets"] = [
+        {"asset_id": "A1"},
+        {"asset_id": "A1"},
+    ]
+    cases.append(("prior_locked_assets.asset_id", packet))
+
+    packet = packet_for("A1", "a.png")
+    packet["slots"].append(dict(packet["slots"][0]))
+    cases.append(("slots.slot_id", packet))
+
+    packet = packet_for("A1", "a.png")
+    packet["expected_visual_roles"].append(dict(packet["expected_visual_roles"][0]))
+    cases.append(("expected_visual_roles.asset_id", packet))
+
+    with TemporaryDirectory() as directory:
+        root = Path(directory)
+        for label, packet in cases:
+            try:
+                reconcile_from_files(packet, root)
+            except ValueError as exc:
+                assert "duplicate" in str(exc).casefold(), (label, str(exc))
+            else:
+                raise AssertionError(f"duplicate {label} must fail-fast")
+
+
 def test_cli_does_not_accept_external_fingerprint_payload_or_self_asserted_independence() -> None:
     text = (SCRIPT_DIR / "reconcile_evidence.py").read_text(encoding="utf-8")
     assert 'parser.add_argument("fingerprints"' not in text
