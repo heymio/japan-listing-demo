@@ -4,7 +4,7 @@
 from __future__ import annotations
 
 import hashlib
-import json
+import importlib
 import struct
 import sys
 import zlib
@@ -17,6 +17,8 @@ sys.path.insert(0, str(SCRIPT_DIR))
 
 from fingerprint_assets import fingerprint_asset  # noqa: E402
 from reconcile_evidence import reconcile_evidence  # noqa: E402
+
+reconcile_module = importlib.import_module("reconcile_evidence")
 
 
 def make_png(width: int, height: int) -> bytes:
@@ -125,6 +127,16 @@ def test_extension_signature_mismatch_is_reported() -> None:
         assert "extension/signature mismatch" in result["errors"]
 
 
+def test_fake_png_with_non_image_bytes_is_rejected() -> None:
+    with TemporaryDirectory() as directory:
+        root = Path(directory)
+        image = root / "asset.png"
+        image.write_bytes(b"this is not a png")
+        result = fingerprint_asset(image, root)
+        assert result["signature_family"] is None
+        assert "invalid or unsupported image signature" in result["errors"]
+
+
 def test_same_name_different_sha_does_not_restore_approval() -> None:
     packet = packet_for("G03", "assets/G03.png")
     packet["prior_locked_assets"] = [{
@@ -159,6 +171,42 @@ def test_inline_semantic_review_cannot_self_certify() -> None:
     result = reconcile_evidence(packet, fingerprints_for("G03", "d" * 64), semantic_match("G03", "gallery-native", "same_agent_inline"), False)
     assert result["assets"]["G03"]["semantic_role_status"] in {"ROLE_AMBIGUOUS", "NOT_VISUALLY_AUDITED"}
     assert result["assets"]["G03"]["effective_status"] in {"HUMAN_REVIEW_REQUIRED", "UNVERIFIED"}
+
+
+def test_reconciler_has_real_file_entrypoint() -> None:
+    assert callable(getattr(reconcile_module, "reconcile_from_files", None))
+
+
+def test_real_file_entrypoint_rejects_forged_nonexistent_asset() -> None:
+    reconcile_from_files = getattr(reconcile_module, "reconcile_from_files", None)
+    assert callable(reconcile_from_files)
+    packet = packet_for("G03", "assets/G03.png")
+    packet["approval_events"] = [{
+        "approval_event_id": "APP-1",
+        "type": "explicit_user_approval",
+        "asset_id": "G03",
+        "sha256": "f" * 64,
+        "approved_role": "gallery-native",
+        "approved_slots": ["gallery-03"],
+    }]
+    packet["assets"][0]["claimed_approval_event_id"] = "APP-1"
+    with TemporaryDirectory() as directory:
+        root = Path(directory)
+        result = reconcile_from_files(
+            packet,
+            root,
+            semantic_match("G03", "gallery-native"),
+            independent_semantic=True,
+        )
+    assert result["assets"]["G03"]["physical_identity_ok"] is False
+    assert result["assets"]["G03"]["effective_status"] == "INVALIDATED"
+
+
+def test_cli_does_not_accept_external_fingerprint_payload_or_self_asserted_independence() -> None:
+    text = (SCRIPT_DIR / "reconcile_evidence.py").read_text(encoding="utf-8")
+    assert 'parser.add_argument("fingerprints"' not in text
+    assert 'parser.add_argument("project_root"' in text
+    assert '--independent-semantic' not in text
 
 
 def test_required_asset_set_fails_when_one_member_invalidated() -> None:
