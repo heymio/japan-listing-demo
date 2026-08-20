@@ -4,7 +4,7 @@
 
 **Goal:** Integrate Planning, Production, Hardening, and Evidence Auditor behind a thin `$japan-listing-demo` router, remove always-on control-plane duplication, preserve one-install/one-invocation team usage, and publish the architecture redesign as v0.3.0 after full regressions pass.
 
-**Architecture:** The main `japan-listing-demo` Skill becomes a stage router with concise checkpoint/transition/retry/exception rules. Repository/Codex distribution contains five sibling Skills (`japan-listing-demo`, `listing-planning`, `listing-production`, `listing-hardening`, `listing-evidence-auditor`). The compatibility single-Skill archive remains one install by packaging the four internal stage/audit Skills under `japan-listing-demo/internal-skills/`; it explicitly retains the single-context semantic-audit limitation. Legacy monolithic runtime files are removed from normal loading after their responsibilities are proven present in stage-local Skills. A team-facing Custom GPT remains optional documentation only, not an execution dependency.
+**Architecture:** The main `japan-listing-demo` Skill becomes a stage router with concise checkpoint/transition/retry/exception rules. Repository/Codex distribution contains five sibling Skills (`japan-listing-demo`, `listing-planning`, `listing-production`, `listing-hardening`, `listing-evidence-auditor`). The compatibility single-Skill archive remains one install by packaging the four internal stage/audit Skills under `japan-listing-demo/internal-skills/`; the router selectively reads those embedded instructions when sibling Skills are unavailable. The archive explicitly retains the single-context semantic-audit limitation. Legacy monolithic runtime files are removed from normal loading after their responsibilities are proven present in stage-local Skills. A team-facing Custom GPT remains optional documentation only, not an execution dependency.
 
 **Tech Stack:** Markdown Skill/router contracts, Python 3.12 standard-library architecture/package validation, GitHub Actions, ZIP packaging, existing Skill self-tests and evidence-auditor/validator regressions.
 
@@ -12,19 +12,19 @@
 
 ## Global Constraints
 
-- This plan is executed only after the Planning, Production, and Hardening implementation plans are green.
+- Execute only after the Planning, Production, and Hardening implementation plans are green.
 - Normal user-facing invocation remains exactly `$japan-listing-demo`.
-- Team users must not manually invoke internal Planning/Production/Hardening/Auditor Skills in the Golden Path.
+- Team users do not manually invoke internal Planning/Production/Hardening/Auditor Skills in the Golden Path.
 - One public repository remains `heymio/japan-listing-demo`.
 - One recommended repository/Codex bundle contains all five sibling Skills.
-- One compatibility archive remains available for single-Skill installation; stage Skills are packaged internally, not installed separately.
-- Loading a Skill is not treated as proof of isolated model context. Production isolation comes from formal Context Projection; semantic auditor independence keeps its existing human/independent-context limitation.
+- One compatibility archive remains available for single-Skill installation; stage Skills are embedded at build time, not installed separately and not duplicated in Git source.
+- Loading a Skill is not treated as proof of isolated model context. Production isolation comes from Context Projection; semantic auditor independence keeps its existing human/independent-context limitation.
 - Main router instructions must be materially shorter than v0.2.6 and must not restate SHA/provenance/pre-demo/parity machinery.
 - Default checkpoint output is `Done / Open / Next`; full Stage Completion Manifest appears only for `PARTIAL`, `BLOCKED`, or explicit user audit request.
 - Change Impact is exception-only. Recovery Mode is not part of normal runtime.
 - Deep strategy remains in `listing-planning`; visual quality guidance remains in `listing-production`; hard verification remains in `listing-hardening`/auditor.
 - Public regressions/examples remain category-neutral with no private product facts.
-- Target release version is **0.3.0** because this changes the runtime architecture and distribution contract rather than adding a patch-level rule.
+- Target release version is **0.3.0** because this changes runtime architecture and distribution contract rather than adding a patch-level rule.
 - Final PR remains Draft until user explicitly confirms merge.
 
 ---
@@ -38,6 +38,7 @@
 - Create `.agents/skills/japan-listing-demo/references/routing.md`.
 - Create `.agents/skills/japan-listing-demo/references/exception-routing.md`.
 - Create `.agents/skills/japan-listing-demo/scripts/selftest_router.py`.
+- Create `.agents/skills/japan-listing-demo/scripts/selftest_distribution.py`.
 - Create `.agents/skills/japan-listing-demo/evals/creative-first-hardening.md`.
 - Create `.agents/skills/japan-listing-demo/evals/team-golden-path.md`.
 
@@ -51,13 +52,14 @@
   - `.agents/skills/japan-listing-demo/references/executable-gates.md`
   - `.agents/skills/japan-listing-demo/references/channel-native-demo.md`
   - `.agents/skills/japan-listing-demo/references/qa.md`
-- Preserve generic source files only when still referenced by a stage-local Skill; otherwise archive documentation belongs outside the runtime Skill tree or relies on Git history.
-- Keep `.agents/skills/japan-listing-demo/data/channel-policy-limits.json` as shared packaged machine policy for this release unless a tested path migration is simpler.
+- Preserve generic source files only when still referenced by a stage-local Skill; otherwise rely on Git history or maintainer docs outside the runtime Skill tree.
+- Keep `.agents/skills/japan-listing-demo/data/channel-policy-limits.json` as shared packaged machine policy for v0.3.0.
 
 ### Packaging / validation / docs
 
 - Modify `.agents/skills/japan-listing-demo/scripts/validate_overlay.py`.
 - Modify `.agents/skills/japan-listing-demo/scripts/package_skill.py`.
+- Modify `.agents/skills/listing-hardening/scripts/validate_delivery_state.py` for repository + embedded package policy resolution.
 - Modify `scripts/package_codex_bundle.py`.
 - Modify `.github/workflows/validate-japan-listing-demo.yml`.
 - Modify `README.md`, `docs/install.md`, `CHANGELOG.md`, `.agents/skills/japan-listing-demo/core/manifest.yaml`, `VERSION`.
@@ -82,10 +84,10 @@
 from pathlib import Path
 
 SKILL_DIR = Path(__file__).resolve().parents[1]
-REPO_ROOT = SKILL_DIR.parents[2]
 
 
 def read(path: Path) -> str:
+    assert path.exists(), f"missing expected router file: {path}"
     return path.read_text(encoding="utf-8")
 
 
@@ -128,6 +130,12 @@ def test_default_checkpoint_is_concise() -> None:
     assert "PARTIAL" in text and "BLOCKED" in text
 
 
+def test_router_declares_two_internal_resolution_modes() -> None:
+    text = read(SKILL_DIR / "references" / "routing.md").casefold()
+    assert ".agents/skills/<skill-name>/skill.md" in text
+    assert "internal-skills/<skill-name>/skill.md" in text
+
+
 def main() -> int:
     tests = [v for k, v in globals().items() if k.startswith("test_") and callable(v)]
     for test in tests:
@@ -146,7 +154,7 @@ if __name__ == "__main__":
 python .agents/skills/japan-listing-demo/scripts/selftest_router.py
 ```
 
-Expected: FAIL at minimum on router size/default-prompt size and missing `references/routing.md`.
+Expected: assertion failure at minimum on router size/default-prompt size and missing `references/routing.md`.
 
 - [ ] **Step 3: Add category-neutral architecture evals before implementation**
 
@@ -163,7 +171,7 @@ Mandatory full audit runs at Stage 8.5
 Wrong final asset is rejected before Demo Assembly
 ```
 
-`team-golden-path.md` must describe one non-expert path from source upload → planning review → page plan → visual direction → visual review → demo review without manual internal-Skill invocation.
+`team-golden-path.md` describes one non-expert path from source upload → planning review → page plan → visual direction → visual review → demo review without manual internal-Skill invocation.
 
 - [ ] **Step 4: Commit RED tests/evals**
 
@@ -185,7 +193,7 @@ git commit -m "test: define creative-first router behavior"
 - Create: `.agents/skills/japan-listing-demo/references/exception-routing.md`
 
 **Interfaces:**
-- `routing.md` defines current-stage → active-Skill resolution and formal state/handoff names.
+- `routing.md` defines current-stage → active-Skill resolution, two distribution-resolution modes, and formal state/handoff names.
 - `exception-routing.md` defines downstream block → targeted upstream return.
 
 - [ ] **Step 1: Write the minimal router content**
@@ -227,8 +235,6 @@ A downstream Skill that lacks an upstream fact returns `BLOCKED` and `return_to`
 
 - [ ] **Step 2: Rewrite `agents/openai.yaml` to router-only behavior**
 
-Use:
-
 ```yaml
 interface:
   display_name: "Japan Listing Demo"
@@ -238,9 +244,9 @@ policy:
   allow_implicit_invocation: true
 ```
 
-- [ ] **Step 3: Create `routing.md` and `exception-routing.md`**
+- [ ] **Step 3: Create `routing.md` with repository and compatibility resolution**
 
-`routing.md` must define:
+It must define:
 
 ```text
 Stage 0–7      listing-planning
@@ -258,7 +264,19 @@ Asset Ledger / Production Freeze
 Delivery State
 ```
 
-`exception-routing.md` must include the structured block contract:
+Then define internal instruction resolution in this order:
+
+```text
+1. Repository/Codex mode: if `.agents/skills/<skill-name>/SKILL.md` is available, use the sibling Skill.
+2. Compatibility single-Skill mode: otherwise load `internal-skills/<skill-name>/SKILL.md` and only that stage Skill's required references/scripts from the current `japan-listing-demo` package.
+3. If neither location exists, return BLOCKED with `missing_internal_skill: <skill-name>`; do not fall back to the old monolithic workflow.
+```
+
+The embedded mode provides selective instruction loading but is still one model context; it does not claim independent semantic audit.
+
+- [ ] **Step 4: Create `exception-routing.md`**
+
+Include:
 
 ```yaml
 status: BLOCKED
@@ -267,9 +285,9 @@ return_to: planning | production
 asset_id: <affected asset when applicable>
 ```
 
-The Router must not reopen unrelated work.
+The Router does not reopen unrelated work.
 
-- [ ] **Step 4: Run router tests and verify GREEN**
+- [ ] **Step 5: Run router tests and verify GREEN**
 
 ```bash
 python .agents/skills/japan-listing-demo/scripts/selftest_router.py
@@ -277,7 +295,7 @@ python .agents/skills/japan-listing-demo/scripts/selftest_router.py
 
 Expected: all thin-router tests PASS.
 
-- [ ] **Step 5: Commit the router**
+- [ ] **Step 6: Commit the router**
 
 ```bash
 git add .agents/skills/japan-listing-demo/SKILL.md \
@@ -292,12 +310,12 @@ git commit -m "refactor: replace monolithic skill with thin router"
 ### Task 3: Move channel profiles and remove monolithic runtime ownership
 
 **Files:**
-- Create: `.agents/skills/listing-planning/profiles/channels/amazon-jp.md`
-- Create: `.agents/skills/listing-planning/profiles/channels/rakuten.md`
-- Create: `.agents/skills/listing-planning/profiles/channels/yahoo-shopping.md`
-- Create: `.agents/skills/listing-planning/profiles/channels/dtc.md`
-- Create: `.agents/skills/listing-planning/profiles/channels/retailer-pdp.md`
-- Modify: `.agents/skills/listing-planning/SKILL.md`
+- Create `.agents/skills/listing-planning/profiles/channels/amazon-jp.md`.
+- Create `.agents/skills/listing-planning/profiles/channels/rakuten.md`.
+- Create `.agents/skills/listing-planning/profiles/channels/yahoo-shopping.md`.
+- Create `.agents/skills/listing-planning/profiles/channels/dtc.md`.
+- Create `.agents/skills/listing-planning/profiles/channels/retailer-pdp.md`.
+- Modify `.agents/skills/listing-planning/SKILL.md`.
 - Remove from runtime ownership after coverage is verified:
   - `.agents/skills/japan-listing-demo/profiles/channels/*.md`
   - `.agents/skills/japan-listing-demo/core/workflow.md`
@@ -310,7 +328,7 @@ git commit -m "refactor: replace monolithic skill with thin router"
 
 **Interfaces:**
 - Planning channel profiles contain capability/reference/module planning only.
-- Hardening generic references own final implementation/fidelity/parity.
+- Hardening references own final implementation/fidelity/parity.
 - Main router no longer loads legacy monolithic files.
 
 - [ ] **Step 1: Add planning profile coverage tests before moving files**
@@ -336,13 +354,13 @@ def test_amazon_planning_profile_keeps_module_budget_and_role_separation() -> No
         assert forbidden not in text
 ```
 
-Run now. Expected: RED because planning-owned profiles do not exist.
+Run now. Expected: assertion failure because planning-owned profiles do not exist.
 
 - [ ] **Step 2: Rewrite the five profiles into Planning ownership**
 
-Start from the current channel profiles but strip hardening-only sections. Preserve current channel capability/reference/module planning information and current Amazon packaged limits (Basic 5, Premium 7) as planning constraints.
+Start from current channel profiles but strip hardening-only sections. Preserve current capability/reference/module planning information and current Amazon packaged limits (Basic 5, Premium 7) as planning constraints.
 
-For Amazon, keep:
+For Amazon keep:
 
 ```text
 Platform Capability != Frontend Visual evidence
@@ -368,21 +386,21 @@ Expected: all PASS.
 
 - [ ] **Step 4: Remove the duplicated runtime files**
 
-Delete the old main-Skill channel profiles and monolithic workflow/contracts/delivery/executable/frontend/QA references listed above.
-
-Before deletion, search all active Skill files for references to those paths:
+Before deletion, search active Skill files:
 
 ```bash
 grep -R "core/workflow.md\|core/contracts.md\|references/delivery-integrity.md\|references/executable-gates.md\|references/channel-native-demo.md\|references/qa.md\|profiles/channels/" .agents/skills --exclude-dir='__pycache__'
 ```
 
-Expected after updating active references: no live runtime reference points to deleted main-Skill paths. References inside historical docs/evals may be updated or explicitly labeled legacy.
+Update all live references to stage-local owners, then delete the old main-Skill channel profiles and monolithic workflow/contracts/delivery/executable/frontend/QA files listed above.
+
+Expected after deletion: no live runtime reference points to those deleted main-Skill paths. Historical docs may refer to them only when explicitly describing earlier versions.
 
 - [ ] **Step 5: Re-run stage-local tests**
 
 Expected: all tests from Step 3 still PASS after deletion.
 
-- [ ] **Step 6: Commit the ownership cleanup**
+- [ ] **Step 6: Commit ownership cleanup**
 
 ```bash
 git add -A .agents/skills
@@ -391,21 +409,24 @@ git commit -m "refactor: remove monolithic runtime ownership"
 
 ---
 
-### Task 4: Update distribution validators to require the five-Skill architecture — RED first
+### Task 4: Update distribution validators and package builders — RED first
 
 **Files:**
-- Modify: `.agents/skills/japan-listing-demo/scripts/validate_overlay.py`
-- Modify: `.agents/skills/japan-listing-demo/scripts/package_skill.py`
-- Modify: `scripts/package_codex_bundle.py`
+- Modify `.agents/skills/japan-listing-demo/scripts/validate_overlay.py`.
+- Modify `.agents/skills/japan-listing-demo/scripts/package_skill.py`.
+- Modify `scripts/package_codex_bundle.py`.
+- Modify `.agents/skills/listing-hardening/scripts/validate_delivery_state.py`.
+- Create `.agents/skills/japan-listing-demo/scripts/selftest_distribution.py`.
 
 **Interfaces:**
-- Repository validator requires all five Skills and all four stage self-tests.
+- Repository validator requires all five Skills and all stage/router/auditor self-tests.
 - Codex bundle contains five sibling Skill roots.
-- Compatibility single-Skill archive contains router at root and stage/audit Skills under `japan-listing-demo/internal-skills/`.
+- Compatibility archive contains router at root plus stage/audit instructions under `japan-listing-demo/internal-skills/`.
+- Hardening validator finds shared channel policy in both repository and embedded layouts.
 
 - [ ] **Step 1: Change validation expectations before package implementation**
 
-Update `validate_overlay.py` required architecture to include:
+Update `validate_overlay.py`:
 
 ```python
 REQUIRED_SKILLS = [
@@ -428,7 +449,7 @@ japan-listing-demo/scripts/selftest_router.py
 japan-listing-demo/scripts/selftest_project_state_validator.py
 ```
 
-Require `VERSION == 0.3.0` and require router default prompt to stay under the chosen size budget.
+Require `VERSION == 0.3.0` and router/default-prompt size budgets.
 
 - [ ] **Step 2: Run validator and verify RED**
 
@@ -436,11 +457,9 @@ Require `VERSION == 0.3.0` and require router default prompt to stay under the c
 python .agents/skills/japan-listing-demo/scripts/validate_overlay.py
 ```
 
-Expected: FAIL because `VERSION` is still `0.2.6` and package/distribution docs have not been migrated.
+Expected: FAIL because `VERSION` is still `0.2.6` and package/release docs have not been migrated.
 
 - [ ] **Step 3: Update Codex bundle packager to five sibling Skills**
-
-In `scripts/package_codex_bundle.py`:
 
 ```python
 SKILL_NAMES = [
@@ -452,17 +471,38 @@ SKILL_NAMES = [
 ]
 ```
 
-Archive each as `.agents/skills/<name>/...` and validate that all five `SKILL.md` files and required stage scripts exist.
+Archive each as `.agents/skills/<name>/...` and validate all five `SKILL.md` files plus required stage scripts.
 
-Expected output remains:
+Output remains:
 
 ```text
 dist/japan-listing-demo-codex-bundle.zip
 ```
 
-- [ ] **Step 4: Update compatibility `package_skill.py` to one-install nested internals**
+- [ ] **Step 4: Make the Hardening validator policy lookup layout-independent**
 
-The compatibility ZIP should contain:
+Replace one fixed `DEFAULT_POLICY_PATH` assumption with a resolver:
+
+```python
+def find_default_policy_path() -> Path:
+    here = Path(__file__).resolve()
+    for parent in here.parents:
+        embedded = parent / "data" / "channel-policy-limits.json"
+        if embedded.exists():
+            return embedded
+        repository = parent / ".agents" / "skills" / "japan-listing-demo" / "data" / "channel-policy-limits.json"
+        if repository.exists():
+            return repository
+    raise FileNotFoundError("channel-policy-limits.json not found in repository or compatibility package layout")
+
+DEFAULT_POLICY_PATH = find_default_policy_path()
+```
+
+Add Hardening self-tests for repository mode. Compatibility mode is tested from the built ZIP in Step 6.
+
+- [ ] **Step 5: Update compatibility `package_skill.py` to one-install nested internals**
+
+Required archive layout:
 
 ```text
 japan-listing-demo/SKILL.md
@@ -478,29 +518,51 @@ japan-listing-demo/internal-skills/listing-evidence-auditor/...
 japan-listing-demo/SINGLE_CONTEXT_LIMITATION.txt
 ```
 
-Implement packaging by copying sibling source files into the ZIP at build time; do not duplicate those source trees in Git.
+Copy sibling source files into the ZIP at build time; do not create duplicate source trees in Git.
 
-The limitation text must state:
+The limitation text states:
 
 ```text
 The compatibility archive is one model context. Internal stage separation and Context Projection still apply, but loading the embedded evidence auditor does not create independent semantic review. Deterministic file checks may run; unresolved semantic evidence remains UNVERIFIED / HUMAN_REVIEW_REQUIRED unless resolved by human or genuinely independent review.
 ```
 
-- [ ] **Step 5: Run package commands; expect version/doc validation still RED until Task 6**
+- [ ] **Step 6: Add a package-runtime smoke test**
+
+Create `selftest_distribution.py` that builds/expects both ZIPs, then uses `zipfile` and `tempfile` to verify layouts. For the compatibility archive, extract to a temp directory and dynamically load:
+
+```text
+japan-listing-demo/internal-skills/listing-hardening/scripts/validate_delivery_state.py
+```
+
+Call its policy loader and assert:
+
+```python
+policy = module._load_policy()
+assert "channels" in policy
+assert "amazon-jp" in policy["channels"]
+```
+
+Also assert the archive contains all four embedded internal `SKILL.md` files and the router's `routing.md`.
+
+For the Codex bundle assert all five sibling `.agents/skills/<name>/SKILL.md` members exist.
+
+- [ ] **Step 7: Run package commands and distribution smoke test**
 
 ```bash
 python .agents/skills/japan-listing-demo/scripts/package_skill.py
 python scripts/package_codex_bundle.py
+python .agents/skills/japan-listing-demo/scripts/selftest_distribution.py
 python -m zipfile -l dist/japan-listing-demo.skill.zip
 python -m zipfile -l dist/japan-listing-demo-codex-bundle.zip
 ```
 
-Expected: both ZIPs build and show the required internal/sibling Skill layouts. `validate_overlay.py` may still fail on release docs/version until Task 6.
+Expected: package builders and smoke test PASS. `validate_overlay.py` may still fail only on release version/docs until Task 6.
 
-- [ ] **Step 6: Commit package architecture**
+- [ ] **Step 8: Commit package architecture**
 
 ```bash
 git add .agents/skills/japan-listing-demo/scripts \
+        .agents/skills/listing-hardening/scripts/validate_delivery_state.py \
         scripts/package_codex_bundle.py
 git commit -m "build: package five-skill creative-first architecture"
 ```
@@ -510,15 +572,13 @@ git commit -m "build: package five-skill creative-first architecture"
 ### Task 5: Update CI to test both distribution modes and the Team Golden Path
 
 **Files:**
-- Modify: `.github/workflows/validate-japan-listing-demo.yml`
+- Modify `.github/workflows/validate-japan-listing-demo.yml`.
 
 **Interfaces:**
-- CI runs all stage/router/auditor tests and inspects both ZIPs.
+- CI runs all stage/router/auditor tests and package smoke tests.
 - One artifact upload contains both archives.
 
 - [ ] **Step 1: Add explicit full test order**
-
-The workflow should contain:
 
 ```yaml
       - run: python .agents/skills/listing-planning/scripts/selftest_planning.py
@@ -530,6 +590,7 @@ The workflow should contain:
       - run: python .agents/skills/japan-listing-demo/scripts/validate_overlay.py
       - run: python .agents/skills/japan-listing-demo/scripts/package_skill.py
       - run: python scripts/package_codex_bundle.py
+      - run: python .agents/skills/japan-listing-demo/scripts/selftest_distribution.py
       - run: python -m zipfile -l dist/japan-listing-demo.skill.zip
       - run: python -m zipfile -l dist/japan-listing-demo-codex-bundle.zip
 ```
@@ -547,7 +608,7 @@ The workflow should contain:
 
 - [ ] **Step 3: Run local equivalent**
 
-Run the exact commands in Step 1 locally. At this point `validate_overlay.py` is expected to remain RED only on unreleased version/docs if Task 6 has not yet run; all behavioral tests/package builders should be green.
+Run exact commands from Step 1. Before Task 6, `validate_overlay.py` is expected to remain RED only on unreleased version/docs; all behavioral and package smoke tests should be green.
 
 - [ ] **Step 4: Commit CI integration**
 
@@ -561,20 +622,20 @@ git commit -m "ci: validate creative-first five-skill distribution"
 ### Task 6: Publish team-facing docs, optional GPT guide, manifest, changelog, and v0.3.0 version
 
 **Files:**
-- Modify: `README.md`
-- Modify: `docs/install.md`
-- Create: `docs/team-gpt-setup.md`
-- Modify: `CHANGELOG.md`
-- Modify: `.agents/skills/japan-listing-demo/core/manifest.yaml`
-- Modify: `VERSION`
-- Modify: `docs/superpowers/specs/2026-08-20-creative-first-hardening-architecture-design.md` status line from `Design for review` to `Approved for implementation` if not already updated.
+- Modify `README.md`.
+- Modify `docs/install.md`.
+- Create `docs/team-gpt-setup.md`.
+- Modify `CHANGELOG.md`.
+- Modify `.agents/skills/japan-listing-demo/core/manifest.yaml`.
+- Modify `VERSION`.
+- Modify `docs/superpowers/specs/2026-08-20-creative-first-hardening-architecture-design.md` status line to `Approved for implementation` if not already updated.
 
 **Interfaces:**
-- Public docs present one user-facing entry and the Team Golden Path.
-- Internal stage Skills are explained as implementation architecture, not user actions.
+- Public docs present one user-facing entry and Team Golden Path.
+- Internal stage Skills are implementation architecture, not user actions.
 - Custom GPT is optional and thin; GitHub Skills remain source of truth.
 
-- [ ] **Step 1: Update README around the Team Golden Path**
+- [ ] **Step 1: Update README around Team Golden Path**
 
 Lead with:
 
@@ -584,7 +645,7 @@ One normal invocation: $japan-listing-demo
 One project can run in one Chat
 ```
 
-Explain the user-visible path only:
+User-visible path:
 
 ```text
 Upload source material
@@ -596,23 +657,17 @@ Upload source material
 → review verified demo
 ```
 
-Then briefly explain internal planes:
-
-```text
-Planning → Production → Hardening
-```
-
-Do not put SHA/provenance instructions in the Quick Start.
+Briefly explain internal planes as `Planning → Production → Hardening`. Do not put SHA/provenance instructions in Quick Start.
 
 - [ ] **Step 2: Update installation docs for both distribution modes**
 
 Recommended repository/Codex path: one five-Skill bundle, one invocation.
 
-Compatibility path: one `japan-listing-demo.skill.zip` containing embedded internal stage Skills. Explain the semantic-auditor single-context limitation without making users manually invoke internal Skills.
+Compatibility path: one `japan-listing-demo.skill.zip` containing embedded internal stage Skills. Explain single-context semantic-auditor limitation without requiring manual internal-Skill invocation.
 
 - [ ] **Step 3: Add optional Custom GPT setup guide**
 
-`docs/team-gpt-setup.md` must state:
+`docs/team-gpt-setup.md` states:
 
 ```text
 GPT = optional UX shell
@@ -620,17 +675,17 @@ Skills = versioned execution architecture
 Auditor/scripts = hard verification
 ```
 
-Recommended GPT instructions should be deliberately thin, for example:
+Recommended GPT instructions stay thin:
 
 ```text
 Use the installed japan-listing-demo workflow as the execution source of truth. Help team members create or resume a Japan listing project, upload product/GTM/visual inputs, and follow the workflow's Major Stage Checkpoints. Do not duplicate the detailed workflow rules in GPT Instructions.
 ```
 
-Document recommended capabilities (web/image generation as applicable) but do not make the GPT required for repository/Codex usage.
+Document useful capabilities such as web/image generation where applicable, but do not make GPT a repository/Codex dependency.
 
 - [ ] **Step 4: Add `0.3.0` changelog entry**
 
-The entry must explicitly describe:
+Cover:
 
 - thin router;
 - deep `listing-planning`;
@@ -643,7 +698,7 @@ The entry must explicitly describe:
 - five-Skill bundle + one-install compatibility archive;
 - evidence auditor protections retained.
 
-- [ ] **Step 5: Update core manifest and VERSION**
+- [ ] **Step 5: Update manifest and VERSION**
 
 Set:
 
@@ -651,7 +706,7 @@ Set:
 VERSION = 0.3.0
 ```
 
-Manifest must record a `creative-first-hardening-v0.3.0` distribution patch and list the three new stage Skills plus retained auditor.
+Manifest records `creative-first-hardening-v0.3.0` and lists three new stage Skills plus retained auditor.
 
 - [ ] **Step 6: Run full release validation and verify GREEN**
 
@@ -665,11 +720,12 @@ python .agents/skills/japan-listing-demo/scripts/selftest_project_state_validato
 python .agents/skills/japan-listing-demo/scripts/validate_overlay.py
 python .agents/skills/japan-listing-demo/scripts/package_skill.py
 python scripts/package_codex_bundle.py
+python .agents/skills/japan-listing-demo/scripts/selftest_distribution.py
 python -m zipfile -l dist/japan-listing-demo.skill.zip
 python -m zipfile -l dist/japan-listing-demo-codex-bundle.zip
 ```
 
-Expected: every command exits 0, `validate_overlay.py` reports v0.3.0 and all five Skills, and both package inspections show their required layouts.
+Expected: every command exits 0; validator reports v0.3.0/five-Skill architecture and both package inspections pass.
 
 - [ ] **Step 7: Commit release docs/version**
 
@@ -685,7 +741,7 @@ git commit -m "docs: prepare creative-first hardening v0.3.0"
 ### Task 7: Final architecture verification and Draft PR
 
 **Files:**
-- No new runtime files expected; only fix defects found by verification.
+- No new runtime files expected; fix only defects found by verification.
 
 **Interfaces:**
 - PR targets `main` and remains Draft.
@@ -698,21 +754,21 @@ git diff --stat origin/main...HEAD
 git diff --name-status origin/main...HEAD
 ```
 
-Confirm changes are limited to the public workflow architecture, tests, packaging, and docs.
+Confirm changes are limited to public workflow architecture, tests, packaging, and docs.
 
 - [ ] **Step 2: Run private-product leakage scan over changed public runtime/test files**
 
-Use the existing repository leakage validator plus an explicit changed-file scan. At minimum reject company/private-project names or product-specific facts that are not intended public generic examples.
+Use existing leakage validation plus explicit changed-file scan. Reject private company/project names or project-specific facts that are not intended generic public examples.
 
-- [ ] **Step 3: Run the complete release verification again from a clean checkout/worktree**
+- [ ] **Step 3: Run complete release verification again from a clean checkout/worktree**
 
-Run the Task 6 Step 6 command sequence in full. Do not rely on previous runs.
+Run Task 6 Step 6 commands in full. Do not rely on earlier runs.
 
 Expected: 0 failures.
 
 - [ ] **Step 4: Push branch and wait for GitHub Actions**
 
-Confirm the PR-triggered workflow runs all expected stages and both archives are uploaded.
+Confirm PR-triggered workflow runs all expected steps and uploads both archives.
 
 - [ ] **Step 5: Create or update a Draft PR**
 
@@ -722,7 +778,7 @@ Suggested title:
 Publish v0.3.0 creative-first hardening architecture
 ```
 
-PR body must summarize:
+PR body summarizes:
 
 ```text
 Why: control-plane duplication contaminated production.
@@ -732,26 +788,29 @@ Changed: full audit timing, concise checkpoints, production context projection, 
 Evidence: RED-first tests, final local verification, GitHub Actions run IDs/artifacts.
 ```
 
-Keep PR **Draft**.
+Keep PR Draft.
 
 - [ ] **Step 6: Stop for explicit merge confirmation**
 
-Do not mark ready/merge unless the user explicitly confirms after reviewing the final verification and PR.
+Do not mark ready or merge unless user explicitly confirms after reviewing final verification and PR.
 
 ---
 
 ## Plan Self-Review Checklist
 
-Before execution handoff, verify:
+Before execution handoff verify:
 
 - Spec §§5–6, 20–29, 31.1, 31.5, 32–34 are covered.
 - User-facing entry remains one invocation.
-- Repository/Codex bundle contains five sibling Skills; compatibility archive remains one install through build-time embedding rather than source duplication.
+- Repository/Codex bundle contains five sibling Skills.
+- Compatibility archive remains one install through build-time embedding, not source duplication.
+- Router has explicit sibling-vs-embedded instruction resolution and never falls back to monolithic runtime.
+- Compatibility archive smoke test proves embedded Hardening validator can resolve shared channel policy.
 - Thin router does not restate hardening internals.
 - Team Quick Start does not require internal Skill/gate knowledge.
-- Channel planning functionality remains after removing main-Skill channel profiles.
-- Legacy monolithic runtime files are removed only after stage-local coverage is tested.
-- Optional GPT remains a UX shell, not source of truth.
+- Channel planning functionality remains after removing main-Skill profiles.
+- Legacy monolithic runtime files are removed only after stage-local coverage tests pass.
+- Optional GPT remains UX shell, not source of truth.
 - v0.3.0 is not merged automatically.
 - Public tests/examples contain no private project facts.
 - Verify this plan contains no placeholder markers:
