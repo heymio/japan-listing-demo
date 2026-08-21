@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """Regression tests for the listing-planning Skill."""
 
+from datetime import datetime, timezone
 import sys
 from pathlib import Path
 
@@ -286,6 +287,63 @@ def test_v032_scope_delta_removed_asset_cannot_remain_current() -> None:
 """
     errors = validate_production_handoff(text)
     assert any("removed" in error.casefold() and "G2" in error for error in errors)
+
+
+def test_recent_account_capability_is_reused() -> None:
+    from account_capability import resolve_capability
+
+    profile = {
+        "channel": "amazon-jp",
+        "capabilities": {"premium_a_plus": True},
+        "verified_at": "2026-08-01",
+        "source_ref": "team-private-context",
+    }
+    result = resolve_capability(
+        profile,
+        "premium_a_plus",
+        now=datetime(2026, 8, 21, tzinfo=timezone.utc),
+        max_age_days=90,
+    )
+    assert result == {"status": "REUSE", "value": True, "reason": "recent confirmed capability"}
+
+
+def test_stale_or_conflicted_account_capability_requires_verification() -> None:
+    from account_capability import resolve_capability
+
+    profile = {
+        "channel": "amazon-jp",
+        "capabilities": {"premium_a_plus": True},
+        "verified_at": "2025-01-01",
+        "source_ref": "team-private-context",
+    }
+    stale = resolve_capability(
+        profile,
+        "premium_a_plus",
+        now=datetime(2026, 8, 21, tzinfo=timezone.utc),
+        max_age_days=90,
+    )
+    conflict = resolve_capability(
+        profile,
+        "premium_a_plus",
+        now=datetime(2026, 8, 21, tzinfo=timezone.utc),
+        max_age_days=9999,
+        conflicting=True,
+    )
+    assert stale["status"] == "VERIFY"
+    assert conflict["status"] == "VERIFY"
+
+
+def test_invalid_account_capability_profile_requires_verification() -> None:
+    from account_capability import resolve_capability
+
+    result = resolve_capability(
+        {"capabilities": {"premium_a_plus": "yes"}, "verified_at": "not-a-date"},
+        "premium_a_plus",
+        now=datetime(2026, 8, 21, tzinfo=timezone.utc),
+        max_age_days=90,
+    )
+    assert result["status"] == "VERIFY"
+    assert result["value"] is None
 
 
 def main() -> int:
