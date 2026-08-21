@@ -46,6 +46,7 @@ REQUIRED_FILES = [
     SKILLS["listing-planning"] / "templates" / "creative-strategy.example.yaml",
     SKILLS["listing-planning"] / "templates" / "production-handoff.example.yaml",
     SKILLS["listing-planning"] / "scripts" / "validate_planning_contracts.py",
+    SKILLS["listing-planning"] / "scripts" / "account_capability.py",
     SKILLS["listing-planning"] / "scripts" / "selftest_planning.py",
     SKILLS["listing-planning"] / "evals" / "planning.md",
     SKILLS["listing-planning"] / "profiles" / "channels" / "amazon-jp.md",
@@ -71,6 +72,8 @@ REQUIRED_FILES = [
     SKILLS["listing-production"] / "templates" / "production-freeze.example.yaml",
     SKILLS["listing-production"] / "scripts" / "project_asset_packet.py",
     SKILLS["listing-production"] / "scripts" / "production_state.py",
+    SKILLS["listing-production"] / "scripts" / "set_level_qa.py",
+    SKILLS["listing-production"] / "scripts" / "cleanup_policy.py",
     SKILLS["listing-production"] / "scripts" / "selftest_production.py",
     SKILLS["listing-production"] / "evals" / "production.md",
     SKILLS["listing-hardening"] / "SKILL.md",
@@ -122,7 +125,6 @@ LEGACY_RUNTIME_FILES = [
     MAIN_SKILL / "profiles" / "channels" / "retailer-pdp.md",
 ]
 
-# Split literals keep the guard definitions from matching their own source file.
 CATEGORY_LEAKAGE_TERMS = [
     "Switch" + "Bot",
     "Solar" + " PTC",
@@ -197,7 +199,7 @@ def text_files_under(root: Path) -> list[Path]:
 def main() -> int:
     missing = [str(path.relative_to(REPO_ROOT)) for path in REQUIRED_FILES if not path.exists()]
     if missing:
-        fail(f"missing v0.3.1 distribution files: {', '.join(missing)}")
+        fail(f"missing v0.3.2 distribution files: {', '.join(missing)}")
 
     if (REPO_ROOT / "x").exists():
         fail("stray root file 'x' must not be present in a release distribution")
@@ -241,8 +243,8 @@ def main() -> int:
             fail(f"router contract missing: {phrase}")
 
     version = (REPO_ROOT / "VERSION").read_text(encoding="utf-8").strip()
-    if version != "0.3.1":
-        fail(f"VERSION must be 0.3.1, found {version!r}")
+    if version != "0.3.2":
+        fail(f"VERSION must be 0.3.2, found {version!r}")
 
     manifest = (MAIN_SKILL / "core" / "manifest.yaml").read_text(encoding="utf-8").casefold()
     for phrase in [
@@ -252,9 +254,10 @@ def main() -> int:
         "listing-hardening",
         "listing-evidence-auditor",
         "validator-integrity-v0.3.1",
+        "production-ux-set-level-creative-qa-v0.3.2",
     ]:
         if phrase not in manifest:
-            fail(f"core manifest missing v0.3.1 architecture/integrity marker: {phrase}")
+            fail(f"core manifest missing v0.3.2 architecture/integrity marker: {phrase}")
 
     active_files: list[Path] = []
     for directory in SKILLS.values():
@@ -323,7 +326,7 @@ def main() -> int:
     ]
 
     print("\n".join(outputs))
-    print("PASS: japan-listing-demo v0.3.1 validator-integrity distribution is valid")
+    print("PASS: japan-listing-demo v0.3.2 production-ux distribution is valid")
     print(f"PASS: {len(REQUIRED_FILES)} required files exist across five Skills")
     print("PASS: thin router, deep planning, focused production, hardening, and evidence auditor are self-tested")
     return 0
