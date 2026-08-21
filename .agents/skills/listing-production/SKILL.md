@@ -63,6 +63,23 @@ Use the Planning-assigned mode for each final asset:
 
 `source insufficiency != automatic creative rework`.
 
+## Candidate identity and Selection Lock
+
+Every generated alternative for one Asset ID is a distinct candidate such as `A05-01-v1`, `A05-01-v2`.
+
+When the user selects an exact candidate:
+
+1. mark that candidate `USER_SELECTED`;
+2. store it as `selected_candidate_id` and its exact `current_output_ref`;
+3. set the asset creative status to `USER_APPROVED`;
+4. default immediately to the next required asset.
+
+A selected candidate is a creative-state lock. Do **not** silently replace `current_output_ref` or generate another candidate for that Asset ID merely because production continues.
+
+A new candidate after approval requires explicit reopen intent such as “重做”, “修改这张”, “换一个版本”, or equivalent. Reopening preserves prior candidate history; a later selection may supersede the old candidate but must not erase it.
+
+This Selection Lock does not replace later exact-file SHA/provenance verification in Hardening.
+
 ## Context firewall
 
 Build the generation/editing context from the current Asset Packet and referenced sources only. Do not inject Project State, auditor, gate, parity, or stage-status narration into production prompts.
