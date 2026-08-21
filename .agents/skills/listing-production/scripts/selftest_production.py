@@ -32,6 +32,30 @@ def base_packet() -> dict:
     }
 
 
+def visual_handoff() -> dict:
+    return {
+        "page_plan": {
+            "gallery": ["G1", "G2", "G3"],
+            "enhanced_content": ["A1"],
+            "other_required_regions": [],
+        },
+        "asset_set": [
+            {"asset_id": "G1", "evidence_mode": "SOURCE_FAITHFUL"},
+            {"asset_id": "G2", "evidence_mode": "CREATIVE_MOCK"},
+            {"asset_id": "G3", "evidence_mode": "PROOF_VISUAL"},
+            {"asset_id": "A1", "evidence_mode": "CREATIVE_MOCK"},
+        ],
+        "page_visual_system": {
+            "asset_directions": [
+                {"asset_id": "G1", "scene_family": "clean-stage", "composition_family": "centered", "tone": "bright", "product_scale": "large", "proof_form": "product"},
+                {"asset_id": "G2", "scene_family": "daylight-study", "composition_family": "medium-product", "tone": "bright-neutral", "product_scale": "medium", "proof_form": "lifestyle"},
+                {"asset_id": "G3", "scene_family": "technical", "composition_family": "close-up", "tone": "neutral", "product_scale": "close-up", "proof_form": "mechanism"},
+                {"asset_id": "A1", "scene_family": "home", "composition_family": "wide", "tone": "warm", "product_scale": "medium", "proof_form": "lifestyle"},
+            ]
+        },
+    }
+
+
 def test_production_skill_is_artifact_first() -> None:
     text = read(SKILL_DIR / "SKILL.md").casefold()
     for phrase in [
@@ -131,6 +155,60 @@ def test_benchmark_policy_separates_reference_from_reuse() -> None:
     text = read(SKILL_DIR / "references" / "benchmark-policy.md").casefold()
     assert "benchmark" in text and "reuse" in text
     assert "does not automatically" in text
+
+
+def test_minimal_set_context_includes_current_direction_and_neighbors() -> None:
+    from project_asset_packet import build_set_context
+
+    context = build_set_context(visual_handoff(), "G2")
+    assert context["page_visual_direction"]["scene_family"] == "daylight-study"
+    assert [row["asset_id"] for row in context["nearest_neighbors"]] == ["G1", "G3"]
+    assert set(context["nearest_neighbors"][0]) == {
+        "asset_id", "scene_family", "composition_family", "tone", "product_scale", "proof_form"
+    }
+
+
+def test_generation_context_carries_evidence_mode_and_minimal_set_context() -> None:
+    packet = base_packet()
+    packet["evidence_mode"] = "CREATIVE_MOCK"
+    packet["set_context"] = {
+        "page_visual_direction": visual_handoff()["page_visual_system"]["asset_directions"][1],
+        "nearest_neighbors": [visual_handoff()["page_visual_system"]["asset_directions"][0]],
+    }
+    projected = project_generation_context(packet)
+    assert projected["evidence_mode"] == "CREATIVE_MOCK"
+    assert projected["set_context"]["page_visual_direction"]["scene_family"] == "daylight-study"
+
+
+def test_evidence_mode_controls_missing_source_behavior() -> None:
+    from project_asset_packet import evaluate_source_readiness
+
+    packet = base_packet()
+    packet["product_sources"] = {"required": ["SRC-P01"]}
+
+    packet["evidence_mode"] = "CREATIVE_MOCK"
+    mock = evaluate_source_readiness(packet, available_source_ids=set())
+    assert mock["status"] == "READY_WITH_LIMITATION"
+
+    packet["evidence_mode"] = "PROOF_VISUAL"
+    proof = evaluate_source_readiness(packet, available_source_ids=set())
+    assert proof["status"] == "BLOCKED"
+
+    packet["evidence_mode"] = "SOURCE_FAITHFUL"
+    faithful = evaluate_source_readiness(packet, available_source_ids=set())
+    assert faithful["status"] == "BLOCKED"
+
+
+def test_set_context_still_excludes_control_plane() -> None:
+    from project_asset_packet import build_set_context
+
+    handoff = visual_handoff()
+    handoff["project_state_manifest"] = {"status": "COMPLETE"}
+    handoff["auditor_evidence"] = {"G2": "VERIFIED"}
+    handoff["declared_gate_results"] = {"X": "PASS"}
+    encoded = json.dumps(build_set_context(handoff, "G2"), ensure_ascii=False).casefold()
+    for forbidden in ["project_state", "auditor", "gate", "parity"]:
+        assert forbidden not in encoded
 
 
 def main() -> int:
