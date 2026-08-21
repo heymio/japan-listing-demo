@@ -180,6 +180,28 @@ Use $japan-listing-demo.
 从产品/Offer/Claim和消费者策略开始；确认页面结构和完整生产资产集后，再进入逐张视觉生产；最终 Demo 前执行 Hardening。
 ```
 
+## Formal version install / upgrade
+
+For team-wide use, prefer an immutable GitHub Release rather than a temporary CI artifact. A formal release should provide:
+
+```text
+Tag: v0.3.1
+Release assets:
+- japan-listing-demo.skill.zip
+- japan-listing-demo-codex-bundle.zip
+- SHA-256 checksums
+```
+
+Upgrade by replacing the installed Skill bundle with the assets from the new tagged Release, then verify the reported `VERSION` and run the packaged self-tests if the environment permits it.
+
+A merge to `main` alone is not a formal release. CI artifacts are temporary verification outputs and can expire.
+
+## Rollback
+
+Rollback by reinstalling the ZIP assets from the previous immutable GitHub Release/tag, for example `v0.3.0`, rather than reconstructing a historical package from a moving branch.
+
+Existing project state should not be silently rewritten during rollback. Resume from the last human-approved checkpoint and re-run Hardening if validator semantics differ between versions.
+
 ## Optional team GPT
 
 See `docs/team-gpt-setup.md`. The GPT is an optional UX shell; GitHub-packaged Skills remain the versioned execution source of truth.

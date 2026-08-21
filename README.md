@@ -42,7 +42,7 @@ Normal checkpoints use `Done / Open / Next`. `继续 / 下一步 / go / next / �
 
 ## Creative-first architecture
 
-v0.3.0 separates the workflow into stage-local execution planes behind a thin router:
+v0.3.x separates the workflow into stage-local execution planes behind a thin router:
 
 ```text
 $japan-listing-demo
@@ -137,6 +137,8 @@ Brand Story is separate. `Message != Module`, and `CONTENT_COVERAGE` remains sep
 
 Loading the auditor inside the same model context does not create independent semantic review. If independent semantic review is unavailable, unresolved role evidence remains `UNVERIFIED` / `HUMAN_REVIEW_REQUIRED` unless resolved by an appropriate human or genuinely independent review.
 
+v0.3.1 additionally rejects ambiguous audit packets before any dictionary indexing: duplicate asset, approval-event, prior-lock, slot, or expected-role identifiers fail fast.
+
 ## Distribution
 
 ### Recommended repository / Codex bundle
@@ -197,9 +199,13 @@ Ordinary team users should not need to understand Skill routing, file hashes, pr
 
 A thin team-facing Custom GPT can provide onboarding and project-entry UX, but it is not the execution source of truth. See `docs/team-gpt-setup.md`.
 
+## Release model
+
+A merge to `main` updates the source-of-truth branch, but it is not the same thing as an immutable public release. Formal releases should use a version tag such as `v0.3.1` plus a GitHub Release containing the prebuilt distribution ZIP assets and checksums. CI artifacts are temporary verification outputs, not permanent release assets.
+
 ## Version
 
-`0.3.0`
+`0.3.1`
 
 ## License
 

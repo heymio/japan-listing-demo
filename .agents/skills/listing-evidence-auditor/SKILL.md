@@ -24,7 +24,9 @@ If an independent context is unavailable, deterministic physical checks may stil
 - **Do not trust filenames** as evidence of identity or prior approval.
 - **Do not trust Asset IDs** as evidence that the file is the approved artifact.
 - **Do not trust agent-authored hashes**; recompute SHA-256 from the real file.
+- Do not trust caller-supplied fingerprint JSON as the normal physical-evidence boundary; the normal reconciliation path recomputes fingerprints from the project root.
 - Do not trust claimed dimensions, provenance, role, `LOCKED` status, or exact-recovery flags without independent evidence.
+- A CLI flag or string saying `independent_context` is not proof that a review actually ran in an isolated context.
 - The auditor **must not repair** an asset, crop it, regenerate it, rename it, reassign it, or silently rewrite the candidate registry.
 - The auditor cannot create an `explicit_user_approval` event itself.
 
@@ -43,15 +45,21 @@ All `claimed_*` fields are assertions to test, not trusted facts.
 
 ## Required process
 
+Normal standalone/repository flow:
+
 ```text
 Audit packet
-→ fingerprint_assets.py
-→ physical-fingerprints.json
-→ independent/human semantic review when required
++ real project root
 → reconcile_evidence.py
+   ↳ recompute physical fingerprints from real files
+→ independent/human semantic review when required
 → evidence-audit.json
 → verified-asset-registry.json / Effective State
 ```
+
+`fingerprint_assets.py` remains available as a diagnostic/inspection tool and for controlled host integrations, but normal reconciliation does not trust a caller-provided fingerprint JSON as physical truth.
+
+A genuinely isolated host runtime may call the real-file reconciliation API with independent semantic provenance. The standalone CLI does not expose a self-asserted `--independent-semantic` switch.
 
 ### Physical verification
 
@@ -61,9 +69,11 @@ Recompute from the real file system:
 - existence;
 - SHA-256;
 - byte size;
-- file signature family;
-- image width/height for supported PNG/JPEG/WebP;
-- extension/signature mismatch.
+- supported PNG/JPEG/WebP file signature family;
+- positive image width/height;
+- extension/signature match.
+
+A file named `.png`, `.jpg`, `.jpeg`, or `.webp` with invalid/non-image bytes fails physical verification.
 
 ### Provenance verification
 
@@ -135,6 +145,6 @@ When Candidate State conflicts with audited evidence, audited evidence determine
 
 ## Gate semantics
 
-For post-6.5 audit, `EVIDENCE_RECONCILIATION_GATE` may be `PARTIAL` for continued planning, but final Asset-to-Slot locking cannot use non-final-consumable assets.
+For targeted post-6.5 inherited-asset audit, `EVIDENCE_RECONCILIATION_GATE` may be `PARTIAL` for continued planning, but final Asset-to-Slot locking cannot use non-final-consumable assets.
 
 For pre-demo audit, `PRE_DEMO_ASSET_GATE` passes only when every required asset in the locked Demo plan is `VERIFIED` or `HUMAN_APPROVED` and the required set is complete.

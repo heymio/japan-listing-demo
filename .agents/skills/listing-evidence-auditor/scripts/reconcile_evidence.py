@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Reconcile candidate asset claims against physical, approval and semantic evidence."""
+"""Reconcile candidate asset claims against real-file, approval and semantic evidence."""
 
 from __future__ import annotations
 
@@ -8,7 +8,10 @@ import json
 from pathlib import Path
 from typing import Any
 
+from fingerprint_assets import fingerprint_packet, validate_audit_packet
+
 FINAL_USABLE = {"VERIFIED", "HUMAN_APPROVED"}
+SUPPORTED_IMAGE_FAMILIES = {"png", "jpeg", "webp"}
 
 
 def _index(items: list[dict[str, Any]], key: str) -> dict[str, dict[str, Any]]:
@@ -112,11 +115,27 @@ def _exact_recovery(
 
 
 def _physical_ok(fingerprint: dict[str, Any]) -> bool:
+    family = fingerprint.get("signature_family")
+    extension = fingerprint.get("extension_family")
+    width = fingerprint.get("width")
+    height = fingerprint.get("height")
+    byte_size = fingerprint.get("byte_size")
     return (
         fingerprint.get("exists") is True
         and fingerprint.get("path_allowed") is True
         and isinstance(fingerprint.get("sha256"), str)
         and len(fingerprint.get("sha256", "")) == 64
+        and isinstance(byte_size, int)
+        and not isinstance(byte_size, bool)
+        and byte_size > 0
+        and family in SUPPORTED_IMAGE_FAMILIES
+        and extension == family
+        and isinstance(width, int)
+        and not isinstance(width, bool)
+        and width > 0
+        and isinstance(height, int)
+        and not isinstance(height, bool)
+        and height > 0
         and not fingerprint.get("errors")
     )
 
@@ -185,19 +204,29 @@ def reconcile_evidence(
     semantic_review: dict[str, Any] | None,
     independent_semantic: bool,
 ) -> dict[str, Any]:
+    """Low-level reconciliation for already-produced fingerprints.
+
+    Normal CLI/runtime use should call `reconcile_from_files`, which recomputes
+    fingerprints from the project root. This low-level function remains for tests
+    and host integrations that already control the physical-evidence boundary.
+    """
+    validate_audit_packet(packet)
     fingerprints = fingerprints_payload.get("assets", {})
     approvals = _index(packet.get("approval_events", []), "approval_event_id")
     prior_locked = _index(packet.get("prior_locked_assets", []), "asset_id")
     assets_out: dict[str, Any] = {}
 
     for asset in packet.get("assets", []):
-        asset_id = asset.get("asset_id")
-        if not isinstance(asset_id, str) or not asset_id:
-            continue
+        asset_id = asset["asset_id"]
         fingerprint = fingerprints.get(asset_id) or {
             "exists": False,
             "path_allowed": False,
             "sha256": None,
+            "byte_size": None,
+            "signature_family": None,
+            "extension_family": None,
+            "width": None,
+            "height": None,
             "errors": ["fingerprint missing"],
         }
         expected_role = _expected_role(packet, asset)
@@ -236,7 +265,7 @@ def reconcile_evidence(
 
     set_errors: list[str] = []
     for slot in packet.get("slots", []):
-        slot_id = slot.get("slot_id")
+        slot_id = slot["slot_id"]
         for asset_id in slot.get("required_asset_ids", []):
             result = assets_out.get(asset_id)
             if not result:
@@ -263,21 +292,47 @@ def reconcile_evidence(
     }
 
 
+def reconcile_from_files(
+    packet: dict[str, Any],
+    project_root: Path,
+    semantic_review: dict[str, Any] | None = None,
+    independent_semantic: bool = False,
+) -> dict[str, Any]:
+    """Recompute physical evidence from real files before reconciliation."""
+    fingerprints = fingerprint_packet(packet, project_root)
+    return reconcile_evidence(packet, fingerprints, semantic_review, independent_semantic)
+
+
+def _load_json(path: Path, label: str) -> dict[str, Any]:
+    try:
+        value = json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, UnicodeError, json.JSONDecodeError) as exc:
+        raise ValueError(f"invalid {label}: {exc}") from exc
+    if not isinstance(value, dict):
+        raise ValueError(f"invalid {label}: root must be an object")
+    return value
+
+
 def main() -> int:
-    parser = argparse.ArgumentParser(description="Reconcile candidate listing assets against evidence")
+    parser = argparse.ArgumentParser(description="Reconcile candidate listing assets against real files and review evidence")
     parser.add_argument("audit_input", type=Path)
-    parser.add_argument("fingerprints", type=Path)
+    parser.add_argument("project_root", type=Path)
     parser.add_argument("--semantic-review", type=Path)
-    parser.add_argument("--independent-semantic", action="store_true")
     parser.add_argument("--output", type=Path)
     args = parser.parse_args()
 
-    packet = json.loads(args.audit_input.read_text(encoding="utf-8"))
-    fingerprints = json.loads(args.fingerprints.read_text(encoding="utf-8"))
-    semantic_review = None
-    if args.semantic_review:
-        semantic_review = json.loads(args.semantic_review.read_text(encoding="utf-8"))
-    result = reconcile_evidence(packet, fingerprints, semantic_review, args.independent_semantic)
+    try:
+        packet = _load_json(args.audit_input, "audit input")
+        semantic_review = _load_json(args.semantic_review, "semantic review") if args.semantic_review else None
+        result = reconcile_from_files(packet, args.project_root, semantic_review, independent_semantic=False)
+    except ValueError as exc:
+        print(f"FAIL: {exc}")
+        return 1
+
+    # The standalone CLI cannot prove model-context independence. It therefore
+    # never upgrades an `independent_context` label solely from a caller flag.
+    # Human review remains trusted; host runtimes with a real isolation boundary
+    # may call reconcile_from_files(..., independent_semantic=True) directly.
     text = json.dumps(result, ensure_ascii=False, indent=2, sort_keys=True)
     if args.output:
         args.output.parent.mkdir(parents=True, exist_ok=True)

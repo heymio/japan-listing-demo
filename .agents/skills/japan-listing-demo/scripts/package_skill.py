@@ -65,12 +65,16 @@ if __name__ == "__main__":
     raise SystemExit(main())
 '''
 
+# v0.3.1 keeps the old gate implementation in _delivery_state_core.py. Only
+# that embedded core needs a policy-path rewrite; the strict wrapper can be
+# copied unchanged because it imports the sibling core by relative file path.
 NORMAL_POLICY_BLOCK = '''SCRIPT_DIR = Path(__file__).resolve().parent
 REPO_ROOT = SCRIPT_DIR.parents[3]
 DEFAULT_POLICY_PATH = REPO_ROOT / ".agents" / "skills" / "japan-listing-demo" / "data" / "channel-policy-limits.json"'''
 EMBEDDED_POLICY_BLOCK = '''SCRIPT_DIR = Path(__file__).resolve().parent
 EMBEDDED_MAIN_SKILL = SCRIPT_DIR.parents[2]
 DEFAULT_POLICY_PATH = EMBEDDED_MAIN_SKILL / "data" / "channel-policy-limits.json"'''
+HARDENING_POLICY_SOURCE = "scripts/_delivery_state_core.py"
 
 REQUIRED_MEMBERS = {
     "japan-listing-demo/SKILL.md",
@@ -84,6 +88,7 @@ REQUIRED_MEMBERS = {
     "japan-listing-demo/internal-skills/listing-production/scripts/project_asset_packet.py",
     "japan-listing-demo/internal-skills/listing-hardening/SKILL.md",
     "japan-listing-demo/internal-skills/listing-hardening/scripts/validate_delivery_state.py",
+    "japan-listing-demo/internal-skills/listing-hardening/scripts/_delivery_state_core.py",
     "japan-listing-demo/internal-skills/listing-evidence-auditor/SKILL.md",
     "japan-listing-demo/internal-skills/listing-evidence-auditor/scripts/fingerprint_assets.py",
     LIMITATION_MEMBER,
@@ -94,17 +99,22 @@ def add_internal_skill(archive: ZipFile, name: str) -> None:
     source_root = SKILLS_ROOT / name
     if not source_root.is_dir():
         raise SystemExit(f"FAIL: missing internal Skill source: {name}")
+    patched_policy_source = False
     for path in sorted(source_root.rglob("*")):
         if not path.is_file() or "__pycache__" in path.parts:
             continue
+        relative = path.relative_to(source_root).as_posix()
         target = PREFIX / "internal-skills" / name / path.relative_to(source_root)
-        if name == "listing-hardening" and path.relative_to(source_root).as_posix() == "scripts/validate_delivery_state.py":
+        if name == "listing-hardening" and relative == HARDENING_POLICY_SOURCE:
             text = path.read_text(encoding="utf-8")
             if NORMAL_POLICY_BLOCK not in text:
-                raise SystemExit("FAIL: hardening validator policy block changed; update compatibility patch")
+                raise SystemExit("FAIL: hardening core policy block changed; update compatibility patch")
             archive.writestr(target.as_posix(), text.replace(NORMAL_POLICY_BLOCK, EMBEDDED_POLICY_BLOCK))
+            patched_policy_source = True
         else:
             archive.write(path, target)
+    if name == "listing-hardening" and not patched_policy_source:
+        raise SystemExit(f"FAIL: missing hardening compatibility policy source: {HARDENING_POLICY_SOURCE}")
 
 
 def smoke_test_archive(output: Path) -> None:

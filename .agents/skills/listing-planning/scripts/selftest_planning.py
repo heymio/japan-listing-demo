@@ -87,10 +87,41 @@ def test_planning_templates_validate() -> None:
         assert errors == [], (filename, errors)
 
 
+def test_project_brief_rejects_comment_only_keys() -> None:
+    text = """# project:\n# offers:\n# product_truth:\n# claim_boundaries:\n# consumer_evidence_sources:\n# channel_reference:\n# open_business_decisions:\n"""
+    errors = validate_project_brief(text)
+    assert errors, "comment text must not satisfy the structured contract"
+
+
+def test_project_brief_rejects_wrong_container_types() -> None:
+    text = """project: []\noffers: {}\nproduct_truth: []\nclaim_boundaries: []\nconsumer_evidence_sources: {}\nchannel_reference: []\nopen_business_decisions: {}\n"""
+    errors = validate_project_brief(text)
+    assert any("project" in error and "mapping" in error for error in errors)
+    assert any("offers" in error and "list" in error for error in errors)
+
+
+def test_creative_strategy_rejects_wrong_nested_types() -> None:
+    text = """creative_strategy:\n  target_user: wrong\n  core_tension: ok\n  core_promise: ok\n  primary_purchase_reasons: {}\n  shopper_barriers: []\n  reasons_to_believe: []\n  message_priority: []\n  japan_implications: []\n  proof_principles: []\n  visual_direction: []\n  visual_anti_patterns: []\n"""
+    errors = validate_creative_strategy(text)
+    assert any("target_user" in error and "list" in error for error in errors)
+    assert any("message_priority" in error and "mapping" in error for error in errors)
+
+
+def test_production_handoff_rejects_wrong_asset_set_type() -> None:
+    text = """production_handoff:\n  project: {}\n  page_plan: {}\n  asset_set: not-a-list\n  source_assets: []\n  product_invariants: []\n  creative_strategy_ref: STRAT-1\n  global_visual_direction: []\n  visual_benchmark_refs: []\n  prohibited: []\n  blocked_assets: []\n"""
+    errors = validate_production_handoff(text)
+    assert any("asset_set" in error and "list" in error for error in errors)
+
+
 def test_production_handoff_rejects_control_plane_fields() -> None:
-    text = """production_handoff:\n  project:\n  asset_set: []\n  project_state_manifest: {}\n"""
+    text = """production_handoff:\n  project: {}\n  page_plan: {}\n  asset_set: []\n  source_assets: []\n  product_invariants: []\n  creative_strategy_ref: STRAT-1\n  global_visual_direction: []\n  visual_benchmark_refs: []\n  prohibited: []\n  blocked_assets: []\n  project_state_manifest: {}\n"""
     errors = validate_production_handoff(text)
     assert any("project_state_manifest" in error for error in errors)
+
+
+def test_malformed_yaml_returns_errors_instead_of_crashing() -> None:
+    errors = validate_project_brief("project:\n   child: bad-indent\n")
+    assert errors
 
 
 def test_priority_proof_is_not_complete_asset_set() -> None:

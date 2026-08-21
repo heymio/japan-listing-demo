@@ -10,7 +10,7 @@ Minimum structure:
 {
   "audit_version": "1",
   "project_id": "project-defined",
-  "checkpoint": "post-6.5",
+  "checkpoint": "pre-9",
   "assets": [
     {
       "asset_id": "G03",
@@ -37,13 +37,44 @@ Minimum structure:
 }
 ```
 
-`checkpoint` is `post-6.5` or `pre-9`.
+`checkpoint` is normally `pre-9`; a targeted inherited-asset audit may use `post-6.5`.
 
-## Physical fingerprints
+### Identifier uniqueness
 
-`fingerprint_assets.py` produces `physical-fingerprints.json` from real files. Physical metadata is recomputed and does not inherit planner assertions.
+The audit packet is rejected before fingerprinting or reconciliation if any of these identities repeat:
 
-Per asset:
+- `assets[*].asset_id`;
+- `approval_events[*].approval_event_id`;
+- `prior_locked_assets[*].asset_id`;
+- `slots[*].slot_id`;
+- `expected_visual_roles[*].asset_id`.
+
+Duplicate identities are not resolved by “last record wins”. Silent dictionary overwrite is forbidden because it can hide missing files, conflicting approvals, or contradictory role/scope evidence.
+
+## Physical evidence boundary
+
+The normal reconciliation path takes the audit packet plus the **real project root** and recomputes physical fingerprints internally:
+
+```bash
+python .agents/skills/listing-evidence-auditor/scripts/reconcile_evidence.py \
+  audit-input.json \
+  /absolute/or/relative/project-root \
+  --semantic-review semantic-review.json \
+  --output evidence-audit.json
+```
+
+Do **not** treat a caller-authored `physical-fingerprints.json` as the normal trusted input to reconciliation.
+
+`fingerprint_assets.py` remains available for diagnostics and controlled host integrations:
+
+```bash
+python .agents/skills/listing-evidence-auditor/scripts/fingerprint_assets.py \
+  audit-input.json \
+  /project/root \
+  --output physical-fingerprints.json
+```
+
+Per physical asset the tool recomputes:
 
 ```json
 {
@@ -60,6 +91,8 @@ Per asset:
   "errors": []
 }
 ```
+
+Supported final image families are PNG, JPEG, and WebP. Physical verification requires a valid supported signature, matching extension, positive dimensions, positive byte size, and no physical errors. A file named `.png` that contains non-image bytes is invalid.
 
 ## Approval events
 
@@ -119,6 +152,8 @@ A separate semantic reviewer writes `semantic-review.json`:
 
 A `same_agent_inline` source cannot produce final semantic verification. It is downgraded to `ROLE_AMBIGUOUS` / `HUMAN_REVIEW_REQUIRED` for effective-state purposes.
 
+The standalone reconciler CLI intentionally does **not** expose `--independent-semantic`. A command-line flag cannot prove that the review actually came from an isolated model context. The CLI therefore treats `independent_context` labels conservatively unless a human resolves the review. A host runtime that genuinely controls an isolated context may call the real-file reconciliation API with `independent_semantic=True` programmatically.
+
 Role statuses:
 
 - `ROLE_MATCH`;
@@ -147,14 +182,15 @@ Deterministic transforms remain transforms. Repeatability does not equal approva
 
 ## Evidence audit output
 
-`reconcile_evidence.py` writes `evidence-audit.json`:
+`reconcile_evidence.py` writes `evidence-audit.json` into a separate evidence namespace. It does not rewrite Candidate State.
+
+Example:
 
 ```json
 {
   "audit_version": "1",
   "project_id": "project-defined",
   "checkpoint": "pre-9",
-  "independent_semantic": true,
   "assets": {
     "G03": {
       "asset_id": "G03",
@@ -164,8 +200,8 @@ Deterministic transforms remain transforms. Repeatability does not equal approva
       "approval_match": true,
       "semantic_role_status": "ROLE_MATCH",
       "actual_role": "gallery-native",
-      "review_source": "independent_context",
-      "effective_status": "VERIFIED",
+      "review_source": "human",
+      "effective_status": "HUMAN_APPROVED",
       "allowed_slots": ["gallery-03"]
     }
   },
@@ -175,8 +211,6 @@ Deterministic transforms remain transforms. Repeatability does not equal approva
   }
 }
 ```
-
-The auditor writes this into a separate evidence namespace. It does not rewrite Candidate State.
 
 ## Effective state precedence
 
@@ -191,9 +225,9 @@ A planner-authored `LOCKED` value cannot override `INVALIDATED`, `UNVERIFIED`, o
 
 ## Checkpoint semantics
 
-### Post-6.5
+### Targeted post-6.5
 
-`EVIDENCE_RECONCILIATION_GATE` may allow planning with explicit gaps, but Stage 7 cannot final-lock an Asset-to-Slot Contract using assets that are not `VERIFIED` or `HUMAN_APPROVED`.
+`EVIDENCE_RECONCILIATION_GATE` may allow planning with explicit gaps, but Stage 7 cannot final-lock an Asset-to-Slot Contract using inherited assets that are not `VERIFIED` or `HUMAN_APPROVED`.
 
 ### Pre-9
 

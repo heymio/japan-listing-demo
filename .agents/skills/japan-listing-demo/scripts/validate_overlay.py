@@ -81,6 +81,7 @@ REQUIRED_FILES = [
     SKILLS["listing-hardening"] / "references" / "final-qa.md",
     SKILLS["listing-hardening"] / "templates" / "delivery-state.example.json",
     SKILLS["listing-hardening"] / "scripts" / "validate_delivery_state.py",
+    SKILLS["listing-hardening"] / "scripts" / "_delivery_state_core.py",
     SKILLS["listing-hardening"] / "scripts" / "selftest_hardening.py",
     SKILLS["listing-hardening"] / "evals" / "hardening.md",
     SKILLS["listing-evidence-auditor"] / "SKILL.md",
@@ -196,7 +197,10 @@ def text_files_under(root: Path) -> list[Path]:
 def main() -> int:
     missing = [str(path.relative_to(REPO_ROOT)) for path in REQUIRED_FILES if not path.exists()]
     if missing:
-        fail(f"missing v0.3.0 distribution files: {', '.join(missing)}")
+        fail(f"missing v0.3.1 distribution files: {', '.join(missing)}")
+
+    if (REPO_ROOT / "x").exists():
+        fail("stray root file 'x' must not be present in a release distribution")
 
     legacy = [str(path.relative_to(REPO_ROOT)) for path in LEGACY_RUNTIME_FILES if path.exists()]
     if legacy:
@@ -237,8 +241,8 @@ def main() -> int:
             fail(f"router contract missing: {phrase}")
 
     version = (REPO_ROOT / "VERSION").read_text(encoding="utf-8").strip()
-    if version != "0.3.0":
-        fail(f"VERSION must be 0.3.0, found {version!r}")
+    if version != "0.3.1":
+        fail(f"VERSION must be 0.3.1, found {version!r}")
 
     manifest = (MAIN_SKILL / "core" / "manifest.yaml").read_text(encoding="utf-8").casefold()
     for phrase in [
@@ -247,9 +251,10 @@ def main() -> int:
         "listing-production",
         "listing-hardening",
         "listing-evidence-auditor",
+        "validator-integrity-v0.3.1",
     ]:
         if phrase not in manifest:
-            fail(f"core manifest missing v0.3.0 architecture marker: {phrase}")
+            fail(f"core manifest missing v0.3.1 architecture/integrity marker: {phrase}")
 
     active_files: list[Path] = []
     for directory in SKILLS.values():
@@ -318,7 +323,7 @@ def main() -> int:
     ]
 
     print("\n".join(outputs))
-    print("PASS: japan-listing-demo v0.3.0 creative-first distribution is valid")
+    print("PASS: japan-listing-demo v0.3.1 validator-integrity distribution is valid")
     print(f"PASS: {len(REQUIRED_FILES)} required files exist across five Skills")
     print("PASS: thin router, deep planning, focused production, hardening, and evidence auditor are self-tested")
     return 0

@@ -146,6 +146,67 @@ def test_complete_production_freeze_and_verified_assets_pass_both_gates() -> Non
     assert result["gates"]["PRE_DEMO_ASSET_GATE"]["status"] == "PASS"
 
 
+def test_production_freeze_requires_exact_required_asset_id_set() -> None:
+    validator = load_module(NEW_VALIDATOR, "delivery_state_exact_set_validator")
+    state = minimal_valid_state("0.2")
+    state["audit_checkpoints"] = {"pre_9_required": True}
+    state["production_freeze"] = {
+        "expected_assets": 1,
+        "user_approved_assets": ["WRONG-ID"],
+        "approved_output_refs": ["file:wrong"],
+    }
+    state["auditor_evidence"] = verified_pre_demo_evidence()
+    result = validator.validate_state(state)
+    gate = result["gates"]["PRODUCTION_FREEZE_GATE"]
+    assert gate["status"] == "FAIL"
+    assert any("required asset" in message.casefold() for message in gate["messages"])
+
+
+def test_malformed_state_fails_schema_without_throwing() -> None:
+    validator = load_module(NEW_VALIDATOR, "malformed_state_validator")
+    state = {
+        "schema_version": "0.2",
+        "channel": [],
+        "assets": "not-a-list",
+        "approval_events": {},
+        "locked_module_plan": [],
+        "implementation": [],
+        "asset_slot_contract": "not-a-list",
+        "audit_checkpoints": {"pre_9_required": True},
+        "production_freeze": [],
+    }
+    result = validator.validate_state(state)
+    assert result["overall_status"] == "FAIL"
+    assert result["gates"]["SCHEMA_GATE"]["status"] == "FAIL"
+    assert all(name == "SCHEMA_GATE" or gate["status"] == "N/A" for name, gate in result["gates"].items())
+
+
+def test_duplicate_asset_and_slot_ids_fail_schema() -> None:
+    validator = load_module(NEW_VALIDATOR, "duplicate_ids_validator")
+    state = minimal_valid_state("0.2")
+    state["assets"].append(dict(state["assets"][0]))
+    state["asset_slot_contract"].append(dict(state["asset_slot_contract"][0]))
+    result = validator.validate_state(state)
+    assert result["gates"]["SCHEMA_GATE"]["status"] == "FAIL"
+    assert any("duplicate" in message.casefold() for message in result["gates"]["SCHEMA_GATE"]["messages"])
+
+
+def test_duplicate_implementation_module_id_fails_schema() -> None:
+    validator = load_module(NEW_VALIDATOR, "duplicate_impl_module_validator")
+    state = minimal_valid_state("0.2")
+    duplicate_slot = dict(state["implementation"]["slots"][0])
+    duplicate_slot["slot_id"] = "M01-copy"
+    state["implementation"]["slots"].append(duplicate_slot)
+    result = validator.validate_state(state)
+    gate = result["gates"]["SCHEMA_GATE"]
+    assert gate["status"] == "FAIL"
+    assert any(
+        "duplicate" in message.casefold() and "module_id" in message.casefold()
+        for message in gate["messages"]
+    )
+    assert all(name == "SCHEMA_GATE" or item["status"] == "N/A" for name, item in result["gates"].items())
+
+
 def test_hardening_references_cover_delivery_integrity() -> None:
     expected = {
         "asset-integrity.md": ["sha-256", "transform", "semantic role", "asset-to-slot"],

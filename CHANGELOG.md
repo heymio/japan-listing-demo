@@ -1,5 +1,19 @@
 # Changelog
 
+## 0.3.1 — Validator integrity hardening
+
+- Replaced Planning contract keyword-presence checks with structured parsing and type/reference validation for Project Brief, Creative Strategy Kernel, and Production Handoff.
+- Rejects malformed planning contract indentation, duplicate keys/IDs, invalid field types, missing required fields, dangling Asset-ID references, and control-plane leakage into Production Handoff.
+- Hardened image fingerprinting so supported final images must have a valid PNG/JPEG/WebP signature, matching extension, positive dimensions, positive byte size, and no physical errors; fake `.png` text files now fail.
+- Changed normal evidence reconciliation to recompute fingerprints from real project files instead of accepting caller-supplied fingerprint JSON as the trusted CLI input.
+- Removed the standalone CLI `--independent-semantic` switch; callers cannot promote their own semantic review to independent trust merely by passing a flag.
+- Audit packets now fail fast on duplicate `assets.asset_id`, `approval_events.approval_event_id`, `prior_locked_assets.asset_id`, `slots.slot_id`, or `expected_visual_roles.asset_id`, preventing silent dictionary overwrite.
+- Strengthened Delivery State schema fail-fast behavior. Malformed container types and duplicate identity fields stop semantic gates instead of causing tracebacks or ambiguous downstream results.
+- `implementation.slots[*].module_id` is now one-to-one with implementation slots; duplicate module IDs are rejected before Module Origin / Delivery Parity can collapse them into dictionaries.
+- `PRODUCTION_FREEZE_GATE` now compares the exact approved Asset-ID set against the required Asset-ID set instead of only comparing counts.
+- Removed the stray root `x` file and updated compatibility packaging for the strict hardening wrapper.
+- Architecture remains unchanged: Thin Router → Planning → Production → Hardening → Evidence Auditor. This release does not claim proven Japan-market output quality; Golden Set / team-pilot validation remains separate.
+
 ## 0.3.0 — Creative-first hardening architecture
 
 - Replaced the monolithic `japan-listing-demo` runtime with a **thin router** while keeping one normal user invocation: `$japan-listing-demo`.
