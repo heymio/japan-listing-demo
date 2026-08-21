@@ -6,6 +6,9 @@ from __future__ import annotations
 import argparse
 import json
 from pathlib import Path
+from typing import Any
+
+EVIDENCE_MODES = {"SOURCE_FAITHFUL", "CREATIVE_MOCK", "PROOF_VISUAL"}
 
 REQUIRED_TOP_LEVEL = {
     "asset_id",
@@ -13,9 +16,11 @@ REQUIRED_TOP_LEVEL = {
     "objective",
     "strategy_context",
     "evidence",
+    "evidence_mode",
     "product_sources",
     "benchmark",
     "composition",
+    "set_context",
     "output",
     "must_preserve",
     "must_not_generate",
@@ -27,13 +32,24 @@ PROJECTION_KEYS = [
     "objective",
     "strategy_context",
     "evidence",
+    "evidence_mode",
     "product_sources",
     "benchmark",
     "composition",
+    "set_context",
     "output",
     "must_preserve",
     "must_not_generate",
 ]
+
+NEIGHBOR_KEYS = (
+    "asset_id",
+    "scene_family",
+    "composition_family",
+    "tone",
+    "product_scale",
+    "proof_form",
+)
 
 
 def validate_asset_packet(packet: dict) -> list[str]:
@@ -46,6 +62,20 @@ def validate_asset_packet(packet: dict) -> list[str]:
         errors.append("one_image_focus must be true")
     missing = sorted(REQUIRED_TOP_LEVEL - set(packet))
     errors.extend(f"missing field: {name}" for name in missing)
+
+    evidence_mode = packet.get("evidence_mode")
+    if evidence_mode is not None and evidence_mode not in EVIDENCE_MODES:
+        errors.append("evidence_mode must be SOURCE_FAITHFUL, CREATIVE_MOCK, or PROOF_VISUAL")
+
+    set_context = packet.get("set_context")
+    if set_context is not None:
+        if not isinstance(set_context, dict):
+            errors.append("set_context must be a mapping")
+        else:
+            if not isinstance(set_context.get("page_visual_direction"), dict):
+                errors.append("set_context.page_visual_direction must be a mapping")
+            if not isinstance(set_context.get("nearest_neighbors"), list):
+                errors.append("set_context.nearest_neighbors must be a list")
     return errors
 
 
@@ -54,6 +84,119 @@ def project_generation_context(packet: dict) -> dict:
     if errors:
         raise ValueError("; ".join(errors))
     return {key: packet[key] for key in PROJECTION_KEYS}
+
+
+def _direction_index(handoff: dict[str, Any]) -> dict[str, dict[str, Any]]:
+    visual_system = handoff.get("page_visual_system")
+    if not isinstance(visual_system, dict):
+        raise ValueError("Production Handoff missing page_visual_system")
+    rows = visual_system.get("asset_directions")
+    if not isinstance(rows, list):
+        raise ValueError("page_visual_system.asset_directions must be a list")
+    result: dict[str, dict[str, Any]] = {}
+    for row in rows:
+        if not isinstance(row, dict):
+            raise ValueError("page_visual_system asset direction must be a mapping")
+        asset_id = row.get("asset_id")
+        if not isinstance(asset_id, str) or not asset_id:
+            raise ValueError("page_visual_system asset direction requires asset_id")
+        if asset_id in result:
+            raise ValueError(f"duplicate visual direction asset_id: {asset_id}")
+        result[asset_id] = row
+    return result
+
+
+def _region_order(handoff: dict[str, Any], asset_id: str) -> list[str]:
+    page_plan = handoff.get("page_plan")
+    if not isinstance(page_plan, dict):
+        raise ValueError("Production Handoff missing page_plan")
+    for region in ("gallery", "enhanced_content", "other_required_regions"):
+        values = page_plan.get(region, [])
+        if not isinstance(values, list):
+            raise ValueError(f"page_plan.{region} must be a list")
+        if asset_id in values:
+            return [value for value in values if isinstance(value, str) and value]
+    raise ValueError(f"asset {asset_id} is not present in page_plan")
+
+
+def build_set_context(handoff: dict[str, Any], asset_id: str) -> dict[str, Any]:
+    """Project only the current visual direction and nearest same-region neighbors."""
+    if not isinstance(asset_id, str) or not asset_id:
+        raise ValueError("asset_id must be a non-empty string")
+    directions = _direction_index(handoff)
+    current = directions.get(asset_id)
+    if current is None:
+        raise ValueError(f"missing page visual direction for asset {asset_id}")
+
+    order = _region_order(handoff, asset_id)
+    index = order.index(asset_id)
+    neighbor_ids: list[str] = []
+    if index > 0:
+        neighbor_ids.append(order[index - 1])
+    if index + 1 < len(order):
+        neighbor_ids.append(order[index + 1])
+
+    nearest_neighbors: list[dict[str, Any]] = []
+    for neighbor_id in neighbor_ids:
+        row = directions.get(neighbor_id)
+        if row is None:
+            continue
+        nearest_neighbors.append({key: row.get(key) for key in NEIGHBOR_KEYS})
+
+    allowed_current_keys = {
+        "asset_id", "visual_role", "scene_family", "composition_family",
+        "tone", "product_scale", "proof_form", "neighbor_contrast_note",
+    }
+    page_visual_direction = {
+        key: value for key, value in current.items() if key in allowed_current_keys
+    }
+    return {
+        "page_visual_direction": page_visual_direction,
+        "nearest_neighbors": nearest_neighbors,
+    }
+
+
+def evidence_mode_for_asset(handoff: dict[str, Any], asset_id: str) -> str:
+    assets = handoff.get("asset_set")
+    if not isinstance(assets, list):
+        raise ValueError("Production Handoff asset_set must be a list")
+    for row in assets:
+        if isinstance(row, dict) and row.get("asset_id") == asset_id:
+            mode = row.get("evidence_mode")
+            if mode not in EVIDENCE_MODES:
+                raise ValueError(f"invalid evidence_mode for asset {asset_id}")
+            return mode
+    raise ValueError(f"asset {asset_id} is not present in asset_set")
+
+
+def evaluate_source_readiness(packet: dict[str, Any], available_source_ids: set[str]) -> dict[str, Any]:
+    """Apply evidence-mode semantics before image production.
+
+    Creative Mock can remain creatively usable when a proof-grade source is
+    unavailable, but its evidence entitlement is explicitly reduced. Proof and
+    source-faithful roles block rather than inventing factual product evidence.
+    """
+    mode = packet.get("evidence_mode")
+    if mode not in EVIDENCE_MODES:
+        return {"status": "BLOCKED", "missing_source_ids": [], "reason": "invalid evidence_mode"}
+    sources = packet.get("product_sources")
+    required = sources.get("required", []) if isinstance(sources, dict) else []
+    if not isinstance(required, list) or any(not isinstance(value, str) or not value for value in required):
+        return {"status": "BLOCKED", "missing_source_ids": [], "reason": "invalid required source list"}
+    missing = [source_id for source_id in required if source_id not in available_source_ids]
+    if not missing:
+        return {"status": "READY", "missing_source_ids": [], "reason": "required sources available"}
+    if mode == "CREATIVE_MOCK":
+        return {
+            "status": "READY_WITH_LIMITATION",
+            "missing_source_ids": missing,
+            "reason": "creative mock may proceed; missing details are not Product Truth or proof",
+        }
+    return {
+        "status": "BLOCKED",
+        "missing_source_ids": missing,
+        "reason": "authoritative source required for this evidence mode",
+    }
 
 
 def main() -> int:
