@@ -41,7 +41,27 @@ Execute one Asset Packet at a time. One Asset Packet means one Asset ID, one cha
 
 Gallery and enhanced-content assets remain separate production jobs even when they communicate the same topic, unless Planning explicitly authorized reuse/derivative intent.
 
-Batch production may begin only after the user approves the visual direction and explicitly asks to continue in that style.
+Batch production may begin only after the user approves the visual direction and explicitly asks to continue in that style. **Same art direction ≠ same composition.** Batch continuation preserves brand language, not the previous asset's layout.
+
+## Minimal set context
+
+The v0.3.2 Asset Packet may carry only:
+
+- the current asset's Page Visual System direction;
+- the nearest same-region neighbor summaries;
+- the current asset's Evidence Mode.
+
+This is enough context to avoid visual convergence without reopening the full Planning corpus.
+
+## Evidence Mode
+
+Use the Planning-assigned mode for each final asset:
+
+- `SOURCE_FAITHFUL` — faithful product/pack/offer identity is intrinsic; missing required identity source may block production;
+- `CREATIVE_MOCK` — lifestyle/atmosphere/spatial creative work may proceed with reduced evidence entitlement when commercially credible; generated details are not Product Truth;
+- `PROOF_VISUAL` — factual visual proof requires authoritative source evidence and is blocked when that source is missing.
+
+`source insufficiency != automatic creative rework`.
 
 ## Context firewall
 
@@ -49,8 +69,10 @@ Build the generation/editing context from the current Asset Packet and reference
 
 ## Missing upstream input
 
-If the current asset lacks a required fact or business decision, return a structured `BLOCKED` result and identify the missing field. Do not invent or silently rewrite Planning.
+If the current asset lacks a required fact, business decision, or source required by its Evidence Mode, return a structured `BLOCKED` result and identify the missing field. Do not invent or silently rewrite Planning.
 
 ## Completion
 
 Stage 8 completion is measured against the complete required `asset_set` in Production Handoff. Priority proof coverage does not make a partial batch complete.
+
+Before Production Freeze, the complete current set must also pass the lightweight set-level Creative QA defined in `references/production-qa.md`; this is creative guidance, not a new Hardening gate.
