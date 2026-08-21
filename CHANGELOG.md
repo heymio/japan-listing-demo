@@ -1,5 +1,19 @@
 # Changelog
 
+## 0.3.2 — Production UX & Set-level Creative QA
+
+- Added a lightweight **Page Visual System** to the Stage 7 Production Handoff so each final asset carries deliberate scene, composition, tone, product-scale, and proof-form direction without adding a new numbered Stage or Gate.
+- Added per-asset **Evidence Mode**: `SOURCE_FAITHFUL`, `CREATIVE_MOCK`, or `PROOF_VISUAL`. Missing proof-grade source evidence no longer automatically forces Creative Mock rework, while proof/source-faithful roles remain blocked when authoritative source is required.
+- Added a generic **Account Capability Profile** resolver so recent, non-conflicted channel/account capabilities can be reused instead of re-asking the same project-level question. Public code contains no private brand/account values.
+- Added minimal same-region set context to one-job Asset Packets: current Page Visual direction plus nearest-neighbor summaries only, preserving the Production Context Firewall.
+- Added exact candidate history and **Selection Lock**. A user-selected candidate is bound to its output reference and cannot be silently replaced; generating/selecting another version requires explicit reopen while preserving candidate history.
+- Added **Set-level Creative QA** for scene repetition, composition repetition, tone/brightness rhythm, product-scale repetition, proof-form diversity, and adjacent message-role redundancy. Asset-level QA remains separate.
+- Added explicit **Scope Delta** / scope revision handling so removed/changed/added production assets update the authoritative `asset_set`, progress, and Production Freeze without reopening unrelated approved assets.
+- Added **Smallest Sufficient Cleanup** rules. Set repetition reopens the smallest useful subset; Creative Mock evidence limitations remain evidence limitations instead of triggering automatic visual redesign.
+- Tightened production continuation UX: when nothing material changes, transition acknowledgement stays concise; choosing an exact candidate confirms the selected output and advances to the next asset rather than re-explaining the workflow.
+- Strengthened both distribution packages so the one-install compatibility ZIP smoke-tests embedded Planning and Production behavior and both package modes include the new v0.3.2 production helpers.
+- Hardening and Evidence Auditor architecture remain unchanged; v0.3.1 validator-integrity safeguards are retained. Golden Set / team outcome validation remains separate from these workflow safeguards.
+
 ## 0.3.1 — Validator integrity hardening
 
 - Replaced Planning contract keyword-presence checks with structured parsing and type/reference validation for Project Brief, Creative Strategy Kernel, and Production Handoff.
