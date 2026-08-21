@@ -211,6 +211,44 @@ def test_set_context_still_excludes_control_plane() -> None:
         assert forbidden not in encoded
 
 
+def test_user_selected_candidate_cannot_be_silently_replaced() -> None:
+    from production_state import add_candidate, select_candidate
+
+    ledger = add_candidate({}, "A05-01", "A05-01-v1", "file:v1")
+    ledger = select_candidate(ledger, "A05-01", "A05-01-v1", "chat:42")
+    try:
+        set_creative_status(ledger, "A05-01", "USER_APPROVED", output_ref="file:v2")
+    except ValueError as exc:
+        assert "reopen" in str(exc).casefold()
+    else:
+        raise AssertionError("selected candidate must not be silently replaced")
+
+
+def test_reopen_preserves_candidate_history() -> None:
+    from production_state import add_candidate, reopen_asset, select_candidate
+
+    ledger = add_candidate({}, "A05-01", "A05-01-v1", "file:v1")
+    ledger = select_candidate(ledger, "A05-01", "A05-01-v1")
+    ledger = reopen_asset(ledger, "A05-01", "user requested another version")
+    ledger = add_candidate(ledger, "A05-01", "A05-01-v2", "file:v2")
+    row = ledger["assets"]["A05-01"]
+    assert [candidate["candidate_id"] for candidate in row["candidates"]] == ["A05-01-v1", "A05-01-v2"]
+    assert row["selected_candidate_id"] == "A05-01-v1"
+    assert row["status"] == "REVIEW"
+
+
+def test_duplicate_candidate_id_is_rejected() -> None:
+    from production_state import add_candidate
+
+    ledger = add_candidate({}, "A05-01", "A05-01-v1", "file:v1")
+    try:
+        add_candidate(ledger, "A05-01", "A05-01-v1", "file:v1-other")
+    except ValueError as exc:
+        assert "duplicate" in str(exc).casefold()
+    else:
+        raise AssertionError("duplicate candidate_id must be rejected")
+
+
 def main() -> int:
     tests = [v for k, v in globals().items() if k.startswith("test_") and callable(v)]
     for test in tests:
