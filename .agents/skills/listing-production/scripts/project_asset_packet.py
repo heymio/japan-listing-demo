@@ -16,11 +16,9 @@ REQUIRED_TOP_LEVEL = {
     "objective",
     "strategy_context",
     "evidence",
-    "evidence_mode",
     "product_sources",
     "benchmark",
     "composition",
-    "set_context",
     "output",
     "must_preserve",
     "must_not_generate",
@@ -83,7 +81,7 @@ def project_generation_context(packet: dict) -> dict:
     errors = validate_asset_packet(packet)
     if errors:
         raise ValueError("; ".join(errors))
-    return {key: packet[key] for key in PROJECTION_KEYS}
+    return {key: packet[key] for key in PROJECTION_KEYS if key in packet}
 
 
 def _direction_index(handoff: dict[str, Any]) -> dict[str, dict[str, Any]]:
