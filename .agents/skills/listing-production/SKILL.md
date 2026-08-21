@@ -80,6 +80,33 @@ A new candidate after approval requires explicit reopen intent such as “重做
 
 This Selection Lock does not replace later exact-file SHA/provenance verification in Hardening.
 
+## Set-level Creative QA
+
+Asset-level quality does not guarantee page-level quality. Use the structured set QA in `references/production-qa.md` and `scripts/set_level_qa.py` to check scene/composition/tone/scale/proof/message rhythm during production and before Freeze.
+
+This is a creative review layer, not a new formal Stage or Hardening gate.
+
+## Scope Delta
+
+When the authoritative required asset set changes, do not silently keep the old count. Apply an explicit scope revision/delta, then recompute progress and Production Freeze from the current `asset_set`.
+
+Removing or changing one asset does not reopen unrelated `USER_APPROVED` assets. Added or changed assets must remain complete production objects with their role/message/evidence decisions intact.
+
+## Smallest Sufficient Cleanup
+
+Classify the observed issue before rework:
+
+`SINGLE_ASSET_DEFECT` / `SET_REPETITION` / `WRONG_MESSAGE_ROLE` / `EVIDENCE_LIMITATION` / `CLAIM_ERROR` / `PRODUCT_DISTORTION`.
+
+Default behavior is the **Smallest Sufficient Intervention**:
+
+- set repetition: preserve approved assets first and reopen the smallest non-approved subset;
+- all affected assets already approved: require explicit user choice before reopening one;
+- `CREATIVE_MOCK` + evidence limitation: preserve the creative asset and carry the evidence limitation forward;
+- intrinsic single-asset/claim/role/product defects: reopen only the explicitly affected asset(s).
+
+Do not turn one set-level problem into broad regeneration by default.
+
 ## Context firewall
 
 Build the generation/editing context from the current Asset Packet and referenced sources only. Do not inject Project State, auditor, gate, parity, or stage-status narration into production prompts.
