@@ -21,6 +21,8 @@ evidence:
   forbidden:
     - unsupported superlative
 
+evidence_mode: SOURCE_FAITHFUL
+
 product_sources:
   required:
     - SRC-P01
@@ -39,6 +41,23 @@ composition:
   environment: project-defined realistic context
   information_density: low
   one_image_focus: true
+
+set_context:
+  page_visual_direction:
+    asset_id: AMZ-G1
+    visual_role: hero-positioning
+    scene_family: clean-product-stage
+    composition_family: centered-hero
+    tone: bright-neutral
+    product_scale: large
+    proof_form: source-faithful-product
+  nearest_neighbors:
+    - asset_id: AMZ-G2
+      scene_family: realistic-home
+      composition_family: wide-lifestyle
+      tone: warm-natural
+      product_scale: medium
+      proof_form: lifestyle
 
 output:
   aspect_ratio: "1:1"
