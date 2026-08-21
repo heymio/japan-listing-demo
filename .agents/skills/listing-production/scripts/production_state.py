@@ -28,6 +28,98 @@ def _required_ids(handoff: dict) -> list[str]:
     return result
 
 
+def _validate_asset_objects(items: object, label: str) -> list[dict]:
+    if not isinstance(items, list):
+        raise ValueError(f"{label} must be a list")
+    result: list[dict] = []
+    seen: set[str] = set()
+    for index, item in enumerate(items):
+        if not isinstance(item, dict):
+            raise ValueError(f"{label}[{index}] must be a complete asset mapping")
+        asset_id = _require_non_empty_string(item.get("asset_id"), f"{label}[{index}].asset_id")
+        if asset_id in seen:
+            raise ValueError(f"duplicate {label} asset_id: {asset_id}")
+        seen.add(asset_id)
+        result.append(item)
+    return result
+
+
+def apply_scope_delta(handoff: dict, delta: dict) -> dict:
+    """Return a new authoritative handoff after an explicit production-scope revision.
+
+    `added` and `changed` contain complete asset mappings so downstream role,
+    slot, message and evidence-mode information cannot disappear. The stored
+    scope_delta remains concise and records only affected Asset IDs.
+    """
+    if not isinstance(handoff, dict):
+        raise ValueError("handoff must be a mapping")
+    if not isinstance(delta, dict):
+        raise ValueError("delta must be a mapping")
+
+    current_assets = handoff.get("asset_set")
+    if not isinstance(current_assets, list):
+        raise ValueError("handoff.asset_set must be a list")
+    current_by_id: dict[str, dict] = {}
+    current_order: list[str] = []
+    for index, item in enumerate(current_assets):
+        if not isinstance(item, dict):
+            raise ValueError(f"handoff.asset_set[{index}] must be a mapping")
+        asset_id = _require_non_empty_string(item.get("asset_id"), f"handoff.asset_set[{index}].asset_id")
+        if asset_id in current_by_id:
+            raise ValueError(f"duplicate current asset_id: {asset_id}")
+        current_by_id[asset_id] = item
+        current_order.append(asset_id)
+
+    removed = delta.get("removed", [])
+    if not isinstance(removed, list) or any(not isinstance(value, str) or not value for value in removed):
+        raise ValueError("delta.removed must be a list of Asset IDs")
+    if len(set(removed)) != len(removed):
+        raise ValueError("delta.removed contains duplicate Asset IDs")
+    unknown_removed = [asset_id for asset_id in removed if asset_id not in current_by_id]
+    if unknown_removed:
+        raise ValueError("unknown removed Asset IDs: " + ", ".join(unknown_removed))
+
+    added = _validate_asset_objects(delta.get("added", []), "delta.added")
+    changed = _validate_asset_objects(delta.get("changed", []), "delta.changed")
+
+    reason = delta.get("reason")
+    if not isinstance(reason, list) or not reason or any(not isinstance(value, str) or not value.strip() for value in reason):
+        raise ValueError("delta.reason must be a non-empty list of strings")
+
+    added_ids = [item["asset_id"] for item in added]
+    changed_ids = [item["asset_id"] for item in changed]
+    if any(asset_id in current_by_id and asset_id not in removed for asset_id in added_ids):
+        raise ValueError("delta.added cannot duplicate an existing current Asset ID")
+    unknown_changed = [asset_id for asset_id in changed_ids if asset_id not in current_by_id or asset_id in removed]
+    if unknown_changed:
+        raise ValueError("delta.changed references unknown/removed Asset IDs: " + ", ".join(unknown_changed))
+    if set(added_ids) & set(changed_ids):
+        raise ValueError("an Asset ID cannot be both added and changed")
+
+    result = _copy(handoff)
+    remove_set = set(removed)
+    changed_by_id = {item["asset_id"]: item for item in changed}
+    next_assets: list[dict] = []
+    for asset_id in current_order:
+        if asset_id in remove_set:
+            continue
+        next_assets.append(_copy(changed_by_id.get(asset_id, current_by_id[asset_id])))
+    next_assets.extend(_copy(item) for item in added)
+    result["asset_set"] = next_assets
+
+    previous_revision = result.get("scope_revision", 1)
+    if not isinstance(previous_revision, int) or isinstance(previous_revision, bool) or previous_revision < 1:
+        previous_revision = 1
+    result["scope_revision"] = previous_revision + 1
+    result["scope_delta"] = {
+        "added": added_ids,
+        "removed": list(removed),
+        "changed": changed_ids,
+        "reason": list(reason),
+    }
+    return result
+
+
 def add_candidate(ledger: dict, asset_id: str, candidate_id: str, output_ref: str) -> dict:
     """Append a review candidate without erasing candidate history."""
     _require_non_empty_string(asset_id, "asset_id")
