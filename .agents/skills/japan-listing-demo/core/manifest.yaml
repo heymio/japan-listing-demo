@@ -1,5 +1,5 @@
 distribution: standalone
-distribution_version: 0.3.1
+distribution_version: 0.3.2
 normal_invocation: $japan-listing-demo
 
 upstream:
@@ -15,11 +15,11 @@ runtime_architecture:
   planning:
     skill: listing-planning
     stages: 0-7
-    purpose: deep product, offer, claim, consumer, market, Japan-localization, channel, message, page and module planning
+    purpose: deep product, offer, claim, consumer, market, Japan-localization, channel, message, page and module planning plus compact page visual direction
   production:
     skill: listing-production
     stages: 7.5-8
-    purpose: artifact-first production from Creative Strategy Kernel, Production Handoff and one-job Asset Packets
+    purpose: artifact-first production from Creative Strategy Kernel, Production Handoff and one-job Asset Packets with candidate locks and set-level creative QA
   hardening:
     skill: listing-hardening
     stages: 8.5-10
@@ -45,6 +45,11 @@ execution_principles:
   - Creative USER_APPROVED state is separate from evidence verification.
   - Normal checkpoints use Done / Open / Next; full Stage Completion Manifest is exception-only.
   - Transition commands advance immediately and same-artifact retries are bounded.
+  - Same art direction does not imply the same composition; set-level creative rhythm is planned and reviewed inside Production.
+  - User-selected exact candidates remain locked until explicit reopen.
+  - Source insufficiency does not automatically force Creative Mock rework; evidence entitlement follows Evidence Mode.
+  - Account-level capability evidence may be reused when current and non-conflicted; public defaults never embed private brand/account values.
+  - Scope changes are explicit and cleanup uses the smallest sufficient intervention.
 
 distribution_modes:
   repository_codex:
@@ -107,6 +112,25 @@ historical_patches:
       - ../listing-hardening/scripts/validate_delivery_state.py
       - ../listing-hardening/scripts/_delivery_state_core.py
       - scripts/package_skill.py
+  - id: production-ux-set-level-creative-qa-v0.3.2
+    purpose: improve first-pass production quality and team UX without adding a new Stage or Hardening gate
+    behaviors:
+      - Page Visual System and per-asset Evidence Mode in Production Handoff
+      - minimal same-region set context inside one-job Asset Packets
+      - account capability profile reuse hook
+      - exact candidate Selection Lock with explicit reopen history
+      - set-level Creative QA for page rhythm
+      - explicit scope revision and scope-aware Production Freeze accounting
+      - Smallest Sufficient Cleanup
+      - concise production continuation acknowledgement
+    files:
+      - ../listing-planning/scripts/account_capability.py
+      - ../listing-planning/scripts/validate_planning_contracts.py
+      - ../listing-production/scripts/project_asset_packet.py
+      - ../listing-production/scripts/production_state.py
+      - ../listing-production/scripts/set_level_qa.py
+      - ../listing-production/scripts/cleanup_policy.py
+      - SKILL.md
 
 update_policy:
   - review upstream and platform/channel changes before altering packaged policy
