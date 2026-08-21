@@ -65,6 +65,28 @@ def test_one_install_archive_has_embedded_skill_resolution() -> None:
     assert "listing-planning" in text and "listing-production" in text and "listing-hardening" in text
 
 
+def test_production_transition_acknowledgement_is_short() -> None:
+    text = read(SKILL_DIR / "SKILL.md").casefold()
+    assert "transition acknowledgement" in text
+    assert "<= 3 lines" in text
+    assert "nothing material changed" in text
+
+
+def test_selected_candidate_acknowledges_exact_output_then_advances() -> None:
+    text = read(SKILL_DIR / "SKILL.md").casefold()
+    assert "selected candidate" in text
+    assert "exact candidate/output" in text
+    assert "next asset" in text
+    assert "explicit reopen" in text
+
+
+def test_v032_does_not_add_stage_or_creative_gate() -> None:
+    text = read(SKILL_DIR / "SKILL.md").casefold()
+    assert "stage 7.25" not in text
+    assert "set_level_creative_qa_gate" not in text
+    assert "set-level creative qa is not a new gate" in text
+
+
 def main() -> int:
     tests = [v for k, v in globals().items() if k.startswith("test_") and callable(v)]
     for test in tests:
