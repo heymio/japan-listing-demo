@@ -56,6 +56,18 @@ def visual_handoff() -> dict:
     }
 
 
+def asset_direction(asset_id: str, *, scene: str, composition: str, tone: str, scale: str, proof: str, message_role: str = "") -> dict:
+    return {
+        "asset_id": asset_id,
+        "scene_family": scene,
+        "composition_family": composition,
+        "tone": tone,
+        "product_scale": scale,
+        "proof_form": proof,
+        "message_role": message_role,
+    }
+
+
 def test_production_skill_is_artifact_first() -> None:
     text = read(SKILL_DIR / "SKILL.md").casefold()
     for phrase in [
@@ -247,6 +259,122 @@ def test_duplicate_candidate_id_is_rejected() -> None:
         assert "duplicate" in str(exc).casefold()
     else:
         raise AssertionError("duplicate candidate_id must be rejected")
+
+
+def test_identical_adjacent_visual_signatures_are_flagged() -> None:
+    from set_level_qa import evaluate_set
+
+    rows = [
+        asset_direction("A1", scene="dark-living", composition="wide", tone="dark", scale="medium", proof="lifestyle"),
+        asset_direction("A2", scene="dark-living", composition="wide", tone="dark", scale="medium", proof="lifestyle"),
+    ]
+    result = evaluate_set(rows)
+    assert result["status"] == "REVISE"
+    assert any(issue["type"] == "composition_repetition" for issue in result["issues"])
+
+
+def test_same_brand_style_with_materially_different_composition_can_clear() -> None:
+    from set_level_qa import evaluate_set
+
+    rows = [
+        asset_direction("A1", scene="home", composition="wide", tone="brand-warm", scale="medium", proof="lifestyle"),
+        asset_direction("A2", scene="home", composition="close-up", tone="brand-warm", scale="close-up", proof="mechanism"),
+    ]
+    assert evaluate_set(rows)["status"] == "CLEAR"
+
+
+def test_three_same_proof_forms_trigger_review() -> None:
+    from set_level_qa import evaluate_set
+
+    rows = [
+        asset_direction("A1", scene="s1", composition="c1", tone="t1", scale="large", proof="lifestyle"),
+        asset_direction("A2", scene="s2", composition="c2", tone="t2", scale="medium", proof="lifestyle"),
+        asset_direction("A3", scene="s3", composition="c3", tone="t3", scale="close", proof="lifestyle"),
+    ]
+    result = evaluate_set(rows)
+    assert result["status"] == "REVIEW"
+    assert any(issue["type"] == "proof_form_diversity" for issue in result["issues"])
+
+
+def test_adjacent_same_message_role_triggers_review() -> None:
+    from set_level_qa import evaluate_set
+
+    rows = [
+        asset_direction("A1", scene="s1", composition="c1", tone="t1", scale="large", proof="lifestyle", message_role="daily-light"),
+        asset_direction("A2", scene="s2", composition="c2", tone="t2", scale="medium", proof="mechanism", message_role="daily-light"),
+    ]
+    result = evaluate_set(rows)
+    assert result["status"] == "REVIEW"
+    assert any(issue["type"] == "message_role_redundancy" for issue in result["issues"])
+
+
+def test_removed_asset_no_longer_counts_toward_progress_or_freeze() -> None:
+    from production_state import apply_scope_delta
+
+    handoff = {"asset_set": [{"asset_id": "G1"}, {"asset_id": "G2"}, {"asset_id": "G3"}]}
+    ledger = {"assets": {
+        "G1": {"status": "USER_APPROVED", "current_output_ref": "file:g1"},
+        "G2": {"status": "USER_APPROVED", "current_output_ref": "file:g2"},
+    }}
+    updated = apply_scope_delta(handoff, {
+        "added": [], "removed": ["G3"], "changed": [],
+        "reason": ["message merged into G2"],
+    })
+    progress = production_progress(updated, ledger)
+    freeze = build_production_freeze(updated, ledger)
+    assert progress == {"expected": 2, "approved": 2, "remaining": 0, "complete": True}
+    assert freeze["ready_for_hardening"] is True
+    assert ledger["assets"]["G1"]["status"] == "USER_APPROVED"
+
+
+def test_scope_delta_rejects_unknown_removed_asset() -> None:
+    from production_state import apply_scope_delta
+
+    try:
+        apply_scope_delta({"asset_set": [{"asset_id": "G1"}]}, {
+            "added": [], "removed": ["MISSING"], "changed": [], "reason": ["test"]
+        })
+    except ValueError as exc:
+        assert "unknown" in str(exc).casefold()
+    else:
+        raise AssertionError("unknown removed asset must fail")
+
+
+def test_set_repetition_cleanup_reopens_smallest_nonapproved_subset() -> None:
+    from cleanup_policy import plan_cleanup
+
+    result = plan_cleanup(
+        "SET_REPETITION",
+        affected_assets=["A05-01", "A05-02", "A05-03", "A06"],
+        approved_assets=["A05-01", "A05-02"],
+    )
+    assert result["preserve"] == ["A05-01", "A05-02"]
+    assert result["reopen"] == ["A05-03"]
+
+
+def test_creative_mock_evidence_limitation_does_not_force_visual_rework() -> None:
+    from cleanup_policy import plan_cleanup
+
+    result = plan_cleanup(
+        "EVIDENCE_LIMITATION",
+        affected_assets=["A04"],
+        approved_assets=["A04"],
+        evidence_modes={"A04": "CREATIVE_MOCK"},
+    )
+    assert result["reopen"] == []
+    assert result["preserve"] == ["A04"]
+
+
+def test_single_asset_defect_only_reopens_that_asset() -> None:
+    from cleanup_policy import plan_cleanup
+
+    result = plan_cleanup(
+        "SINGLE_ASSET_DEFECT",
+        affected_assets=["A06"],
+        approved_assets=["A05", "A06", "A07"],
+    )
+    assert result["reopen"] == ["A06"]
+    assert "A05" not in result["reopen"] and "A07" not in result["reopen"]
 
 
 def main() -> int:
