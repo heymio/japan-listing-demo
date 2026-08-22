@@ -67,13 +67,14 @@ if SPEC is None or SPEC.loader is None:
 MODULE = importlib.util.module_from_spec(SPEC)
 SPEC.loader.exec_module(MODULE)
 canonical_hash = MODULE.canonical_hash
+CANONICAL_VALIDATE_STATE = MODULE.validate_state
 
 def _recompute(result: dict[str, Any]) -> None:
     statuses = {gate.get("status") for gate in result.get("gates", {}).values() if isinstance(gate, dict)}
     result["overall_status"] = "FAIL" if "FAIL" in statuses else ("UNVERIFIED" if "UNVERIFIED" in statuses else "PASS")
 
 def validate_state(state: Any, policy: dict[str, Any] | None = None) -> dict[str, Any]:
-    result = MODULE.validate_state(state, policy)
+    result = CANONICAL_VALIDATE_STATE(state, policy)
     if (isinstance(state, dict) and state.get("schema_version") == "0.1"
             and isinstance(state.get("audit_checkpoints"), dict)
             and state["audit_checkpoints"].get("pre_9_required") is True
