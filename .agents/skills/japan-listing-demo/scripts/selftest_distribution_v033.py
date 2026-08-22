@@ -59,8 +59,24 @@ def test_packagers_are_deterministic_symlink_safe_and_self_validating() -> None:
     assert "FIXED_ZIP_TIME" in common and "is_symlink" in common
     assert "validate_install.py" in compatibility
     assert "validate_overlay.py" in codex
-    for metadata in ["README.md", "CHANGELOG.md", "VERSION", "docs/install.md", "docs/team-gpt-setup.md"]:
+    for metadata in [
+        "README.md", "CHANGELOG.md", "VERSION", "docs/install.md", "docs/team-gpt-setup.md",
+        "docs/release-notes-v0.3.3.md", ".github/workflows/release-validated.yml",
+    ]:
         assert metadata in codex
+
+
+def test_ci_executes_real_decoder_and_no_network_browser() -> None:
+    workflow = read(REPO_ROOT / ".github" / "workflows" / "validate-japan-listing-demo.yml")
+    for phrase in [
+        "Pillow",
+        "playwright",
+        "playwright install --with-deps chromium",
+        "selftest_image_decode_v033.py",
+        "selftest_demo_runtime_v033.py",
+        "persist-credentials: false",
+    ]:
+        assert phrase in workflow, phrase
 
 
 def test_docs_use_python3_for_copyable_commands() -> None:
