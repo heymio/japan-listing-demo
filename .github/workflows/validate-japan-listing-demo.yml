@@ -4,11 +4,16 @@ on:
   push:
   pull_request:
 
+permissions:
+  contents: read
+
 jobs:
   validate:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
@@ -20,9 +25,28 @@ jobs:
       - run: python .agents/skills/listing-evidence-auditor/scripts/selftest_auditor.py
       - run: python .agents/skills/japan-listing-demo/scripts/selftest_router.py
       - run: python .agents/skills/japan-listing-demo/scripts/selftest_project_state_validator.py
+      - run: python .agents/skills/japan-listing-demo/scripts/selftest_distribution_v033.py
       - run: python .agents/skills/japan-listing-demo/scripts/validate_overlay.py
-      - run: python .agents/skills/japan-listing-demo/scripts/package_skill.py
-      - run: python scripts/package_codex_bundle.py
+      - name: Build compatibility ZIP reproducibly
+        shell: bash
+        run: |
+          set -euo pipefail
+          python .agents/skills/japan-listing-demo/scripts/package_skill.py
+          FIRST="$(sha256sum dist/japan-listing-demo.skill.zip | awk '{print $1}')"
+          python .agents/skills/japan-listing-demo/scripts/package_skill.py
+          SECOND="$(sha256sum dist/japan-listing-demo.skill.zip | awk '{print $1}')"
+          test "$FIRST" = "$SECOND"
+          echo "compatibility_sha256=$SECOND"
+      - name: Build Codex bundle reproducibly
+        shell: bash
+        run: |
+          set -euo pipefail
+          python scripts/package_codex_bundle.py
+          FIRST="$(sha256sum dist/japan-listing-demo-codex-bundle.zip | awk '{print $1}')"
+          python scripts/package_codex_bundle.py
+          SECOND="$(sha256sum dist/japan-listing-demo-codex-bundle.zip | awk '{print $1}')"
+          test "$FIRST" = "$SECOND"
+          echo "codex_bundle_sha256=$SECOND"
       - run: python -m zipfile -l dist/japan-listing-demo.skill.zip
       - run: python -m zipfile -l dist/japan-listing-demo-codex-bundle.zip
       - uses: actions/upload-artifact@v4
