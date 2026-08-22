@@ -110,6 +110,14 @@ def test_ci_executes_real_decoder_and_no_network_browser() -> None:
         assert phrase in workflow, phrase
 
 
+def test_manifest_declares_hard_verification_runtime_dependencies() -> None:
+    manifest = read(MAIN_SKILL / "core" / "manifest.yaml")
+    folded = manifest.casefold()
+    assert "runtime_dependency: none" not in folded
+    for phrase in ["runtime_dependencies:", "Pillow", "playwright", "chromium", "UNVERIFIED/BLOCKED"]:
+        assert phrase.casefold() in folded, phrase
+
+
 def test_docs_use_python3_for_copyable_commands() -> None:
     for relative in ["README.md", "docs/install.md", "docs/team-gpt-setup.md"]:
         text = read(REPO_ROOT / relative)
