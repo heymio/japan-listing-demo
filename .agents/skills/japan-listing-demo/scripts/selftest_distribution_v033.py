@@ -3,8 +3,11 @@
 
 from __future__ import annotations
 
+import importlib.util
 import re
+import sys
 from pathlib import Path
+from tempfile import TemporaryDirectory
 
 MAIN_SKILL = Path(__file__).resolve().parents[1]
 REPO_ROOT = MAIN_SKILL.parents[2]
@@ -12,6 +15,16 @@ REPO_ROOT = MAIN_SKILL.parents[2]
 
 def read(path: Path) -> str:
     return path.read_text(encoding="utf-8")
+
+
+def load_common():
+    path = REPO_ROOT / "scripts" / "package_common.py"
+    spec = importlib.util.spec_from_file_location("v033_package_common_test", path)
+    assert spec and spec.loader
+    module = importlib.util.module_from_spec(spec)
+    sys.modules["v033_package_common_test"] = module
+    spec.loader.exec_module(module)
+    return module
 
 
 def test_version_and_changelog_are_v033() -> None:
@@ -61,9 +74,27 @@ def test_packagers_are_deterministic_symlink_safe_and_self_validating() -> None:
     assert "validate_overlay.py" in codex
     for metadata in [
         "README.md", "CHANGELOG.md", "VERSION", "docs/install.md", "docs/team-gpt-setup.md",
-        "docs/release-notes-v0.3.3.md", ".github/workflows/release-validated.yml",
+        "docs/release-notes-v0.3.3.md", ".github/workflows/validate-japan-listing-demo.yml",
+        ".github/workflows/release-validated.yml",
     ]:
         assert metadata in codex
+
+
+def test_symlink_to_external_file_is_actually_rejected() -> None:
+    common = load_common()
+    with TemporaryDirectory() as directory:
+        root = Path(directory) / "root"
+        root.mkdir()
+        outside = Path(directory) / "outside-secret.txt"
+        outside.write_text("must never enter a package", encoding="utf-8")
+        link = root / "leak.txt"
+        link.symlink_to(outside)
+        try:
+            common.reject_symlinks(root)
+        except ValueError as exc:
+            assert "symlink" in str(exc).casefold(), exc
+        else:
+            raise AssertionError("external symlink must be rejected before packaging")
 
 
 def test_ci_executes_real_decoder_and_no_network_browser() -> None:
