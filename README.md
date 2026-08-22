@@ -38,7 +38,7 @@ Review generated visuals
 Review verified demo
 ```
 
-Normal checkpoints use `Done / Open / Next`. `继续 / 下一步 / go / next / 先这样` advances the workflow instead of triggering an unbounded retry loop. When nothing material changed, a normal transition acknowledgement stays short rather than re-explaining the workflow.
+Normal checkpoints use `Done / Open / Next`. Explicit advancement wording such as `继续 / 下一步 / go / next` advances the workflow instead of triggering an unbounded retry loop. `先这样` is treated as ambiguous and does not advance a major stage unless the surrounding instruction clearly requests advancement. `这张先过` accepts and locks the exact current asset within Production; it is not an unconditional major-stage transition.
 
 ## Creative-first architecture
 
@@ -94,7 +94,7 @@ CREATIVE_MOCK
 PROOF_VISUAL
 ```
 
-This separates creative lifestyle/mock imagery from visuals that must carry factual proof.
+This separates creative lifestyle/mock imagery from visuals that must carry factual proof. In v0.3.3, `PROOF_VISUAL` additionally requires explicit claim/fact/authoritative-source bindings before it can become final-consumable.
 
 For a fresh project, Stage 6.5 is lightweight Source Asset Intake. Full project-wide evidence audit is not required before final assets exist. A targeted early audit is used only when inheriting/reusing a previously approved exact asset.
 
@@ -110,9 +110,9 @@ The public repository contains only the generic mechanism; private brand/account
 
 It is artifact-first: a request for one final Gallery or enhanced-content asset should produce that artifact rather than a workflow diagram, asset map, or production-plan infographic.
 
-v0.3.2 adds production safeguards learned from the Light Bars team pilot without adding a new Stage or Hardening gate:
+v0.3.2 production safeguards remain active in v0.3.3:
 
-- every v0.3.2 one-job Asset Packet requires the current Evidence Mode plus Page Visual System direction and nearest same-region neighbor summaries;
+- every one-job Asset Packet requires the current Evidence Mode plus Page Visual System direction and nearest same-region neighbor summaries;
 - product-identity sources are separated from proof-grade sources: a Creative Mock may tolerate missing proof evidence, but never missing evidence required to keep the product identity faithful;
 - set-level Creative QA checks scene, composition, tone/brightness, product scale, proof form, and adjacent message-role repetition;
 - the final current asset set must have a recorded whole-set/contact-sheet visual review before Production Freeze is ready;
@@ -120,35 +120,30 @@ v0.3.2 adds production safeguards learned from the Light Bars team pilot without
 - Production may apply removal-only Scope Delta while keeping `asset_set`, `page_plan`, and `page_visual_system` aligned; additions or role/message/evidence changes return to Planning for a revised handoff;
 - Smallest Sufficient Cleanup avoids broad regeneration when one targeted change can restore the page.
 
-Production still uses:
-
-- one-job Asset Packets;
-- Visual Pattern Library and Golden Examples;
-- asset-level and set-level Creative QA;
-- Asset Ledger with candidate history;
-- `USER_APPROVED` creative state;
-- Production Freeze for complete-set accounting.
+v0.3.3 strengthens Production Freeze itself. Required assets are derived from all authoritative planning/implementation sources rather than allowing one non-empty source to override another. Every final Asset ID must bind to an exact selected `candidate_id` and exact `output_ref`; blocked assets, pending revisions, stale Set-level QA, or `ready_for_hardening=false` keep Freeze not ready.
 
 **Creative Approval ≠ Evidence Verification.**
 
 ### Hardening: verify rigorously
 
-`listing-hardening` owns final file identity, evidence audit, role/scope integrity, transform authorization, module origin, slot integrity, frontend fidelity, demo assembly, delivery parity, and Final QA.
+`listing-hardening` owns final file identity, evidence audit, role/scope integrity, transform authorization, module origin, slot integrity, frontend fidelity, demo assembly, runtime verification, delivery parity, and Final QA.
 
-Stage 8.5 runs the mandatory full final-asset audit through `listing-evidence-auditor` before final channel-native Demo Assembly.
+Stage 8.5 runs the mandatory full final-asset audit through `listing-evidence-auditor` before final Demo Assembly. For Delivery State 0.2 this pre-Demo audit is a workflow requirement; caller-authored `pre_9_required=false` cannot disable it and an empty required asset set cannot pass.
 
-The final user-facing Demo delivery contract is one **standalone `.html` file**: images/resources are physically embedded as `data:` URIs, CSS/JS are inline, and no adjacent `assets/` directory or Demo ZIP is required. The static validator rejects local/external image dependencies, mixed/external `srcset`, session-only literal `blob:` resources, external CSS/JS, missing responsive CSS, and unverifiable carousel wiring.
+The final user-facing Demo delivery contract is one **standalone `.html` file**: images/resources are physically embedded as `data:` URIs, CSS/JS are inline, and no adjacent `assets/` directory or Demo ZIP is required. Static preflight rejects local/external image dependencies, mixed/external `srcset`, session-only literal `blob:` resources, external CSS/JS, external SVG resources, inline-style external URLs, and missing responsive CSS.
 
-Static validation is necessary but not sufficient. Final runtime QA still opens the Demo in a browser at 1440px desktop and 390px mobile, verifies carousel controls in both directions, and checks horizontal overflow, broken images, and clipped controls/copy. If browser/runtime validation cannot be performed, mobile/carousel QA remains `BLOCKED` rather than being self-declared PASS.
+Static validation is necessary but is **not** interaction hard verification. When carousel markup is present, static preflight can validate structure, but `carousel_contract` remains runtime-required. Final hard-PASS requires no-network browser evidence bound to the exact Demo SHA. Runtime QA opens the Demo at 1440px desktop and 390px mobile, checks horizontal overflow, broken images, clipped controls/copy, and verifies carousel next/previous behavior in both directions. If browser runtime cannot be performed, the runtime gate remains `UNVERIFIED/BLOCKED` rather than self-declared PASS.
 
-Delivery State 0.2 keeps two separate questions explicit:
+Delivery State 0.2 now makes these final questions explicit:
 
 ```text
-PRODUCTION_FREEZE_GATE   → is the creatively approved set complete?
-PRE_DEMO_ASSET_GATE     → are the exact final files evidence-safe?
+PRODUCTION_FREEZE_GATE     → is the exact creatively approved set complete and internally ready?
+PRE_DEMO_ASSET_GATE       → are the exact final files evidence-safe?
+FRONTEND_FIDELITY_GATE    → is the claimed channel shell/order/interaction supported by evidence and approval?
+DEMO_RUNTIME_GATE          → did the exact final HTML pass no-network browser QA at required viewports/interactions?
 ```
 
-Both matter. One cannot substitute for the other. v0.3.2 does not add another Hardening gate.
+All are independently computed. A declared result cannot substitute for executable evidence.
 
 ## Channel-native planning and demo fidelity
 
@@ -167,11 +162,13 @@ Brand Story is separate. `Message != Module`, and `CONTENT_COVERAGE` remains sep
 
 ## Evidence auditor
 
-`listing-evidence-auditor` remains the exact-file trust boundary. It checks physical file identity, approval binding, provenance, semantic visual role, and required asset-set completeness.
+`listing-evidence-auditor` is the exact-file trust boundary. It checks physical file identity, approval binding, provenance, semantic visual role, required asset-set completeness, and—for `PROOF_VISUAL`—claim/source binding.
 
-Loading the auditor inside the same model context does not create independent semantic review. If independent semantic review is unavailable, unresolved role evidence remains `UNVERIFIED` / `HUMAN_REVIEW_REQUIRED` unless resolved by an appropriate human or genuinely independent review.
+v0.3.3 rejects structurally truncated supported images rather than accepting a valid-looking header alone. PNG requires complete IHDR/IDAT/IEND structure with CRC/decompression checks; JPEG/WebP receive additional completeness validation.
 
-v0.3.1 additionally rejects ambiguous audit packets before any dictionary indexing: duplicate asset, approval-event, prior-lock, slot, or expected-role identifiers fail fast. Those integrity safeguards remain unchanged in v0.3.2.
+A `PROOF_VISUAL` carries exact claim IDs, facts, and authoritative source IDs. Even when file/role/approval checks pass, it cannot become final-consumable without trusted human or genuinely independent semantic claim review covering those exact claims.
+
+Loading the auditor inside the same model context does not create independent semantic review. If independent semantic review is unavailable, unresolved evidence remains `UNVERIFIED` / `HUMAN_REVIEW_REQUIRED` unless resolved by an appropriate human or genuinely independent review.
 
 ## Distribution
 
@@ -180,7 +177,7 @@ v0.3.1 additionally rejects ambiguous audit packets before any dictionary indexi
 Build the five-sibling-Skill bundle:
 
 ```bash
-python scripts/package_codex_bundle.py
+python3 scripts/package_codex_bundle.py
 ```
 
 Output:
@@ -189,12 +186,14 @@ Output:
 dist/japan-listing-demo-codex-bundle.zip
 ```
 
+The v0.3.3 Codex bundle includes the repository metadata needed by `validate_overlay.py`, rejects symlink inputs, is built deterministically, and is extracted and validated before the packager reports success.
+
 ### One-install compatibility ZIP
 
 Build:
 
 ```bash
-python .agents/skills/japan-listing-demo/scripts/package_skill.py
+python3 .agents/skills/japan-listing-demo/scripts/package_skill.py
 ```
 
 Output:
@@ -205,21 +204,23 @@ dist/japan-listing-demo.skill.zip
 
 This archive keeps one user-facing Skill and embeds the four internal stage/audit Skills under `japan-listing-demo/internal-skills/`. It remains a **single-context** package, so embedded auditor loading does not claim independent semantic review. `SINGLE_CONTEXT_LIMITATION.txt` documents that boundary.
 
-Both package modes include the v0.3.2 account-capability resolver, candidate/scope state helpers, set-level QA, cleanup policy, and standalone Demo validator/reference.
+The v0.3.3 compatibility package is deterministic and symlink-safe. It excludes repository-only selftests and instead contains a package-local `scripts/validate_install.py`; packaging extracts the ZIP and runs that validator against the installed layout before reporting success.
 
 ## Validation
 
 ```bash
-python .agents/skills/listing-planning/scripts/selftest_planning.py
-python .agents/skills/listing-production/scripts/selftest_production.py
-python .agents/skills/listing-hardening/scripts/selftest_hardening.py
-python .agents/skills/listing-hardening/scripts/selftest_demo_output.py
-python .agents/skills/listing-evidence-auditor/scripts/selftest_auditor.py
-python .agents/skills/japan-listing-demo/scripts/selftest_router.py
-python .agents/skills/japan-listing-demo/scripts/selftest_project_state_validator.py
-python .agents/skills/japan-listing-demo/scripts/validate_overlay.py
-python .agents/skills/japan-listing-demo/scripts/package_skill.py
-python scripts/package_codex_bundle.py
+python3 .agents/skills/japan-listing-demo/scripts/selftest_fail_closed_v033.py
+python3 .agents/skills/listing-planning/scripts/selftest_planning.py
+python3 .agents/skills/listing-production/scripts/selftest_production.py
+python3 .agents/skills/listing-hardening/scripts/selftest_hardening.py
+python3 .agents/skills/listing-hardening/scripts/selftest_demo_output.py
+python3 .agents/skills/listing-evidence-auditor/scripts/selftest_auditor.py
+python3 .agents/skills/japan-listing-demo/scripts/selftest_router.py
+python3 .agents/skills/japan-listing-demo/scripts/selftest_project_state_validator.py
+python3 .agents/skills/japan-listing-demo/scripts/selftest_distribution_v033.py
+python3 .agents/skills/japan-listing-demo/scripts/validate_overlay.py
+python3 .agents/skills/japan-listing-demo/scripts/package_skill.py
+python3 scripts/package_codex_bundle.py
 ```
 
 ## Quick start
@@ -238,13 +239,17 @@ A thin team-facing Custom GPT can provide onboarding and project-entry UX, but i
 
 ## Release model
 
-A merge to `main` updates the source-of-truth branch, but it is not the same thing as an immutable public release. Formal releases use a version tag plus a GitHub Release containing the prebuilt distribution ZIP assets and checksums.
+A merge to `main` updates the source-of-truth branch, but it is not the same thing as an immutable public release.
 
-For a future `v0.3.2` release, `v0.3.1` remains the rollback target until the new version has completed review, merge, tagging, and release packaging. CI artifacts are temporary verification outputs, not permanent release assets.
+v0.3.3 release publication is triggered only after the repository's validation workflow succeeds for an exact `main` SHA. The build job checks out that exact SHA with `persist-credentials: false` and only `contents: read`, builds deterministic packages, and publishes a release-candidate artifact. A separate publish job receives `contents: write`, does not check out or execute repository code, re-verifies that `main` still points to the validated SHA, checks download-local SHA-256 checksums, and creates the tag/Release against that exact SHA.
+
+This prevents a stale or failed commit from racing a validated commit into a fixed version Release. CI artifacts remain temporary verification outputs, not permanent release assets.
+
+For a v0.3.3 rollout, the immediate rollback target is the immutable `v0.3.2` Release.
 
 ## Version
 
-`0.3.2`
+`0.3.3`
 
 ## License
 
