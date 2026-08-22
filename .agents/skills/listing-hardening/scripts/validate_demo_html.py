@@ -100,8 +100,9 @@ class DemoHTMLParser(HTMLParser):
 
 
 def _is_embedded_uri(value: str) -> bool:
-    folded = value.strip().casefold()
-    return folded.startswith("data:") or folded.startswith("blob:")
+    # Literal blob: URLs are bound to a browser session and are not portable
+    # inside a standalone file. Only data: URIs are physically self-contained.
+    return value.strip().casefold().startswith("data:")
 
 
 def _is_embedded_image(value: str) -> bool:
@@ -192,7 +193,7 @@ def validate_html_text(text: str) -> dict[str, object]:
     for tag, attr, value in parser.resource_refs:
         if not _is_embedded_uri(value):
             errors.append(
-                f"Standalone Demo cannot depend on external/local media: <{tag}> {attr}={value!r} must be embedded."
+                f"Standalone Demo cannot depend on external/local or session-only media: <{tag}> {attr}={value!r} must be embedded as data:."
             )
 
     style_text = "\n".join(parser.styles)
@@ -200,7 +201,7 @@ def validate_html_text(text: str) -> dict[str, object]:
         errors.append("All CSS must be inline without @import dependencies.")
     for target in _css_urls(style_text):
         if target and not _is_embedded_uri(target) and not target.startswith("#"):
-            errors.append(f"CSS url() dependency must be embedded as data:/blob:; found: {target}")
+            errors.append(f"CSS url() dependency must be embedded as data:; found: {target}")
 
     viewport_ok = any("width=device-width" in content.replace(" ", "").casefold() for content in parser.viewport_contents)
     if not viewport_ok:
@@ -237,7 +238,7 @@ def validate_html_text(text: str) -> dict[str, object]:
         "status": "PASS" if not errors else "FAIL",
         "errors": errors,
         "checks": {
-            "single_file_dependencies": "PASS" if not any("dependency" in item.casefold() or "inline" in item.casefold() for item in errors) else "FAIL",
+            "single_file_dependencies": "PASS" if not any("dependency" in item.casefold() or "inline" in item.casefold() or "session-only" in item.casefold() for item in errors) else "FAIL",
             "embedded_images": "PASS" if not any(("image" in item.casefold() or "srcset" in item.casefold()) and "embedded" in item.casefold() for item in errors) else "FAIL",
             "carousel_contract": "PASS" if carousel_structure_ok and carousel_wiring_ok else "FAIL",
             "mobile_contract": "PASS" if viewport_ok and responsive_css_ok else "FAIL",
