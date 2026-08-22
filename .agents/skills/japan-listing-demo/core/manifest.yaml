@@ -1,5 +1,5 @@
 distribution: standalone
-distribution_version: 0.3.2
+distribution_version: 0.3.3
 normal_invocation: $japan-listing-demo
 
 upstream:
@@ -23,10 +23,10 @@ runtime_architecture:
   hardening:
     skill: listing-hardening
     stages: 8.5-10
-    purpose: exact final-file hardening, delivery validation, frontend fidelity, demo assembly, parity and final QA
+    purpose: exact final-file hardening, delivery validation, frontend fidelity, no-network Demo runtime verification, parity and final QA
   auditor:
     skill: listing-evidence-auditor
-    purpose: physical file identity, approval/provenance, semantic role and required-set evidence reconciliation
+    purpose: physical file identity, approval/provenance, semantic role, PROOF_VISUAL claim/source binding and required-set evidence reconciliation
 
 state_objects:
   - Project Brief
@@ -42,8 +42,15 @@ execution_principles:
   - Fresh Stage 6.5 uses Source Asset Intake; full project-wide audit is not mandatory before final assets exist.
   - Targeted early audit is reserved for inherited or previously approved exact assets intended for reuse.
   - Stage 8.5 runs mandatory full final-asset hardening.
+  - Delivery State 0.2 Demo hardening is fail-closed; caller state cannot disable mandatory pre-Demo audit.
+  - Required final assets are a union across authoritative plan, implementation, slot-contract and blocker/revision state; one non-empty source cannot override another.
   - Creative USER_APPROVED state is separate from evidence verification.
+  - Production Freeze binds every required Asset ID to an exact selected candidate and output reference and cannot be ready while blockers, revisions or stale Set QA remain.
+  - Channel-native Demo readiness requires executable frontend fidelity and exact-Demo-SHA browser runtime gates.
+  - Browser runtime verification is no-network and covers 1440px and 390px plus both carousel directions when present.
+  - PROOF_VISUAL assets require explicit claim/fact/authoritative-source bindings and trusted claim review.
   - Normal checkpoints use Done / Open / Next; full Stage Completion Manifest is exception-only.
+  - Ambiguous wording such as 先这样 does not advance stages; current-asset acceptance such as 这张先过 stays within Production unless the stage is complete.
   - Transition commands advance immediately and same-artifact retries are bounded.
   - Same art direction does not imply the same composition; set-level creative rhythm is planned and reviewed inside Production.
   - User-selected exact candidates remain locked until explicit reopen.
@@ -53,13 +60,14 @@ execution_principles:
 
 distribution_modes:
   repository_codex:
-    layout: five sibling Skills under .agents/skills
+    layout: five sibling Skills under .agents/skills plus repository metadata required by overlay validation
     skills:
       - japan-listing-demo
       - listing-planning
       - listing-production
       - listing-hardening
       - listing-evidence-auditor
+    validation: validate_overlay.py must PASS after extraction
   compatibility_zip:
     root_skill: japan-listing-demo
     embedded_internal_skills:
@@ -69,6 +77,11 @@ distribution_modes:
       - listing-evidence-auditor
     internal_path: japan-listing-demo/internal-skills
     limitation: single-context semantic-audit limitation remains explicit
+    validation: package-local validate_install.py must PASS after extraction
+  build_properties:
+    deterministic_zip: true
+    fixed_timestamp_and_permissions: true
+    symlink_input: rejected
 
 machine_policy:
   channel_limits: data/channel-policy-limits.json
@@ -83,6 +96,8 @@ machine_policy:
     - PRODUCTION_FREEZE_GATE
     - ASSET_SLOT_GATE
     - PRE_DEMO_ASSET_GATE
+    - FRONTEND_FIDELITY_GATE
+    - DEMO_RUNTIME_GATE
     - DELIVERY_PARITY_GATE
 
 historical_patches:
@@ -123,21 +138,38 @@ historical_patches:
       - explicit scope revision and scope-aware Production Freeze accounting
       - Smallest Sufficient Cleanup
       - concise production continuation acknowledgement
+  - id: fail-closed-hard-verification-v0.3.3
+    purpose: remove fail-open hard-verification paths and make release/install verification exact-SHA, executable and adversarially tested
+    behaviors:
+      - mandatory non-empty pre-Demo hardening for Delivery State 0.2
+      - union required-asset derivation
+      - exact Asset ID to candidate/output Production Freeze binding
+      - executable FRONTEND_FIDELITY_GATE and DEMO_RUNTIME_GATE
+      - stricter PNG/JPEG/WebP structural verification
+      - PROOF_VISUAL claim/source binding plus trusted claim review
+      - static Demo preflight separated from no-network browser runtime proof
+      - deterministic symlink-safe self-validating distribution archives
+      - release only from the exact successful validation SHA with least privilege
     files:
-      - ../listing-planning/scripts/account_capability.py
-      - ../listing-planning/scripts/validate_planning_contracts.py
-      - ../listing-production/scripts/project_asset_packet.py
       - ../listing-production/scripts/production_state.py
-      - ../listing-production/scripts/set_level_qa.py
-      - ../listing-production/scripts/cleanup_policy.py
-      - SKILL.md
+      - ../listing-hardening/scripts/validate_delivery_state.py
+      - ../listing-hardening/scripts/validate_demo_html.py
+      - ../listing-hardening/scripts/validate_demo_runtime.py
+      - ../listing-evidence-auditor/scripts/fingerprint_assets.py
+      - ../listing-evidence-auditor/scripts/reconcile_evidence.py
+      - scripts/package_skill.py
+      - ../../../scripts/package_codex_bundle.py
+      - ../../../scripts/package_common.py
+      - ../../../.github/workflows/release-validated.yml
 
 update_policy:
   - review upstream and platform/channel changes before altering packaged policy
   - preserve one repository and one normal user invocation
   - keep public runtime examples category-neutral and free of confidential project data
-  - run Planning, Production, Hardening, Evidence Auditor, Router and compatibility validator self-tests
-  - validate both five-Skill Codex bundle and one-install compatibility archive
-  - release only after CI passes and human review is complete
+  - run adversarial fail-closed regressions plus Planning, Production, Hardening, Evidence Auditor, Router and compatibility validator self-tests
+  - validate both five-Skill Codex bundle and one-install compatibility archive after extraction
+  - build release ZIPs deterministically and reject symlink inputs
+  - release only the exact current main SHA after its validation workflow succeeds; repository code executes with contents-read only
+  - final merge and release still require human review and explicit approval
 
 runtime_dependency: none
