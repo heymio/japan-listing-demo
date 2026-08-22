@@ -1,7 +1,7 @@
 {
   "audit_version": "1",
   "project_id": "example-project",
-  "checkpoint": "post-6.5",
+  "checkpoint": "pre-9",
   "assets": [
     {
       "asset_id": "G03",
@@ -11,14 +11,31 @@
       "allowed_slots": ["gallery-03"],
       "claimed_parent_asset_id": null,
       "claimed_transform": null,
-      "claimed_approval_event_id": "APP-017"
+      "claimed_approval_event_id": "APP-017",
+      "evidence_mode": "SOURCE_FAITHFUL"
+    },
+    {
+      "asset_id": "P01",
+      "path": "assets/gallery/p01.png",
+      "claimed_role": "proof-visual",
+      "page_offer_scope": ["offer-a"],
+      "allowed_slots": ["gallery-04"],
+      "claimed_parent_asset_id": null,
+      "claimed_transform": null,
+      "claimed_approval_event_id": "APP-018",
+      "evidence_mode": "PROOF_VISUAL",
+      "claim_bindings": [
+        {
+          "claim_id": "CLAIM-01",
+          "fact": "Example factual claim shown in P01",
+          "authoritative_source_ids": ["SRC-OFFICIAL-01"]
+        }
+      ]
     }
   ],
   "slots": [
-    {
-      "slot_id": "gallery-03",
-      "required_asset_ids": ["G03"]
-    }
+    {"slot_id": "gallery-03", "required_asset_ids": ["G03"]},
+    {"slot_id": "gallery-04", "required_asset_ids": ["P01"]}
   ],
   "approval_events": [
     {
@@ -28,13 +45,19 @@
       "sha256": "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef",
       "approved_role": "gallery-native",
       "approved_slots": ["gallery-03"]
+    },
+    {
+      "approval_event_id": "APP-018",
+      "type": "explicit_user_approval",
+      "asset_id": "P01",
+      "sha256": "abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789",
+      "approved_role": "proof-visual",
+      "approved_slots": ["gallery-04"]
     }
   ],
   "prior_locked_assets": [],
   "expected_visual_roles": [
-    {
-      "asset_id": "G03",
-      "role": "gallery-native"
-    }
+    {"asset_id": "G03", "role": "gallery-native"},
+    {"asset_id": "P01", "role": "proof-visual"}
   ]
 }
