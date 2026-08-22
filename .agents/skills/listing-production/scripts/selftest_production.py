@@ -431,9 +431,46 @@ def test_v032_freeze_requires_current_set_level_visual_review() -> None:
         "reviewed_asset_ids": ["G1", "G2", "G3", "A1"],
         "visual_review_ref": "contact-sheet:final-v1",
     }
+    stale = build_production_freeze(handoff, ledger)
+    assert stale["ready_for_hardening"] is False
+    assert stale["set_qa_status"] == "STALE"
+
+    ledger["set_qa"]["reviewed_output_refs"] = {
+        "G1": "file:g1",
+        "G2": "file:g2",
+        "G3": "file:g3",
+        "A1": "file:a1",
+    }
     ready = build_production_freeze(handoff, ledger)
     assert ready["ready_for_hardening"] is True
     assert ready["set_qa_status"] == "CLEAR"
+
+
+def test_v032_set_qa_becomes_stale_when_approved_output_changes() -> None:
+    handoff = visual_handoff()
+    ledger = {
+        "assets": {
+            asset_id: {"status": "USER_APPROVED", "current_output_ref": f"file:{asset_id.lower()}"}
+            for asset_id in ["G1", "G2", "G3", "A1"]
+        },
+        "set_qa": {
+            "status": "CLEAR",
+            "reviewed_asset_ids": ["G1", "G2", "G3", "A1"],
+            "reviewed_output_refs": {
+                "G1": "file:g1",
+                "G2": "file:g2",
+                "G3": "file:g3",
+                "A1": "file:a1",
+            },
+            "visual_review_ref": "contact-sheet:final-v1",
+        },
+    }
+    assert build_production_freeze(handoff, ledger)["ready_for_hardening"] is True
+
+    ledger["assets"]["G2"]["current_output_ref"] = "file:g2-v3"
+    stale = build_production_freeze(handoff, ledger)
+    assert stale["ready_for_hardening"] is False
+    assert stale["set_qa_status"] == "STALE"
 
 
 def test_scope_delta_rejects_unknown_removed_asset() -> None:
