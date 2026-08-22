@@ -12,6 +12,7 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
+      - run: python .agents/skills/japan-listing-demo/scripts/selftest_fail_closed_v033.py
       - run: python .agents/skills/listing-planning/scripts/selftest_planning.py
       - run: python .agents/skills/listing-production/scripts/selftest_production.py
       - run: python .agents/skills/listing-hardening/scripts/selftest_hardening.py
