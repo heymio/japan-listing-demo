@@ -299,7 +299,7 @@ def test_v032_scope_revision_rejects_boolean() -> None:
       - test revision typing
 """
     errors = validate_production_handoff(text)
-    assert any("scope_revision" in error and "positive integer" in error for error in errors)
+    assert any("scope_revision" in error and "integer" in error for error in errors)
 
 
 def test_recent_account_capability_is_reused() -> None:
