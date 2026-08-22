@@ -312,6 +312,25 @@ def _set_qa_state(handoff: dict, ledger: dict, required: list[str]) -> tuple[str
     ):
         return "STALE", False
 
+    reviewed_output_refs = qa.get("reviewed_output_refs")
+    if not isinstance(reviewed_output_refs, dict) or set(reviewed_output_refs) != set(required):
+        return "STALE", False
+
+    rows = ledger.get("assets")
+    if not isinstance(rows, dict):
+        return "STALE", False
+    for asset_id in required:
+        reviewed_ref = reviewed_output_refs.get(asset_id)
+        current_ref = rows.get(asset_id, {}).get("current_output_ref") if isinstance(rows.get(asset_id), dict) else None
+        if (
+            not isinstance(reviewed_ref, str)
+            or not reviewed_ref.strip()
+            or not isinstance(current_ref, str)
+            or not current_ref.strip()
+            or reviewed_ref != current_ref
+        ):
+            return "STALE", False
+
     visual_review_ref = qa.get("visual_review_ref")
     if not isinstance(visual_review_ref, str) or not visual_review_ref.strip():
         return "MISSING_REF", False
