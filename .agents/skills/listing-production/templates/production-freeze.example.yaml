@@ -19,4 +19,10 @@ production_freeze:
 #     - AMZ-G1
 #     - AMZ-G2
 #     - AMZ-A1
+#   reviewed_output_refs:
+#     AMZ-G1: file:amz-g1
+#     AMZ-G2: file:amz-g2
+#     AMZ-A1: file:amz-a1
 #   visual_review_ref: contact-sheet:final-v1
+# If any current_output_ref changes after this review, set_qa becomes STALE and
+# the updated final set must be reviewed again before Production Freeze can pass.
