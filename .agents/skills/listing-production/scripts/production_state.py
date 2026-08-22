@@ -7,6 +7,7 @@ import json
 
 ALLOWED_STATUSES = {"PLANNED", "READY", "REVIEW", "REVISE", "USER_APPROVED", "BLOCKED"}
 CANDIDATE_STATUSES = {"REVIEW", "REJECTED", "USER_SELECTED", "SUPERSEDED"}
+SET_QA_READY_STATUSES = {"CLEAR", "USER_ACCEPTED"}
 
 
 def _copy(value: dict) -> dict:
@@ -44,12 +45,45 @@ def _validate_asset_objects(items: object, label: str) -> list[dict]:
     return result
 
 
-def apply_scope_delta(handoff: dict, delta: dict) -> dict:
-    """Return a new authoritative handoff after an explicit production-scope revision.
+def _remove_ids_from_page_plan(result: dict, remove_set: set[str]) -> None:
+    page_plan = result.get("page_plan")
+    if page_plan is None:
+        return
+    if not isinstance(page_plan, dict):
+        raise ValueError("handoff.page_plan must be a mapping when present")
+    for region in ("gallery", "enhanced_content", "other_required_regions"):
+        values = page_plan.get(region)
+        if values is None:
+            continue
+        if not isinstance(values, list):
+            raise ValueError(f"handoff.page_plan.{region} must be a list")
+        page_plan[region] = [value for value in values if value not in remove_set]
 
-    `added` and `changed` contain complete asset mappings so downstream role,
-    slot, message and evidence-mode information cannot disappear. The stored
-    scope_delta remains concise and records only affected Asset IDs.
+
+def _remove_ids_from_visual_system(result: dict, remove_set: set[str]) -> None:
+    visual_system = result.get("page_visual_system")
+    if visual_system is None:
+        return
+    if not isinstance(visual_system, dict):
+        raise ValueError("handoff.page_visual_system must be a mapping when present")
+    directions = visual_system.get("asset_directions")
+    if directions is None:
+        return
+    if not isinstance(directions, list):
+        raise ValueError("handoff.page_visual_system.asset_directions must be a list")
+    visual_system["asset_directions"] = [
+        row for row in directions
+        if not (isinstance(row, dict) and row.get("asset_id") in remove_set)
+    ]
+
+
+def apply_scope_delta(handoff: dict, delta: dict) -> dict:
+    """Apply a removal-only Production scope delta while keeping handoff views aligned.
+
+    Production may remove an already planned asset when the user explicitly
+    narrows scope. Adding an asset or changing its role/message/evidence state
+    requires a revised Planning handoff so Production never invents page
+    placement or Page Visual System direction across the Context Firewall.
     """
     if not isinstance(handoff, dict):
         raise ValueError("handoff must be a mapping")
@@ -81,43 +115,46 @@ def apply_scope_delta(handoff: dict, delta: dict) -> dict:
 
     added = _validate_asset_objects(delta.get("added", []), "delta.added")
     changed = _validate_asset_objects(delta.get("changed", []), "delta.changed")
+    if added or changed:
+        raise ValueError(
+            "Production cannot add/change authoritative assets directly; return to Planning for a revised handoff"
+        )
 
     reason = delta.get("reason")
     if not isinstance(reason, list) or not reason or any(not isinstance(value, str) or not value.strip() for value in reason):
         raise ValueError("delta.reason must be a non-empty list of strings")
 
-    added_ids = [item["asset_id"] for item in added]
-    changed_ids = [item["asset_id"] for item in changed]
-    if any(asset_id in current_by_id and asset_id not in removed for asset_id in added_ids):
-        raise ValueError("delta.added cannot duplicate an existing current Asset ID")
-    unknown_changed = [asset_id for asset_id in changed_ids if asset_id not in current_by_id or asset_id in removed]
-    if unknown_changed:
-        raise ValueError("delta.changed references unknown/removed Asset IDs: " + ", ".join(unknown_changed))
-    if set(added_ids) & set(changed_ids):
-        raise ValueError("an Asset ID cannot be both added and changed")
-
     result = _copy(handoff)
     remove_set = set(removed)
-    changed_by_id = {item["asset_id"]: item for item in changed}
-    next_assets: list[dict] = []
-    for asset_id in current_order:
-        if asset_id in remove_set:
-            continue
-        next_assets.append(_copy(changed_by_id.get(asset_id, current_by_id[asset_id])))
-    next_assets.extend(_copy(item) for item in added)
-    result["asset_set"] = next_assets
+    result["asset_set"] = [
+        _copy(current_by_id[asset_id])
+        for asset_id in current_order
+        if asset_id not in remove_set
+    ]
+    _remove_ids_from_page_plan(result, remove_set)
+    _remove_ids_from_visual_system(result, remove_set)
 
     previous_revision = result.get("scope_revision", 1)
     if not isinstance(previous_revision, int) or isinstance(previous_revision, bool) or previous_revision < 1:
         previous_revision = 1
     result["scope_revision"] = previous_revision + 1
     result["scope_delta"] = {
-        "added": added_ids,
+        "added": [],
         "removed": list(removed),
-        "changed": changed_ids,
+        "changed": [],
         "reason": list(reason),
     }
     return result
+
+
+def _is_selected_lock(row: dict) -> bool:
+    selected_candidate_id = row.get("selected_candidate_id")
+    return (
+        row.get("status") == "USER_APPROVED"
+        and isinstance(selected_candidate_id, str)
+        and bool(selected_candidate_id)
+        and row.get("reopened") is not True
+    )
 
 
 def add_candidate(ledger: dict, asset_id: str, candidate_id: str, output_ref: str) -> dict:
@@ -128,6 +165,9 @@ def add_candidate(ledger: dict, asset_id: str, candidate_id: str, output_ref: st
 
     result = _copy(ledger)
     row = result.setdefault("assets", {}).setdefault(asset_id, {})
+    if _is_selected_lock(row):
+        raise ValueError("asset is locked to a user-selected candidate; reopen before adding another candidate")
+
     candidates = row.setdefault("candidates", [])
     if not isinstance(candidates, list):
         raise ValueError("asset candidates must be a list")
@@ -221,11 +261,11 @@ def set_creative_status(
     result = _copy(ledger)
     row = result.setdefault("assets", {}).setdefault(asset_id, {})
 
-    selected_candidate_id = row.get("selected_candidate_id")
-    locked = row.get("status") == "USER_APPROVED" and isinstance(selected_candidate_id, str) and selected_candidate_id
-    if locked and row.get("reopened") is not True and output_ref is not None:
+    if _is_selected_lock(row):
+        if status != "USER_APPROVED":
+            raise ValueError("asset is locked to a user-selected candidate; reopen before changing status")
         current = row.get("current_output_ref")
-        if current is not None and output_ref != current:
+        if output_ref is not None and current is not None and output_ref != current:
             raise ValueError("asset is locked to a user-selected candidate; reopen before replacing output")
 
     row["status"] = status
@@ -249,6 +289,36 @@ def production_progress(handoff: dict, ledger: dict) -> dict:
     }
 
 
+def _set_qa_state(handoff: dict, ledger: dict, required: list[str]) -> tuple[str, bool]:
+    # Legacy/non-v0.3.2 handoffs did not carry a Page Visual System, so preserve
+    # backward compatibility rather than retroactively creating a new gate.
+    if "page_visual_system" not in handoff:
+        return "N/A", True
+
+    qa = ledger.get("set_qa")
+    if not isinstance(qa, dict):
+        return "MISSING", False
+
+    status = qa.get("status")
+    if status not in SET_QA_READY_STATUSES:
+        return str(status) if isinstance(status, str) and status else "MISSING", False
+
+    reviewed = qa.get("reviewed_asset_ids")
+    if (
+        not isinstance(reviewed, list)
+        or any(not isinstance(value, str) or not value for value in reviewed)
+        or len(reviewed) != len(set(reviewed))
+        or set(reviewed) != set(required)
+    ):
+        return "STALE", False
+
+    visual_review_ref = qa.get("visual_review_ref")
+    if not isinstance(visual_review_ref, str) or not visual_review_ref.strip():
+        return "MISSING_REF", False
+
+    return status, True
+
+
 def build_production_freeze(handoff: dict, ledger: dict) -> dict:
     required = _required_ids(handoff)
     rows = ledger.get("assets", {})
@@ -270,13 +340,20 @@ def build_production_freeze(handoff: dict, ledger: dict) -> dict:
         else:
             revision_pending.append(asset_id)
 
+    set_qa_status, set_qa_ready = _set_qa_state(handoff, ledger, required)
     expected = len(required)
-    ready = len(approved_assets) == expected and not blocked_assets and not revision_pending
+    ready = (
+        len(approved_assets) == expected
+        and not blocked_assets
+        and not revision_pending
+        and set_qa_ready
+    )
     return {
         "expected_assets": expected,
         "user_approved_assets": approved_assets,
         "blocked_assets": blocked_assets,
         "revision_pending": revision_pending,
         "approved_output_refs": approved_output_refs,
+        "set_qa_status": set_qa_status,
         "ready_for_hardening": ready,
     }
