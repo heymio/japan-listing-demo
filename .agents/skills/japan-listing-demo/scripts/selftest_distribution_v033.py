@@ -67,11 +67,15 @@ def test_release_self_validates_exact_main_sha_before_publish() -> None:
 
 def test_release_checksums_use_download_local_basenames() -> None:
     text = read(REPO_ROOT / ".github" / "workflows" / "release-validated.yml")
-    assert "cd dist" in text or "(cd dist" in text
-    checksum_lines = [line.strip() for line in text.splitlines() if "sha256sum" in line or "SHA256SUMS" in line]
-    joined = "\n".join(checksum_lines)
-    assert "dist/japan-listing-demo.skill.zip" not in joined
-    assert "dist/japan-listing-demo-codex-bundle.zip" not in joined
+    start = text.index("- name: Create download-local checksums and release metadata")
+    end = text.index("- uses: actions/upload-artifact@v4", start)
+    block = text[start:end]
+    assert "(cd dist && sha256sum" in block
+    assert "japan-listing-demo.skill.zip" in block
+    assert "japan-listing-demo-codex-bundle.zip" in block
+    assert "dist/japan-listing-demo.skill.zip" not in block
+    assert "dist/japan-listing-demo-codex-bundle.zip" not in block
+    assert "> SHA256SUMS.txt" in block
 
 
 def test_packagers_are_deterministic_symlink_safe_and_self_validating() -> None:
