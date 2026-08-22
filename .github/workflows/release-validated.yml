@@ -3,6 +3,7 @@ name: Release validated japan-listing-demo
 on:
   push:
     branches: [main]
+  pull_request:
 
 permissions:
   contents: read
@@ -13,6 +14,7 @@ jobs:
     permissions:
       contents: read
     outputs:
+      run_validation: ${{ steps.meta.outputs.run_validation }}
       publish: ${{ steps.meta.outputs.publish }}
       tag: ${{ steps.meta.outputs.tag }}
       validated_sha: ${{ steps.meta.outputs.validated_sha }}
@@ -26,15 +28,29 @@ jobs:
         with:
           python-version: "3.12"
 
-      - name: Pin release candidate to exact current main SHA
+      - name: Pin exact validation SHA and publication eligibility
         id: meta
         env:
           GH_TOKEN: ${{ github.token }}
           VALIDATED_SHA: ${{ github.sha }}
+          EVENT_NAME: ${{ github.event_name }}
         shell: bash
         run: |
           set -euo pipefail
           echo "validated_sha=$VALIDATED_SHA" >> "$GITHUB_OUTPUT"
+          echo "run_validation=true" >> "$GITHUB_OUTPUT"
+
+          VERSION="$(cat VERSION)"
+          test "$VERSION" = "0.3.3"
+          TAG="v$VERSION"
+          echo "tag=$TAG" >> "$GITHUB_OUTPUT"
+
+          if [ "$EVENT_NAME" = "pull_request" ]; then
+            echo "publish=false" >> "$GITHUB_OUTPUT"
+            echo "PR validation mode: full read-only release build will run; publication is disabled."
+            exit 0
+          fi
+
           CURRENT_MAIN="$(gh api "repos/${GITHUB_REPOSITORY}/git/ref/heads/main" --jq '.object.sha')"
           if [ "$CURRENT_MAIN" != "$VALIDATED_SHA" ]; then
             echo "publish=false" >> "$GITHUB_OUTPUT"
@@ -42,15 +58,6 @@ jobs:
             exit 0
           fi
 
-          VERSION="$(cat VERSION)"
-          if [ "$VERSION" != "0.3.3" ]; then
-            echo "publish=false" >> "$GITHUB_OUTPUT"
-            echo "v0.3.3 release workflow is inactive for VERSION=$VERSION"
-            exit 0
-          fi
-
-          TAG="v$VERSION"
-          echo "tag=$TAG" >> "$GITHUB_OUTPUT"
           if gh release view "$TAG" >/dev/null 2>&1; then
             echo "publish=false" >> "$GITHUB_OUTPUT"
             echo "Release $TAG already exists; publication is idempotent."
@@ -59,7 +66,7 @@ jobs:
           echo "publish=true" >> "$GITHUB_OUTPUT"
 
       - name: Install hard-verification runtime dependencies
-        if: steps.meta.outputs.publish == 'true'
+        if: steps.meta.outputs.run_validation == 'true'
         shell: bash
         run: |
           set -euo pipefail
@@ -67,7 +74,7 @@ jobs:
           python3 -m playwright install --with-deps chromium
 
       - name: Validate exact release SHA
-        if: steps.meta.outputs.publish == 'true'
+        if: steps.meta.outputs.run_validation == 'true'
         shell: bash
         run: |
           set -euo pipefail
@@ -85,7 +92,7 @@ jobs:
           python3 .agents/skills/japan-listing-demo/scripts/validate_overlay.py
 
       - name: Build deterministic release archives
-        if: steps.meta.outputs.publish == 'true'
+        if: steps.meta.outputs.run_validation == 'true'
         shell: bash
         run: |
           set -euo pipefail
@@ -105,7 +112,7 @@ jobs:
           python3 -m zipfile -l dist/japan-listing-demo-codex-bundle.zip >/dev/null
 
       - name: Create download-local checksums and release metadata
-        if: steps.meta.outputs.publish == 'true'
+        if: steps.meta.outputs.run_validation == 'true'
         env:
           VALIDATED_SHA: ${{ steps.meta.outputs.validated_sha }}
           TAG: ${{ steps.meta.outputs.tag }}
@@ -124,7 +131,7 @@ jobs:
             > dist/RELEASE_METADATA.json
 
       - uses: actions/upload-artifact@v4
-        if: steps.meta.outputs.publish == 'true'
+        if: steps.meta.outputs.run_validation == 'true'
         with:
           name: release-candidate-${{ steps.meta.outputs.tag }}-${{ steps.meta.outputs.validated_sha }}
           path: |
@@ -136,7 +143,7 @@ jobs:
 
   publish:
     needs: build
-    if: needs.build.outputs.publish == 'true'
+    if: github.event_name == 'push' && needs.build.outputs.publish == 'true'
     runs-on: ubuntu-latest
     permissions:
       actions: read
