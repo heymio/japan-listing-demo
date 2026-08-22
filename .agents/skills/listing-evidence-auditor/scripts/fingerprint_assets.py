@@ -6,6 +6,7 @@ from __future__ import annotations
 import argparse
 import hashlib
 import importlib.util
+import io
 import json
 import struct
 import zlib
@@ -104,6 +105,37 @@ def _webp_integrity(data: bytes) -> list[str]:
     return errors
 
 
+def _decoder_integrity(data: bytes, expected_family: str | None) -> list[str]:
+    """Use a real decoder; absence of the decoder is fail-closed, never PASS."""
+    try:
+        from PIL import Image, UnidentifiedImageError
+    except Exception as exc:
+        return [f"real image decoder unavailable (install Pillow): {exc}"]
+
+    format_map = {"PNG": "png", "JPEG": "jpeg", "WEBP": "webp"}
+    try:
+        with Image.open(io.BytesIO(data)) as image:
+            decoded_family = format_map.get((image.format or "").upper())
+            decoded_size = image.size
+            image.verify()
+        # verify() validates structure without decoding all pixels. Re-open and
+        # load() so truncated/corrupt scan data cannot pass the hard boundary.
+        with Image.open(io.BytesIO(data)) as image:
+            image.load()
+    except (UnidentifiedImageError, OSError, ValueError, SyntaxError) as exc:
+        return [f"real image decode failed: {exc}"]
+
+    errors: list[str] = []
+    if decoded_family != expected_family:
+        errors.append(
+            f"real decoder family mismatch: expected {expected_family!r}, decoded {decoded_family!r}"
+        )
+    width, height = decoded_size
+    if not isinstance(width, int) or width <= 0 or not isinstance(height, int) or height <= 0:
+        errors.append("real decoder returned invalid image dimensions")
+    return errors
+
+
 def inspect_image_bytes(data: bytes) -> tuple[str | None, int | None, int | None]:
     return _legacy.inspect_image_bytes(data)
 
@@ -183,6 +215,7 @@ def fingerprint_asset(path: Path, project_root: Path) -> dict[str, Any]:
         result["errors"].extend(_jpeg_integrity(data))
     elif family == "webp":
         result["errors"].extend(_webp_integrity(data))
+    result["errors"].extend(_decoder_integrity(data, family))
     return result
 
 
