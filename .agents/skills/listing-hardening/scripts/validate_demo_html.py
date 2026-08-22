@@ -1,45 +1,45 @@
 #!/usr/bin/env python3
-"""Validate a final listing Demo as one standalone responsive HTML file."""
+"""v0.3.3 standalone Demo static preflight.
+
+Static HTML inspection is a preflight only. Carousel interaction is never marked
+hard-PASS here; actual interaction PASS requires browser runtime evidence.
+"""
 
 from __future__ import annotations
 
 import argparse
+import importlib.util
 import json
 import re
-import sys
 from html.parser import HTMLParser
 from pathlib import Path
 from typing import Iterable
 
-
-RESOURCE_ATTRS = {
-    "audio": ("src",),
-    "embed": ("src",),
-    "iframe": ("src",),
-    "object": ("data",),
-    "source": ("src",),
-    "track": ("src",),
-    "video": ("src", "poster"),
-}
+HERE = Path(__file__).resolve().parent
+LEGACY_PATH = HERE / "validate_demo_html_legacy.py"
+SPEC = importlib.util.spec_from_file_location("listing_demo_html_legacy", LEGACY_PATH)
+if SPEC is None or SPEC.loader is None:
+    raise RuntimeError(f"cannot load legacy Demo validator: {LEGACY_PATH}")
+_legacy = importlib.util.module_from_spec(SPEC)
+SPEC.loader.exec_module(_legacy)
 
 
-class DemoHTMLParser(HTMLParser):
+def _embedded(value: str) -> bool:
+    value = value.strip().casefold()
+    return value.startswith("data:") or value.startswith("#")
+
+
+def _css_urls(style_text: str) -> list[str]:
+    return [m.group(2).strip() for m in re.finditer(r"url\(\s*(['\"]?)(.*?)\1\s*\)", style_text, flags=re.I | re.S)]
+
+
+class ExtraParser(HTMLParser):
     def __init__(self) -> None:
         super().__init__(convert_charrefs=True)
-        self.viewport_contents: list[str] = []
-        self.styles: list[str] = []
-        self.scripts: list[str] = []
-        self._capture_style = False
-        self._capture_script = False
-        self.images: list[dict[str, str]] = []
-        self.srcsets: list[tuple[str, str]] = []
-        self.script_srcs: list[str] = []
-        self.stylesheet_hrefs: list[str] = []
-        self.resource_refs: list[tuple[str, str, str]] = []
+        self.inline_styles: list[str] = []
+        self.svg_resource_refs: list[tuple[str, str, str]] = []
         self.carousel_roots = 0
-        self.carousel_slides = 0
-        self.carousel_prev_buttons = 0
-        self.carousel_next_buttons = 0
+        self.carousel_markers = 0
 
     @staticmethod
     def _attrs(attrs: Iterable[tuple[str, str | None]]) -> dict[str, str]:
@@ -48,201 +48,57 @@ class DemoHTMLParser(HTMLParser):
     def handle_starttag(self, tag: str, attrs: list[tuple[str, str | None]]) -> None:
         tag = tag.casefold()
         values = self._attrs(attrs)
-
-        if tag == "meta" and values.get("name", "").casefold() == "viewport":
-            self.viewport_contents.append(values.get("content", ""))
-
-        if tag == "style":
-            self._capture_style = True
-
-        if tag == "script":
-            self._capture_script = True
-            if values.get("src"):
-                self.script_srcs.append(values["src"])
-
-        if tag == "link":
-            rel_tokens = {token.casefold() for token in values.get("rel", "").split()}
-            if "stylesheet" in rel_tokens and values.get("href"):
-                self.stylesheet_hrefs.append(values["href"])
-
-        if tag == "img":
-            self.images.append(values)
-
-        if tag in {"img", "source"} and values.get("srcset"):
-            self.srcsets.append((tag, values["srcset"]))
-
-        for attr in RESOURCE_ATTRS.get(tag, ()):
-            value = values.get(attr)
-            if value:
-                self.resource_refs.append((tag, attr, value))
-
+        if values.get("style"):
+            self.inline_styles.append(values["style"])
+        if tag in {"image", "use"}:
+            for attr in ("href", "xlink:href"):
+                if values.get(attr):
+                    self.svg_resource_refs.append((tag, attr, values[attr]))
         if "data-carousel" in values:
             self.carousel_roots += 1
-        if "data-carousel-slide" in values:
-            self.carousel_slides += 1
-        if tag == "button" and "data-carousel-prev" in values:
-            self.carousel_prev_buttons += 1
-        if tag == "button" and "data-carousel-next" in values:
-            self.carousel_next_buttons += 1
-
-    def handle_endtag(self, tag: str) -> None:
-        tag = tag.casefold()
-        if tag == "style":
-            self._capture_style = False
-        elif tag == "script":
-            self._capture_script = False
-
-    def handle_data(self, data: str) -> None:
-        if self._capture_style:
-            self.styles.append(data)
-        if self._capture_script:
-            self.scripts.append(data)
-
-
-def _is_embedded_uri(value: str) -> bool:
-    # Literal blob: URLs are bound to a browser session and are not portable
-    # inside a standalone file. Only data: URIs are physically self-contained.
-    return value.strip().casefold().startswith("data:")
-
-
-def _is_embedded_image(value: str) -> bool:
-    return value.strip().casefold().startswith("data:image/")
-
-
-def _srcset_urls(value: str) -> list[str]:
-    """Extract candidate URLs while treating the first comma in a data URI as data syntax.
-
-    Image data URIs used by the Demo are expected to be compact (normally
-    base64), so a later comma is the candidate separator. Descriptors such as
-    `1x`, `2x`, or `640w` are skipped.
-    """
-    urls: list[str] = []
-    index = 0
-    length = len(value)
-    while index < length:
-        while index < length and (value[index].isspace() or value[index] == ","):
-            index += 1
-        if index >= length:
-            break
-
-        start = index
-        if value[index:index + 5].casefold() == "data:":
-            data_comma = value.find(",", index)
-            if data_comma < 0:
-                urls.append(value[start:].strip())
-                break
-            index = data_comma + 1
-            while index < length and not value[index].isspace() and value[index] != ",":
-                index += 1
-            urls.append(value[start:index].strip())
-        else:
-            while index < length and not value[index].isspace() and value[index] != ",":
-                index += 1
-            urls.append(value[start:index].strip())
-
-        while index < length and value[index] != ",":
-            index += 1
-        if index < length and value[index] == ",":
-            index += 1
-    return [url for url in urls if url]
-
-
-def _css_urls(style_text: str) -> list[str]:
-    return [
-        match.group(2).strip()
-        for match in re.finditer(r"url\(\s*(['\"]?)(.*?)\1\s*\)", style_text, flags=re.I | re.S)
-    ]
+        if any(key in values for key in ("data-carousel", "data-carousel-slide", "data-carousel-prev", "data-carousel-next")):
+            self.carousel_markers += 1
 
 
 def validate_delivery_path(path: Path) -> dict[str, object]:
-    errors: list[str] = []
-    if path.suffix.casefold() != ".html":
-        errors.append("Final Demo delivery must be exactly one .html file; ZIP/package delivery is not accepted.")
-    return {"status": "PASS" if not errors else "FAIL", "errors": errors}
+    return _legacy.validate_delivery_path(path)
 
 
 def validate_html_text(text: str) -> dict[str, object]:
-    errors: list[str] = []
-    parser = DemoHTMLParser()
-    try:
-        parser.feed(text)
-        parser.close()
-    except Exception as exc:  # pragma: no cover - HTMLParser rarely raises on malformed HTML
-        errors.append(f"HTML parsing failed: {exc}")
-        return {"status": "FAIL", "errors": errors}
+    result = _legacy.validate_html_text(text)
+    errors = list(result.get("errors", []))
+    parser = ExtraParser()
+    parser.feed(text)
+    parser.close()
 
-    for image in parser.images:
-        src = image.get("src", "").strip()
-        if not src:
-            errors.append("Every <img> must have an embedded data:image source.")
-        elif not _is_embedded_image(src):
-            errors.append(f"Image source must be embedded as data:image; external/local image dependency found: {src}")
+    # A page with no carousel markers may be a valid static DTC/retailer Demo.
+    if parser.carousel_markers == 0:
+        errors = [e for e in errors if not e.startswith("Carousel validation requires")]
 
-    for tag, srcset in parser.srcsets:
-        candidates = _srcset_urls(srcset)
-        if not candidates or any(not _is_embedded_image(candidate) for candidate in candidates):
-            errors.append(
-                f"<{tag}> srcset must contain only embedded data:image candidates; external/local srcset dependency found."
-            )
+    for style in parser.inline_styles:
+        for target in _css_urls(style):
+            if target and not _embedded(target):
+                errors.append(f"Inline style url() dependency must be embedded as data:; found: {target}")
+    for tag, attr, value in parser.svg_resource_refs:
+        if not _embedded(value):
+            errors.append(f"Standalone Demo cannot depend on external/local SVG resource: <{tag}> {attr}={value!r}")
 
-    if parser.script_srcs:
-        errors.append("All JavaScript must be inline; <script src> dependencies are not allowed.")
-    if parser.stylesheet_hrefs:
-        errors.append("All CSS must be inline; external/local stylesheet dependencies are not allowed.")
-
-    for tag, attr, value in parser.resource_refs:
-        if not _is_embedded_uri(value):
-            errors.append(
-                f"Standalone Demo cannot depend on external/local or session-only media: <{tag}> {attr}={value!r} must be embedded as data:."
-            )
-
-    style_text = "\n".join(parser.styles)
-    if re.search(r"@import\b", style_text, flags=re.I):
-        errors.append("All CSS must be inline without @import dependencies.")
-    for target in _css_urls(style_text):
-        if target and not _is_embedded_uri(target) and not target.startswith("#"):
-            errors.append(f"CSS url() dependency must be embedded as data:; found: {target}")
-
-    viewport_ok = any("width=device-width" in content.replace(" ", "").casefold() for content in parser.viewport_contents)
-    if not viewport_ok:
-        errors.append("Mobile validation requires a viewport meta tag with width=device-width.")
-
-    responsive_css_ok = bool(re.search(r"@media\s*\([^)]*(?:max-width|min-width)[^)]*\)", style_text, flags=re.I))
-    if not responsive_css_ok:
-        errors.append("Mobile validation requires responsive CSS with an explicit @media width breakpoint.")
-
-    if parser.images and not re.search(r"max-width\s*:\s*100%", style_text, flags=re.I):
-        errors.append("Responsive image contract requires max-width: 100% in inline CSS.")
-
-    carousel_structure_ok = (
-        parser.carousel_roots >= 1
-        and parser.carousel_slides >= 2
-        and parser.carousel_prev_buttons >= 1
-        and parser.carousel_next_buttons >= 1
-    )
-    script_text = "\n".join(parser.scripts)
-    carousel_wiring_ok = all(
-        token in script_text
-        for token in ["data-carousel", "data-carousel-prev", "data-carousel-next", "addEventListener"]
-    ) and bool(re.search(r"['\"]click['\"]", script_text))
-
-    if not carousel_structure_ok:
-        errors.append(
-            "Carousel validation requires a data-carousel root, at least two data-carousel-slide elements, "
-            "and button controls for data-carousel-prev/data-carousel-next."
-        )
-    elif not carousel_wiring_ok:
-        errors.append("Carousel controls exist but inline JavaScript wiring for click interaction is not verifiable.")
+    checks = dict(result.get("checks", {}))
+    if parser.carousel_markers == 0:
+        checks["carousel_static_contract"] = "N/A"
+        checks["carousel_contract"] = "N/A"
+    elif any("carousel" in error.casefold() for error in errors):
+        checks["carousel_static_contract"] = "FAIL"
+        checks["carousel_contract"] = "FAIL"
+    else:
+        checks["carousel_static_contract"] = "PASS"
+        checks["carousel_contract"] = "RUNTIME_REQUIRED"
 
     return {
         "status": "PASS" if not errors else "FAIL",
         "errors": errors,
-        "checks": {
-            "single_file_dependencies": "PASS" if not any("dependency" in item.casefold() or "inline" in item.casefold() or "session-only" in item.casefold() for item in errors) else "FAIL",
-            "embedded_images": "PASS" if not any(("image" in item.casefold() or "srcset" in item.casefold()) and "embedded" in item.casefold() for item in errors) else "FAIL",
-            "carousel_contract": "PASS" if carousel_structure_ok and carousel_wiring_ok else "FAIL",
-            "mobile_contract": "PASS" if viewport_ok and responsive_css_ok else "FAIL",
-        },
+        "checks": checks,
+        "note": "static preflight only; browser runtime evidence is required for interaction hard verification",
     }
 
 
@@ -261,17 +117,17 @@ def validate_file(path: Path) -> dict[str, object]:
 
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("html", type=Path, help="final standalone .html Demo")
-    parser.add_argument("--json", action="store_true", help="emit machine-readable JSON")
+    parser.add_argument("html", type=Path)
+    parser.add_argument("--json", action="store_true")
     args = parser.parse_args(argv)
-
     result = validate_file(args.html)
     if args.json:
         print(json.dumps(result, ensure_ascii=False, indent=2))
     else:
-        print(f"{result['status']}: standalone Demo HTML validation")
+        print(f"{result['status']}: standalone Demo static preflight")
         for error in result.get("errors", []):
             print(f"- {error}")
+        print(result.get("note", ""))
     return 0 if result["status"] == "PASS" else 1
 
 
