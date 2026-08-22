@@ -20,7 +20,9 @@ Use the Planning-owned **Primary Reference** and Channel Frontend Reference Pack
 
 ## FRONTEND_FIDELITY_GATE
 
-Immediately before native Demo Assembly, verify:
+`FRONTEND_FIDELITY_GATE` is a canonical executable Delivery State 0.2 gate in v0.3.3. An empty `frontend_fidelity` object cannot pass.
+
+For `CHANNEL_NATIVE` mode, record non-empty evidence references and verify:
 
 - current shell and material section order are visually supported;
 - brand-controlled and platform-controlled regions are distinguished;
@@ -30,11 +32,21 @@ Immediately before native Demo Assembly, verify:
 - project content is inserted only into verified brand-controlled/demo regions;
 - unsupported platform UI is not fabricated as product truth.
 
+The fidelity payload is bound to an explicit user approval event. Caller-authored prose or a manually entered `PASS` result cannot satisfy the gate.
+
 If these conditions are not met, do not label the deliverable channel-native.
 
 ## Content Review Demo fallback
 
-When `FRONTEND_FIDELITY_GATE` cannot pass, produce a clearly named **Content Review Demo** if a review artifact is still useful. It may present approved content sequence and assets, but it must not fabricate marketplace chrome, buy-box behavior, tabs, cards, navigation, or other native UI and present them as verified.
+When native fidelity cannot be supported, use `CONTENT_REVIEW` mode and clearly label the deliverable as a **Content Review Demo**. It may present approved content sequence and assets, but it must not fabricate marketplace chrome, buy-box behavior, tabs, cards, navigation, or other native UI and present them as verified.
+
+`CONTENT_REVIEW` is a legitimate review mode, not a silent downgrade: the state must explicitly say it is labeled content review and must not claim channel-native fidelity.
+
+## Relationship to runtime verification
+
+Frontend Fidelity proves the evidence basis for the claimed shell/order/interaction model. It does **not** prove that the final HTML actually renders or interacts correctly.
+
+The exact final Demo must separately pass `DEMO_RUNTIME_GATE`, which binds browser evidence to the Demo SHA-256 and checks no-network 1440px/390px rendering plus carousel behavior when present.
 
 ## Stage 9 assembly
 
