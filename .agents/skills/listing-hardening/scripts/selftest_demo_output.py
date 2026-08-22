@@ -104,6 +104,18 @@ def test_external_source_srcset_fails() -> None:
     assert any("srcset" in message.casefold() for message in result["errors"])
 
 
+def test_literal_blob_resource_fails_standalone_contract() -> None:
+    validator = load_validator()
+    html = valid_demo_html().replace(
+        '<main class="demo">',
+        '<main class="demo"><video src="blob:https://example.test/session-only"></video>',
+        1,
+    )
+    result = validator.validate_html_text(html)
+    assert result["status"] == "FAIL"
+    assert any("blob" in message.casefold() or "embedded" in message.casefold() for message in result["errors"])
+
+
 def test_carousel_requires_controls_slides_and_inline_wiring() -> None:
     validator = load_validator()
     html = valid_demo_html().replace("addEventListener('click'", "noop('click'")
