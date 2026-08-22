@@ -32,6 +32,7 @@ REPO_METADATA = [
     "docs/install.md",
     "docs/team-gpt-setup.md",
     "docs/release-notes-v0.3.3.md",
+    ".github/workflows/validate-japan-listing-demo.yml",
     ".github/workflows/release-validated.yml",
     "scripts/package_codex_bundle.py",
     "scripts/package_common.py",
