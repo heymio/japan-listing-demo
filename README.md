@@ -164,7 +164,7 @@ Brand Story is separate. `Message != Module`, and `CONTENT_COVERAGE` remains sep
 
 `listing-evidence-auditor` is the exact-file trust boundary. It checks physical file identity, approval binding, provenance, semantic visual role, required asset-set completeness, and—for `PROOF_VISUAL`—claim/source binding.
 
-v0.3.3 rejects structurally truncated supported images rather than accepting a valid-looking header alone. PNG requires complete IHDR/IDAT/IEND structure with CRC/decompression checks; JPEG/WebP receive additional completeness validation.
+v0.3.3 rejects structurally truncated supported images rather than accepting a valid-looking header alone. PNG requires complete IHDR/IDAT/IEND structure with CRC/decompression checks; JPEG/WebP receive additional completeness validation. Hard verification also performs a real Pillow decode/load; if the decoder is unavailable, exact-file image verification cannot be promoted to PASS.
 
 A `PROOF_VISUAL` carries exact claim IDs, facts, and authoritative source IDs. Even when file/role/approval checks pass, it cannot become final-consumable without trusted human or genuinely independent semantic claim review covering those exact claims.
 
@@ -208,13 +208,17 @@ The v0.3.3 compatibility package is deterministic and symlink-safe. It excludes 
 
 ## Validation
 
+Hard-verification CI installs Pillow plus Playwright/Chromium. Copyable repository checks are:
+
 ```bash
 python3 .agents/skills/japan-listing-demo/scripts/selftest_fail_closed_v033.py
 python3 .agents/skills/listing-planning/scripts/selftest_planning.py
 python3 .agents/skills/listing-production/scripts/selftest_production.py
 python3 .agents/skills/listing-hardening/scripts/selftest_hardening.py
 python3 .agents/skills/listing-hardening/scripts/selftest_demo_output.py
+python3 .agents/skills/listing-hardening/scripts/selftest_demo_runtime_v033.py
 python3 .agents/skills/listing-evidence-auditor/scripts/selftest_auditor.py
+python3 .agents/skills/listing-evidence-auditor/scripts/selftest_image_decode_v033.py
 python3 .agents/skills/japan-listing-demo/scripts/selftest_router.py
 python3 .agents/skills/japan-listing-demo/scripts/selftest_project_state_validator.py
 python3 .agents/skills/japan-listing-demo/scripts/selftest_distribution_v033.py
@@ -241,11 +245,11 @@ A thin team-facing Custom GPT can provide onboarding and project-entry UX, but i
 
 A merge to `main` updates the source-of-truth branch, but it is not the same thing as an immutable public release.
 
-v0.3.3 release publication is triggered only after the repository's validation workflow succeeds for an exact `main` SHA. The build job checks out that exact SHA with `persist-credentials: false` and only `contents: read`, builds deterministic packages, and publishes a release-candidate artifact. A separate publish job receives `contents: write`, does not check out or execute repository code, re-verifies that `main` still points to the validated SHA, checks download-local SHA-256 checksums, and creates the tag/Release against that exact SHA.
+For v0.3.3, `release-validated.yml` is triggered by a `main` push and treats that exact `github.sha` as the only release candidate. Its **read-only build job** checks out that SHA with `persist-credentials: false`, verifies it is still current `main`, installs Pillow and Playwright/Chromium, executes the complete hard-verification suite on that exact source tree, builds both packages twice to prove reproducibility, and emits checksums plus SHA-bound release metadata. Repository code never runs with `contents: write`.
 
-This prevents a stale or failed commit from racing a validated commit into a fixed version Release. CI artifacts remain temporary verification outputs, not permanent release assets.
+Only after that job succeeds does a separate **publish job** receive `contents: write`. It does not check out or execute repository code; it downloads the validated artifact, re-verifies metadata, checksums, tag state, and that `main` still equals the validated SHA, then creates `v0.3.3` against that exact commit. This keeps release validation and publication bound to the same SHA without relying on a second workflow event chain.
 
-For a v0.3.3 rollout, the immediate rollback target is the immutable `v0.3.2` Release.
+CI artifacts remain temporary verification outputs, not permanent release assets. For a v0.3.3 rollout, the immediate rollback target is the immutable `v0.3.2` Release.
 
 ## Version
 
