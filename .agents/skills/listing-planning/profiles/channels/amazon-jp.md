@@ -4,9 +4,35 @@
 
 Select this profile when the target is an Amazon.co.jp product detail page or brand-controlled enhanced-content area.
 
+## Account capability reuse
+
+Account-level capabilities are not project-level questions when a valid persistent profile already exists.
+
+Decision order:
+
+1. if an `account_capability_profile` exists, is sufficiently recent, and has no conflicting evidence, reuse the recorded capability;
+2. if the profile is missing, stale, malformed, or contradicted, ask/verify the capability;
+3. never infer account access from competitor execution;
+4. never hard-code brand-specific account values in this public profile.
+
+A generic profile may record fields such as:
+
+```yaml
+account_capability_profile:
+  channel: amazon-jp
+  account_scope: brand-account
+  capabilities:
+    premium_a_plus: true
+    brand_story: true
+  verified_at: 2026-08-01
+  source_ref: team-private-context
+```
+
+The values above illustrate the public contract only. Real brand/account values belong in private team context or explicit project input.
+
 ## Verify before planning
 
-Confirm from current official guidance and the actual Seller/Vendor account interface:
+When capability evidence is not reusable, confirm from current official guidance and the actual Seller/Vendor account interface:
 
 - ownership and ASIN/category eligibility;
 - editable title, bullets, attributes, media, variations, Brand Story and enhanced-content regions;
@@ -90,6 +116,7 @@ Do not assume that an A+ landscape board can later be cropped into a Gallery boa
 Record:
 
 - account/site/capability state and verification date;
+- reusable `account_capability_profile` reference when available;
 - editable-region and ownership map;
 - Primary Reference + Channel Frontend Reference Pack;
 - Gallery and enhanced-content page architecture;

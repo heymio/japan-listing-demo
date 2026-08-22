@@ -65,9 +65,6 @@ if __name__ == "__main__":
     raise SystemExit(main())
 '''
 
-# v0.3.1 keeps the old gate implementation in _delivery_state_core.py. Only
-# that embedded core needs a policy-path rewrite; the strict wrapper can be
-# copied unchanged because it imports the sibling core by relative file path.
 NORMAL_POLICY_BLOCK = '''SCRIPT_DIR = Path(__file__).resolve().parent
 REPO_ROOT = SCRIPT_DIR.parents[3]
 DEFAULT_POLICY_PATH = REPO_ROOT / ".agents" / "skills" / "japan-listing-demo" / "data" / "channel-policy-limits.json"'''
@@ -84,11 +81,18 @@ REQUIRED_MEMBERS = {
     "japan-listing-demo/data/channel-policy-limits.json",
     "japan-listing-demo/scripts/validate_project_state.py",
     "japan-listing-demo/internal-skills/listing-planning/SKILL.md",
+    "japan-listing-demo/internal-skills/listing-planning/scripts/account_capability.py",
     "japan-listing-demo/internal-skills/listing-production/SKILL.md",
     "japan-listing-demo/internal-skills/listing-production/scripts/project_asset_packet.py",
+    "japan-listing-demo/internal-skills/listing-production/scripts/production_state.py",
+    "japan-listing-demo/internal-skills/listing-production/scripts/set_level_qa.py",
+    "japan-listing-demo/internal-skills/listing-production/scripts/cleanup_policy.py",
     "japan-listing-demo/internal-skills/listing-hardening/SKILL.md",
+    "japan-listing-demo/internal-skills/listing-hardening/references/demo-output.md",
     "japan-listing-demo/internal-skills/listing-hardening/scripts/validate_delivery_state.py",
     "japan-listing-demo/internal-skills/listing-hardening/scripts/_delivery_state_core.py",
+    "japan-listing-demo/internal-skills/listing-hardening/scripts/validate_demo_html.py",
+    "japan-listing-demo/internal-skills/listing-hardening/scripts/selftest_demo_output.py",
     "japan-listing-demo/internal-skills/listing-evidence-auditor/SKILL.md",
     "japan-listing-demo/internal-skills/listing-evidence-auditor/scripts/fingerprint_assets.py",
     LIMITATION_MEMBER,
@@ -137,6 +141,8 @@ def smoke_test_archive(output: Path) -> None:
         state_path.write_text(json.dumps(state), encoding="utf-8")
         commands = [
             [sys.executable, str(root / "scripts" / "selftest_router.py")],
+            [sys.executable, str(root / "internal-skills" / "listing-planning" / "scripts" / "selftest_planning.py")],
+            [sys.executable, str(root / "internal-skills" / "listing-production" / "scripts" / "selftest_production.py")],
             [sys.executable, str(root / "scripts" / "selftest_project_state_validator.py")],
             [sys.executable, str(root / "scripts" / "validate_project_state.py"), str(state_path), "--json"],
         ]

@@ -68,6 +68,14 @@ On a Transition Command:
 
 A Transition Command never upgrades missing evidence or incomplete work into a false success state.
 
+## Production continuation UX
+
+When **nothing material changed**, keep the **Transition acknowledgement <= 3 lines**. Do not repeat stage theory, gate definitions, or the full plan merely because the user said OK/继续/对.
+
+When the user chooses a **selected candidate**, acknowledge the **exact candidate/output** that was locked, then state the **next asset**. Do not generate another version for that locked Asset ID unless there is **explicit reopen** intent.
+
+Set-level Creative QA is not a new Gate. It remains inside Stage 7.5–8 Production and must not create a new numbered stage.
+
 ## Retry Budget
 
 For the same artifact and same identified problem, allow at most **two autonomous attempts** without new user input or new evidence. After the Retry Budget is exhausted, stop and surface the current artifact, revision need, or blocker.

@@ -24,6 +24,23 @@ FORBIDDEN_HANDOFF = {
     "pre_demo_asset_gate",
 }
 
+EVIDENCE_MODES = {"SOURCE_FAITHFUL", "CREATIVE_MOCK", "PROOF_VISUAL"}
+VISUAL_DIRECTION_FIELDS = (
+    "visual_role",
+    "scene_family",
+    "composition_family",
+    "tone",
+    "product_scale",
+    "proof_form",
+)
+VISUAL_SIGNATURE_FIELDS = (
+    "scene_family",
+    "composition_family",
+    "tone",
+    "product_scale",
+    "proof_form",
+)
+
 _KEY_RE = re.compile(r"^[A-Za-z0-9_.-]+$")
 
 
@@ -202,6 +219,14 @@ def _require_type(container: dict[str, Any], key: str, expected: type, errors: l
     return value
 
 
+def _non_empty_string(container: dict[str, Any], key: str, errors: list[str], path: str) -> str | None:
+    value = _require_type(container, key, str, errors, path)
+    if isinstance(value, str) and not value.strip():
+        errors.append(f"{path}.{key} must be a non-empty string")
+        return None
+    return value if isinstance(value, str) else None
+
+
 def _unique_ids(items: list[Any], key: str, errors: list[str], path: str) -> set[str]:
     seen: set[str] = set()
     for index, item in enumerate(items):
@@ -275,6 +300,109 @@ def _find_forbidden(value: Any, path: str = "") -> list[str]:
     return errors
 
 
+def _visual_signature(direction: dict[str, Any]) -> tuple[Any, ...]:
+    return tuple(direction.get(key) for key in VISUAL_SIGNATURE_FIELDS)
+
+
+def _validate_page_visual_system(
+    handoff: dict[str, Any],
+    asset_ids: set[str],
+    ordered_asset_ids: list[str],
+    errors: list[str],
+) -> None:
+    visual_system = _require_type(handoff, "page_visual_system", dict, errors, "production_handoff")
+    if not isinstance(visual_system, dict):
+        return
+    directions = _require_type(
+        visual_system, "asset_directions", list, errors, "production_handoff.page_visual_system"
+    )
+    if not isinstance(directions, list):
+        return
+
+    direction_ids = _unique_ids(
+        directions, "asset_id", errors, "production_handoff.page_visual_system.asset_directions"
+    )
+    unknown = sorted(direction_ids - asset_ids)
+    if unknown:
+        errors.append(
+            "page_visual_system references Asset IDs absent from current asset_set: " + ", ".join(unknown)
+        )
+    missing = sorted(asset_ids - direction_ids)
+    if missing:
+        errors.append(
+            "page_visual_system missing directions for current Asset IDs: " + ", ".join(missing)
+        )
+
+    by_id: dict[str, dict[str, Any]] = {}
+    for index, direction in enumerate(directions):
+        if not isinstance(direction, dict):
+            continue
+        asset_id = direction.get("asset_id")
+        if isinstance(asset_id, str) and asset_id:
+            by_id[asset_id] = direction
+        path = f"production_handoff.page_visual_system.asset_directions[{index}]"
+        for key in VISUAL_DIRECTION_FIELDS:
+            _non_empty_string(direction, key, errors, path)
+        note = direction.get("neighbor_contrast_note")
+        if note is not None and (not isinstance(note, str) or not note.strip()):
+            errors.append(f"{path}.neighbor_contrast_note must be a non-empty string when present")
+
+    for previous_id, current_id in zip(ordered_asset_ids, ordered_asset_ids[1:]):
+        previous = by_id.get(previous_id)
+        current = by_id.get(current_id)
+        if not previous or not current:
+            continue
+        if _visual_signature(previous) == _visual_signature(current):
+            note = current.get("neighbor_contrast_note")
+            if not isinstance(note, str) or not note.strip():
+                errors.append(
+                    f"adjacent visual direction repeats without intentional contrast note: {previous_id} -> {current_id}"
+                )
+
+
+def _validate_scope_delta(handoff: dict[str, Any], asset_ids: set[str], errors: list[str]) -> None:
+    has_revision = "scope_revision" in handoff
+    has_delta = "scope_delta" in handoff
+    if not has_revision and not has_delta:
+        return
+    if not has_revision or not has_delta:
+        errors.append("scope_revision and scope_delta must be provided together")
+        return
+
+    revision = _require_type(handoff, "scope_revision", int, errors, "production_handoff")
+    if isinstance(revision, int) and not isinstance(revision, bool) and revision < 1:
+        errors.append("production_handoff.scope_revision must be a positive integer")
+
+    delta = _require_type(handoff, "scope_delta", dict, errors, "production_handoff")
+    if not isinstance(delta, dict):
+        return
+    values: dict[str, list[Any]] = {}
+    for key in ["added", "removed", "changed", "reason"]:
+        value = _require_type(delta, key, list, errors, "production_handoff.scope_delta")
+        if isinstance(value, list):
+            values[key] = value
+            for index, item in enumerate(value):
+                if not isinstance(item, str) or not item.strip():
+                    errors.append(
+                        f"production_handoff.scope_delta.{key}[{index}] must be a non-empty string"
+                    )
+    if "reason" in values and not values["reason"]:
+        errors.append("production_handoff.scope_delta.reason must not be empty")
+
+    removed = {item for item in values.get("removed", []) if isinstance(item, str)}
+    added = {item for item in values.get("added", []) if isinstance(item, str)}
+    remaining_removed = sorted(removed & asset_ids)
+    if remaining_removed:
+        errors.append(
+            "scope_delta removed Asset IDs must not remain in current asset_set: " + ", ".join(remaining_removed)
+        )
+    missing_added = sorted(added - asset_ids)
+    if missing_added:
+        errors.append(
+            "scope_delta added Asset IDs must exist in current asset_set: " + ", ".join(missing_added)
+        )
+
+
 def validate_production_handoff(text: str) -> list[str]:
     root, errors = _parse_root(text)
     if root is None:
@@ -297,12 +425,19 @@ def validate_production_handoff(text: str) -> list[str]:
         for index, asset in enumerate(asset_set):
             if not isinstance(asset, dict):
                 continue
+            path = f"production_handoff.asset_set[{index}]"
             for key in ["role", "slot", "primary_message", "status"]:
-                _require_type(asset, key, str, errors, f"production_handoff.asset_set[{index}]")
+                _non_empty_string(asset, key, errors, path)
+            evidence_mode = _non_empty_string(asset, "evidence_mode", errors, path)
+            if evidence_mode is not None and evidence_mode not in EVIDENCE_MODES:
+                errors.append(
+                    f"{path}.evidence_mode must be one of: {', '.join(sorted(EVIDENCE_MODES))}"
+                )
     if isinstance(source_assets, list):
         _unique_ids(source_assets, "source_id", errors, "production_handoff.source_assets")
 
     planned_ids: set[str] = set()
+    ordered_planned_ids: list[str] = []
     if isinstance(page_plan, dict):
         for region in ["gallery", "enhanced_content", "other_required_regions"]:
             values = _require_type(page_plan, region, list, errors, "production_handoff.page_plan")
@@ -312,6 +447,7 @@ def validate_production_handoff(text: str) -> list[str]:
                         errors.append(f"production_handoff.page_plan.{region} entries must be non-empty Asset IDs")
                     else:
                         planned_ids.add(value)
+                        ordered_planned_ids.append(value)
     blocked_ids: set[str] = set()
     blocked = handoff.get("blocked_assets")
     if isinstance(blocked, list):
@@ -323,9 +459,18 @@ def validate_production_handoff(text: str) -> list[str]:
     missing_assets = sorted(planned_ids - asset_ids - blocked_ids)
     if missing_assets:
         errors.append(f"page_plan references Asset IDs absent from asset_set/blocked_assets: {', '.join(missing_assets)}")
+
+    _validate_page_visual_system(
+        handoff,
+        asset_ids,
+        [asset_id for asset_id in ordered_planned_ids if asset_id in asset_ids],
+        errors,
+    )
+    _validate_scope_delta(handoff, asset_ids, errors)
+
     if isinstance(project, dict):
         for key in ["market", "channel", "locale", "product"]:
-            _require_type(project, key, str, errors, "production_handoff.project")
+            _non_empty_string(project, key, errors, "production_handoff.project")
     return errors
 
 

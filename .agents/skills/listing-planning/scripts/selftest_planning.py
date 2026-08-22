@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """Regression tests for the listing-planning Skill."""
 
+from datetime import datetime, timezone
 import sys
 from pathlib import Path
 
@@ -17,6 +18,82 @@ from validate_planning_contracts import (  # noqa: E402
 
 def read(path: Path) -> str:
     return path.read_text(encoding="utf-8")
+
+
+def valid_v032_handoff() -> str:
+    return """production_handoff:
+  project:
+    market: JP
+    channel: amazon-jp
+    locale: ja-JP
+    product: Example Product
+  page_plan:
+    gallery:
+      - G1
+      - G2
+    enhanced_content:
+      - A1
+    other_required_regions: []
+  asset_set:
+    - asset_id: G1
+      role: gallery-native
+      slot: G1
+      primary_message: Core positioning
+      evidence_mode: SOURCE_FAITHFUL
+      status: READY
+    - asset_id: G2
+      role: gallery-native
+      slot: G2
+      primary_message: Primary proof
+      evidence_mode: PROOF_VISUAL
+      status: READY
+    - asset_id: A1
+      role: enhanced-content
+      slot: A1
+      primary_message: Lifestyle expansion
+      evidence_mode: CREATIVE_MOCK
+      status: READY
+  source_assets:
+    - source_id: SRC-P01
+      role: real-product-source
+      required_by:
+        - G1
+        - G2
+        - A1
+  product_invariants:
+    - preserve exact product geometry
+  creative_strategy_ref: creative-strategy.yaml
+  global_visual_direction:
+    - product-first commercial hierarchy
+  visual_benchmark_refs:
+    - BENCH-01
+  prohibited:
+    - unsupported claims
+  blocked_assets: []
+  page_visual_system:
+    asset_directions:
+      - asset_id: G1
+        visual_role: hero-positioning
+        scene_family: clean-product-stage
+        composition_family: centered-hero
+        tone: bright-neutral
+        product_scale: large
+        proof_form: source-faithful-product
+      - asset_id: G2
+        visual_role: mechanism-proof
+        scene_family: technical-detail
+        composition_family: close-up-explainer
+        tone: neutral-technical
+        product_scale: close-up
+        proof_form: mechanism
+      - asset_id: A1
+        visual_role: lifestyle-use
+        scene_family: realistic-home
+        composition_family: wide-lifestyle
+        tone: warm-natural
+        product_scale: medium
+        proof_form: lifestyle
+"""
 
 
 def test_skill_exists_and_owns_only_planning_plane() -> None:
@@ -159,6 +236,127 @@ def test_amazon_planning_profile_keeps_module_budget_and_role_separation() -> No
         assert phrase in text
     for forbidden in ["exact_recovery_verified", "delivery_parity_gate", "provenance_conflict"]:
         assert forbidden not in text
+
+
+def test_v032_handoff_rejects_invalid_evidence_mode() -> None:
+    text = valid_v032_handoff().replace("evidence_mode: SOURCE_FAITHFUL", "evidence_mode: NOT_A_MODE", 1)
+    errors = validate_production_handoff(text)
+    assert any("evidence_mode" in error for error in errors)
+
+
+def test_v032_handoff_rejects_visual_direction_for_unknown_asset() -> None:
+    text = valid_v032_handoff().replace("asset_id: A1\n        visual_role: lifestyle-use", "asset_id: MISSING-ASSET\n        visual_role: lifestyle-use", 1)
+    errors = validate_production_handoff(text)
+    assert any("MISSING-ASSET" in error for error in errors)
+
+
+def test_v032_handoff_rejects_accidental_adjacent_visual_duplicate() -> None:
+    text = valid_v032_handoff()
+    text = text.replace("scene_family: technical-detail", "scene_family: clean-product-stage", 1)
+    text = text.replace("composition_family: close-up-explainer", "composition_family: centered-hero", 1)
+    text = text.replace("tone: neutral-technical", "tone: bright-neutral", 1)
+    text = text.replace("product_scale: close-up", "product_scale: large", 1)
+    text = text.replace("proof_form: mechanism", "proof_form: source-faithful-product", 1)
+    errors = validate_production_handoff(text)
+    assert any("adjacent visual direction" in error.casefold() for error in errors)
+
+
+def test_v032_handoff_allows_intentional_adjacent_visual_duplicate() -> None:
+    text = valid_v032_handoff()
+    text = text.replace("scene_family: technical-detail", "scene_family: clean-product-stage", 1)
+    text = text.replace("composition_family: close-up-explainer", "composition_family: centered-hero", 1)
+    text = text.replace("tone: neutral-technical", "tone: bright-neutral", 1)
+    text = text.replace("product_scale: close-up", "product_scale: large", 1)
+    text = text.replace(
+        "proof_form: mechanism",
+        "proof_form: source-faithful-product\n        neighbor_contrast_note: Intentional matched pair for comparison",
+        1,
+    )
+    assert validate_production_handoff(text) == []
+
+
+def test_v032_scope_delta_removed_asset_cannot_remain_current() -> None:
+    text = valid_v032_handoff() + """  scope_revision: 2
+  scope_delta:
+    added: []
+    removed:
+      - G2
+    changed: []
+    reason:
+      - message merged into G1
+"""
+    errors = validate_production_handoff(text)
+    assert any("removed" in error.casefold() and "G2" in error for error in errors)
+
+
+def test_v032_scope_revision_rejects_boolean() -> None:
+    text = valid_v032_handoff() + """  scope_revision: true
+  scope_delta:
+    added: []
+    removed: []
+    changed: []
+    reason:
+      - test revision typing
+"""
+    errors = validate_production_handoff(text)
+    assert any("scope_revision" in error and "integer" in error for error in errors)
+
+
+def test_recent_account_capability_is_reused() -> None:
+    from account_capability import resolve_capability
+
+    profile = {
+        "channel": "amazon-jp",
+        "capabilities": {"premium_a_plus": True},
+        "verified_at": "2026-08-01",
+        "source_ref": "team-private-context",
+    }
+    result = resolve_capability(
+        profile,
+        "premium_a_plus",
+        now=datetime(2026, 8, 21, tzinfo=timezone.utc),
+        max_age_days=90,
+    )
+    assert result == {"status": "REUSE", "value": True, "reason": "recent confirmed capability"}
+
+
+def test_stale_or_conflicted_account_capability_requires_verification() -> None:
+    from account_capability import resolve_capability
+
+    profile = {
+        "channel": "amazon-jp",
+        "capabilities": {"premium_a_plus": True},
+        "verified_at": "2025-01-01",
+        "source_ref": "team-private-context",
+    }
+    stale = resolve_capability(
+        profile,
+        "premium_a_plus",
+        now=datetime(2026, 8, 21, tzinfo=timezone.utc),
+        max_age_days=90,
+    )
+    conflict = resolve_capability(
+        profile,
+        "premium_a_plus",
+        now=datetime(2026, 8, 21, tzinfo=timezone.utc),
+        max_age_days=9999,
+        conflicting=True,
+    )
+    assert stale["status"] == "VERIFY"
+    assert conflict["status"] == "VERIFY"
+
+
+def test_invalid_account_capability_profile_requires_verification() -> None:
+    from account_capability import resolve_capability
+
+    result = resolve_capability(
+        {"capabilities": {"premium_a_plus": "yes"}, "verified_at": "not-a-date"},
+        "premium_a_plus",
+        now=datetime(2026, 8, 21, tzinfo=timezone.utc),
+        max_age_days=90,
+    )
+    assert result["status"] == "VERIFY"
+    assert result["value"] is None
 
 
 def main() -> int:

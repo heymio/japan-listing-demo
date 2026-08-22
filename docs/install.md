@@ -47,13 +47,34 @@ Before Production, Planning creates:
 - Project Brief;
 - Creative Strategy Kernel;
 - Production Handoff;
-- Complete Demo-Required Production Set.
+- Complete Demo-Required Production Set;
+- Page Visual System;
+- Evidence Mode per final asset.
+
+The Page Visual System is part of the existing Stage 7 handoff, not a new Stage. It records each asset's scene/composition/tone/product-scale/proof-form direction so the full page has deliberate visual rhythm.
+
+Evidence Mode is one of `SOURCE_FAITHFUL`, `CREATIVE_MOCK`, or `PROOF_VISUAL` and determines how missing source evidence affects Production.
 
 For fresh projects, Stage 6.5 is Source Asset Intake only. Full project-wide evidence audit is not mandatory there. Use targeted early audit only for an inherited/reused previously approved exact asset.
+
+### Account Capability Profile
+
+A private team/project environment may supply persistent account-level capability evidence. When that profile is recent and non-conflicted, Planning reuses it instead of repeatedly asking the same project-level question. Missing/stale/conflicting records are re-verified.
+
+The public Skill contains only the generic resolver. Do not place real private brand/account capability values in this public repository.
 
 ### Production
 
 Production receives only formal production inputs and one-job Asset Packets. It is artifact-first and does not carry full workflow/auditor state into visual-generation prompts.
+
+v0.3.2 adds:
+
+- minimal nearest-neighbor Page Visual System context in each Asset Packet;
+- per-asset Evidence Mode behavior;
+- exact candidate history and Selection Lock;
+- set-level Creative QA for scene/composition/tone/scale/proof/message rhythm;
+- explicit production Scope Delta;
+- Smallest Sufficient Cleanup.
 
 Creative status uses:
 
@@ -66,9 +87,9 @@ USER_APPROVED
 BLOCKED
 ```
 
-`USER_APPROVED` is creative approval, not physical verification.
+`USER_APPROVED` is creative approval, not physical verification. Once an exact candidate is user-selected, the output remains locked until explicit reopen; ordinary continuation advances to the next asset.
 
-Production Freeze records whether the complete creative asset set is approved for Hardening.
+Production Freeze records whether the complete current creative asset set is approved for Hardening. Scope revisions recompute Freeze from the current authoritative `asset_set` without reopening unrelated approved assets.
 
 ### Hardening
 
@@ -81,13 +102,15 @@ PRODUCTION_FREEZE_GATE
 PRE_DEMO_ASSET_GATE
 ```
 
+v0.3.2 adds no new Hardening gate and does not weaken v0.3.1 validator-integrity behavior.
+
 The existing machine validator remains available through the compatibility path:
 
 ```bash
 python .agents/skills/japan-listing-demo/scripts/validate_project_state.py path/to/state.json --json
 ```
 
-Its canonical implementation now lives under `listing-hardening`.
+Its canonical implementation lives under `listing-hardening`.
 
 ## Major Stage Checkpoints
 
@@ -101,7 +124,7 @@ Next:
 
 Use a full Stage Completion Manifest only for `PARTIAL`, `BLOCKED`, or explicit detailed audit review.
 
-`继续 / 下一步 / go / next / 先这样` normally advances the workflow. The same artifact/problem has at most two autonomous retries without new input or evidence.
+`继续 / 下一步 / go / next / 先这样` normally advances the workflow. When nothing material changed, transition acknowledgement stays short. The same artifact/problem has at most two autonomous retries without new input or evidence.
 
 ## Recommended repository / Codex bundle
 
@@ -150,6 +173,8 @@ japan-listing-demo/
 
 This is still one model context. Context Projection and stage boundaries apply, but loading embedded `listing-evidence-auditor` does not create independent semantic review. `SINGLE_CONTEXT_LIMITATION.txt` documents the limitation. Unresolved semantic evidence remains `UNVERIFIED` / `HUMAN_REVIEW_REQUIRED` unless resolved through an appropriate human or genuinely independent review.
 
+The compatibility package smoke test executes embedded Planning and Production selftests, so the v0.3.2 account-capability, Selection Lock, set-level QA, scope-delta and cleanup behavior must work after extraction as well as in repository mode.
+
 ## Channel-native work
 
 Planning establishes Platform Capability evidence, a Primary Reference, Frontend Visual evidence and Channel Frontend Reference Pack. Official platform/retailer rules do not substitute for current consumer-facing visual evidence.
@@ -177,15 +202,15 @@ python -m zipfile -l dist/japan-listing-demo-codex-bundle.zip
 ```text
 Use $japan-listing-demo.
 按默认 Major Stage Checkpoint 执行。
-从产品/Offer/Claim和消费者策略开始；确认页面结构和完整生产资产集后，再进入逐张视觉生产；最终 Demo 前执行 Hardening。
+从产品/Offer/Claim和消费者策略开始；确认页面结构、完整生产资产集和整页视觉方向后，再进入逐张视觉生产；最终 Demo 前执行 Hardening。
 ```
 
 ## Formal version install / upgrade
 
-For team-wide use, prefer an immutable GitHub Release rather than a temporary CI artifact. A formal release should provide:
+For team-wide use, prefer an immutable GitHub Release rather than a temporary CI artifact. A formal v0.3.2 release should provide:
 
 ```text
-Tag: v0.3.1
+Tag: v0.3.2
 Release assets:
 - japan-listing-demo.skill.zip
 - japan-listing-demo-codex-bundle.zip
@@ -198,7 +223,7 @@ A merge to `main` alone is not a formal release. CI artifacts are temporary veri
 
 ## Rollback
 
-Rollback by reinstalling the ZIP assets from the previous immutable GitHub Release/tag, for example `v0.3.0`, rather than reconstructing a historical package from a moving branch.
+For a v0.3.2 rollout, the immediate rollback target is the immutable `v0.3.1` Release. Reinstall its ZIP assets rather than reconstructing a historical package from a moving branch.
 
 Existing project state should not be silently rewritten during rollback. Resume from the last human-approved checkpoint and re-run Hardening if validator semantics differ between versions.
 

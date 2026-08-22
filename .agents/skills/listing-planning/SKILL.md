@@ -31,7 +31,10 @@ Preserve deep planning across:
 - Gallery and enhanced-content IA;
 - module availability, module budget, CONTENT_COVERAGE, and MODULE_FIT_GATE;
 - full page/offer narrative;
-- the Complete Demo-Required Production Set.
+- the Complete Demo-Required Production Set;
+- a lightweight Page Visual System across that complete production set;
+- one Evidence Mode per final asset;
+- reusable account-level capability evidence when supplied and still valid.
 
 Planning may be analytically deep. The handoff boundary is what becomes compact.
 
@@ -53,6 +56,36 @@ Stage 7 is complete only when every Demo-required final role has an Asset ID in 
 
 Gallery and enhanced-content roles remain separate production requirements unless explicit reuse or derivative intent was planned upstream.
 
+### Page Visual System
+
+Stage 7 must also define a concise art-direction matrix for the complete required asset set. This is part of the Production Handoff, not a new Stage or Gate.
+
+For each current Asset ID record:
+
+- `visual_role`;
+- `scene_family`;
+- `composition_family`;
+- `tone`;
+- `product_scale`;
+- `proof_form`;
+- optional `neighbor_contrast_note` when adjacent repetition is intentional.
+
+**Same art direction ≠ same composition.** Adjacent assets must not accidentally repeat the same scene/composition/tone/product-scale/proof-form combination merely to preserve brand consistency.
+
+### Evidence Mode
+
+Each current final asset must be assigned exactly one:
+
+- `SOURCE_FAITHFUL` — faithful product/pack/offer identity is intrinsic to the visual role;
+- `CREATIVE_MOCK` — lifestyle/atmosphere/spatial creative representation; generated details do not become Product Truth;
+- `PROOF_VISUAL` — factual installation/dimension/interface/mechanism/UI/compatibility proof that requires suitable authoritative source evidence.
+
+`source insufficiency != automatic creative rework`. Missing source evidence lowers evidence entitlement for a Creative Mock, while a Proof Visual may be `BLOCKED` when its proof source is unavailable.
+
+### Scope revisions
+
+If the required production set changes after the initial Stage 7 handoff, record a concise `scope_revision` + `scope_delta` rather than silently mutating the list. Current production progress always derives from the current authoritative `asset_set`; unrelated approved assets remain untouched.
+
 ## Required handoff
 
 Before leaving Stage 7, produce:
@@ -60,6 +93,8 @@ Before leaving Stage 7, produce:
 - Project Brief;
 - Creative Strategy Kernel;
 - Production Handoff;
-- Complete Demo-Required Production Set.
+- Complete Demo-Required Production Set;
+- Page Visual System;
+- Evidence Mode per final asset.
 
 The Production Handoff must carry the strategy and production decisions needed downstream without carrying the full research history, rejected attempts, or final hardening machinery.

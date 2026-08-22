@@ -49,10 +49,26 @@ Own:
 
 `USER_APPROVED` creative state never replaces final evidence verification.
 
+## Final Demo delivery contract
+
+Before Stage 9 assembly and Stage 10 delivery, read `references/demo-output.md`.
+
+The default user-facing Demo deliverable is **one single standalone HTML file**:
+
+- no project Demo ZIP;
+- no required adjacent `assets` folder;
+- embedded images;
+- inline CSS and JavaScript;
+- carousel behavior must be verifiable;
+- mobile behavior must be verified at the required viewport widths;
+- the exact final file must pass `scripts/validate_demo_html.py`.
+
+If browser/runtime verification cannot be performed, carousel/mobile QA is `BLOCKED`; static source inspection alone is not enough to claim a passed interactive/mobile final Demo.
+
 ## Evidence auditor
 
 Delegate exact-file evidence work to sibling `listing-evidence-auditor`. When independent semantic review is unavailable, retain the auditor's existing human/independent-context limitation rather than self-certifying semantic truth.
 
 ## Output
 
-Produce Delivery State, verified/fallback demo assembly result, delivery-parity result, and Final QA.
+Produce Delivery State, verified/fallback demo assembly result, delivery-parity result, Final QA, and the final single standalone HTML Demo when a Demo is in scope.

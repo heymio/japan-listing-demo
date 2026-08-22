@@ -38,7 +38,7 @@ Review generated visuals
 Review verified demo
 ```
 
-Normal checkpoints use `Done / Open / Next`. `继续 / 下一步 / go / next / 先这样` advances the workflow instead of triggering an unbounded retry loop.
+Normal checkpoints use `Done / Open / Next`. `继续 / 下一步 / go / next / 先这样` advances the workflow instead of triggering an unbounded retry loop. When nothing material changed, a normal transition acknowledgement stays short rather than re-explaining the workflow.
 
 ## Creative-first architecture
 
@@ -80,9 +80,29 @@ Planning ends with formal state objects instead of forwarding the whole conversa
 - Project Brief;
 - Creative Strategy Kernel;
 - Production Handoff;
-- Complete Demo-Required Production Set.
+- Complete Demo-Required Production Set;
+- Page Visual System;
+- one Evidence Mode per final asset.
+
+The **Page Visual System** is a lightweight art-direction matrix inside the existing Stage 7 handoff. It specifies each asset's scene family, composition family, tone, product scale, and proof form so a coherent page does not collapse into one repeated template. **Same art direction ≠ same composition.**
+
+Evidence Mode is one of:
+
+```text
+SOURCE_FAITHFUL
+CREATIVE_MOCK
+PROOF_VISUAL
+```
+
+This separates creative lifestyle/mock imagery from visuals that must carry factual proof.
 
 For a fresh project, Stage 6.5 is lightweight Source Asset Intake. Full project-wide evidence audit is not required before final assets exist. A targeted early audit is used only when inheriting/reusing a previously approved exact asset.
+
+### Account capability reuse
+
+Persistent channel/account facts such as enhanced-content access may be supplied through a private Account Capability Profile. If a recorded capability is recent and non-conflicted, Planning reuses it instead of asking the same project-level question again. Missing, stale, malformed, or contradicted capability evidence is re-verified.
+
+The public repository contains only the generic mechanism; private brand/account values are not embedded here.
 
 ### Production: produce narrowly
 
@@ -90,12 +110,22 @@ For a fresh project, Stage 6.5 is lightweight Source Asset Intake. Full project-
 
 It is artifact-first: a request for one final Gallery or enhanced-content asset should produce that artifact rather than a workflow diagram, asset map, or production-plan infographic.
 
-Production uses:
+v0.3.2 adds production safeguards learned from the Light Bars team pilot without adding a new Stage or Hardening gate:
+
+- every v0.3.2 one-job Asset Packet requires the current Evidence Mode plus Page Visual System direction and nearest same-region neighbor summaries;
+- product-identity sources are separated from proof-grade sources: a Creative Mock may tolerate missing proof evidence, but never missing evidence required to keep the product identity faithful;
+- set-level Creative QA checks scene, composition, tone/brightness, product scale, proof form, and adjacent message-role repetition;
+- the final current asset set must have a recorded whole-set/contact-sheet visual review before Production Freeze is ready;
+- exact candidate Selection Lock protects the selected output, candidate history, and creative status until explicit reopen;
+- Production may apply removal-only Scope Delta while keeping `asset_set`, `page_plan`, and `page_visual_system` aligned; additions or role/message/evidence changes return to Planning for a revised handoff;
+- Smallest Sufficient Cleanup avoids broad regeneration when one targeted change can restore the page.
+
+Production still uses:
 
 - one-job Asset Packets;
 - Visual Pattern Library and Golden Examples;
-- compact Creative QA;
-- Asset Ledger;
+- asset-level and set-level Creative QA;
+- Asset Ledger with candidate history;
 - `USER_APPROVED` creative state;
 - Production Freeze for complete-set accounting.
 
@@ -107,6 +137,10 @@ Production uses:
 
 Stage 8.5 runs the mandatory full final-asset audit through `listing-evidence-auditor` before final channel-native Demo Assembly.
 
+The final user-facing Demo delivery contract is one **standalone `.html` file**: images/resources are physically embedded as `data:` URIs, CSS/JS are inline, and no adjacent `assets/` directory or Demo ZIP is required. The static validator rejects local/external image dependencies, mixed/external `srcset`, session-only literal `blob:` resources, external CSS/JS, missing responsive CSS, and unverifiable carousel wiring.
+
+Static validation is necessary but not sufficient. Final runtime QA still opens the Demo in a browser at 1440px desktop and 390px mobile, verifies carousel controls in both directions, and checks horizontal overflow, broken images, and clipped controls/copy. If browser/runtime validation cannot be performed, mobile/carousel QA remains `BLOCKED` rather than being self-declared PASS.
+
 Delivery State 0.2 keeps two separate questions explicit:
 
 ```text
@@ -114,7 +148,7 @@ PRODUCTION_FREEZE_GATE   → is the creatively approved set complete?
 PRE_DEMO_ASSET_GATE     → are the exact final files evidence-safe?
 ```
 
-Both matter. One cannot substitute for the other.
+Both matter. One cannot substitute for the other. v0.3.2 does not add another Hardening gate.
 
 ## Channel-native planning and demo fidelity
 
@@ -137,7 +171,7 @@ Brand Story is separate. `Message != Module`, and `CONTENT_COVERAGE` remains sep
 
 Loading the auditor inside the same model context does not create independent semantic review. If independent semantic review is unavailable, unresolved role evidence remains `UNVERIFIED` / `HUMAN_REVIEW_REQUIRED` unless resolved by an appropriate human or genuinely independent review.
 
-v0.3.1 additionally rejects ambiguous audit packets before any dictionary indexing: duplicate asset, approval-event, prior-lock, slot, or expected-role identifiers fail fast.
+v0.3.1 additionally rejects ambiguous audit packets before any dictionary indexing: duplicate asset, approval-event, prior-lock, slot, or expected-role identifiers fail fast. Those integrity safeguards remain unchanged in v0.3.2.
 
 ## Distribution
 
@@ -171,12 +205,15 @@ dist/japan-listing-demo.skill.zip
 
 This archive keeps one user-facing Skill and embeds the four internal stage/audit Skills under `japan-listing-demo/internal-skills/`. It remains a **single-context** package, so embedded auditor loading does not claim independent semantic review. `SINGLE_CONTEXT_LIMITATION.txt` documents that boundary.
 
+Both package modes include the v0.3.2 account-capability resolver, candidate/scope state helpers, set-level QA, cleanup policy, and standalone Demo validator/reference.
+
 ## Validation
 
 ```bash
 python .agents/skills/listing-planning/scripts/selftest_planning.py
 python .agents/skills/listing-production/scripts/selftest_production.py
 python .agents/skills/listing-hardening/scripts/selftest_hardening.py
+python .agents/skills/listing-hardening/scripts/selftest_demo_output.py
 python .agents/skills/listing-evidence-auditor/scripts/selftest_auditor.py
 python .agents/skills/japan-listing-demo/scripts/selftest_router.py
 python .agents/skills/japan-listing-demo/scripts/selftest_project_state_validator.py
@@ -190,7 +227,7 @@ python scripts/package_codex_bundle.py
 ```text
 Use $japan-listing-demo.
 按默认 Major Stage Checkpoint 执行。
-从产品与市场策略开始，先确认页面结构和完整生产资产集，再逐张产出视觉；最终 Demo 前执行 Hardening。
+从产品与市场策略开始，先确认页面结构、完整生产资产集和整页视觉方向，再逐张产出视觉；最终 Demo 前执行 Hardening。
 ```
 
 Ordinary team users should not need to understand Skill routing, file hashes, provenance, or validator internals.
@@ -201,11 +238,13 @@ A thin team-facing Custom GPT can provide onboarding and project-entry UX, but i
 
 ## Release model
 
-A merge to `main` updates the source-of-truth branch, but it is not the same thing as an immutable public release. Formal releases should use a version tag such as `v0.3.1` plus a GitHub Release containing the prebuilt distribution ZIP assets and checksums. CI artifacts are temporary verification outputs, not permanent release assets.
+A merge to `main` updates the source-of-truth branch, but it is not the same thing as an immutable public release. Formal releases use a version tag plus a GitHub Release containing the prebuilt distribution ZIP assets and checksums.
+
+For a future `v0.3.2` release, `v0.3.1` remains the rollback target until the new version has completed review, merge, tagging, and release packaging. CI artifacts are temporary verification outputs, not permanent release assets.
 
 ## Version
 
-`0.3.1`
+`0.3.2`
 
 ## License
 

@@ -1,0 +1,86 @@
+name: Release v0.3.2
+
+on:
+  push:
+    branches: [main]
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Verify pinned release version
+        id: version
+        shell: bash
+        run: |
+          VERSION="$(cat VERSION)"
+          if [ "$VERSION" != "0.3.2" ]; then
+            echo "publish=false" >> "$GITHUB_OUTPUT"
+            echo "v0.3.2 release workflow is inactive for VERSION=$VERSION"
+            exit 0
+          fi
+          test "$VERSION" = "0.3.2"
+          echo "publish=true" >> "$GITHUB_OUTPUT"
+          echo "tag=v$VERSION" >> "$GITHUB_OUTPUT"
+
+      - name: Check whether release already exists
+        if: steps.version.outputs.publish == 'true'
+        id: existing
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ steps.version.outputs.tag }}
+        shell: bash
+        run: |
+          if gh release view "$TAG" >/dev/null 2>&1; then
+            echo "exists=true" >> "$GITHUB_OUTPUT"
+            echo "Release $TAG already exists; publication is idempotent."
+          else
+            echo "exists=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Build release archives
+        if: steps.version.outputs.publish == 'true' && steps.existing.outputs.exists != 'true'
+        shell: bash
+        run: |
+          python .agents/skills/japan-listing-demo/scripts/package_skill.py
+          python scripts/package_codex_bundle.py
+          python -m zipfile -l dist/japan-listing-demo.skill.zip >/dev/null
+          python -m zipfile -l dist/japan-listing-demo-codex-bundle.zip >/dev/null
+
+      - name: Create checksums and release notes
+        if: steps.version.outputs.publish == 'true' && steps.existing.outputs.exists != 'true'
+        shell: bash
+        run: |
+          sha256sum \
+            dist/japan-listing-demo.skill.zip \
+            dist/japan-listing-demo-codex-bundle.zip \
+            > dist/SHA256SUMS.txt
+          awk '
+            /^## 0\.3\.2 / { emit=1; next }
+            /^## / && emit { exit }
+            emit { print }
+          ' CHANGELOG.md > dist/RELEASE_NOTES.md
+          test -s dist/RELEASE_NOTES.md
+
+      - name: Publish GitHub Release
+        if: steps.version.outputs.publish == 'true' && steps.existing.outputs.exists != 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ steps.version.outputs.tag }}
+        shell: bash
+        run: |
+          gh release create "$TAG" \
+            --target "$GITHUB_SHA" \
+            --title "$TAG — Production UX & Set-level Creative QA" \
+            --notes-file dist/RELEASE_NOTES.md \
+            dist/japan-listing-demo.skill.zip \
+            dist/japan-listing-demo-codex-bundle.zip \
+            dist/SHA256SUMS.txt
