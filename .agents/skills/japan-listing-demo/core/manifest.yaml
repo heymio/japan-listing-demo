@@ -145,7 +145,7 @@ historical_patches:
       - union required-asset derivation
       - exact Asset ID to candidate/output Production Freeze binding
       - executable FRONTEND_FIDELITY_GATE and DEMO_RUNTIME_GATE
-      - stricter PNG/JPEG/WebP structural verification
+      - real-decoder-backed PNG/JPEG/WebP verification
       - PROOF_VISUAL claim/source binding plus trusted claim review
       - static Demo preflight separated from no-network browser runtime proof
       - deterministic symlink-safe self-validating distribution archives
@@ -172,4 +172,14 @@ update_policy:
   - release only the exact current main SHA after its validation workflow succeeds; repository code executes with contents-read only
   - final merge and release still require human review and explicit approval
 
-runtime_dependency: none
+runtime_dependencies:
+  exact_image_decode:
+    package: Pillow
+    required_for: physical hard-verification PASS for PNG/JPEG/WebP assets
+    unavailable_behavior: fail-closed; no physical hard-verification PASS
+  demo_browser_runtime:
+    package: playwright
+    browser: chromium
+    required_for: DEMO_RUNTIME_GATE PASS
+    unavailable_behavior: UNVERIFIED/BLOCKED; static inspection cannot upgrade to PASS
+  install_reference: docs/install.md
