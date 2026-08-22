@@ -93,6 +93,23 @@ Static standalone HTML validation is a preflight, not an interaction hard-PASS. 
 
 Browser runtime QA is no-network and checks 1440px and 390px layouts, horizontal overflow, broken images, clipped primary elements, and both carousel directions when present. If browser runtime cannot run, the Demo runtime gate remains `UNVERIFIED/BLOCKED`.
 
+### Hard-verification runtime dependencies
+
+Exact image hard verification uses a real Pillow decoder in addition to format-structure checks. Demo interaction hard verification uses Playwright with Chromium. For a repository/Codex environment that does not already provide them, install:
+
+```bash
+python3 -m pip install Pillow playwright
+python3 -m playwright install chromium
+```
+
+On Linux CI or a fresh Linux host, Playwright may also require OS dependencies; the repository CI uses:
+
+```bash
+python3 -m playwright install --with-deps chromium
+```
+
+These are hard-verification dependencies, not optional quality enhancements. If Pillow is unavailable, supported image files do not receive a physical hard-verification PASS. If Playwright/Chromium cannot run, `DEMO_RUNTIME_GATE` remains `UNVERIFIED/BLOCKED`; source inspection or static keyword checks must not upgrade it to PASS.
+
 ## Major Stage Checkpoints
 
 Default checkpoint output is concise:
@@ -172,7 +189,9 @@ python3 .agents/skills/listing-planning/scripts/selftest_planning.py
 python3 .agents/skills/listing-production/scripts/selftest_production.py
 python3 .agents/skills/listing-hardening/scripts/selftest_hardening.py
 python3 .agents/skills/listing-hardening/scripts/selftest_demo_output.py
+python3 .agents/skills/listing-hardening/scripts/selftest_demo_runtime_v033.py
 python3 .agents/skills/listing-evidence-auditor/scripts/selftest_auditor.py
+python3 .agents/skills/listing-evidence-auditor/scripts/selftest_image_decode_v033.py
 python3 .agents/skills/japan-listing-demo/scripts/selftest_router.py
 python3 .agents/skills/japan-listing-demo/scripts/selftest_project_state_validator.py
 python3 .agents/skills/japan-listing-demo/scripts/selftest_distribution_v033.py
@@ -218,7 +237,3 @@ Existing project state should not be silently rewritten during rollback. Resume 
 ## Optional team GPT
 
 See `docs/team-gpt-setup.md`. The GPT is an optional UX shell; GitHub-packaged Skills remain the versioned execution source of truth.
-
-## Optional private overlay
-
-Private overlays may add confidential product evidence, pricing/SKU decisions, unreleased capabilities, private design assets, internal channel access and approval rules. Do not copy confidential material into this public repository.
