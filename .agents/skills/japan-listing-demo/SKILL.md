@@ -56,7 +56,11 @@ Show the full Stage Completion Manifest only when the stage is `PARTIAL`, `BLOCK
 
 ## Transition Command
 
-Treat `继续`, `下一步`, `go`, `go next`, `next`, `先这样`, `这张先过`, and equivalent wording as a **Transition Command** unless the user explicitly says to keep improving the current artifact.
+Treat `继续`, `下一步`, `go`, `go next`, `next`, and equivalent wording that clearly requests advancement as a **Transition Command** unless the user explicitly says to keep improving the current artifact.
+
+Do **not** infer a stage transition from ambiguous phrases such as `先这样`. Persist the current state and stop unless the surrounding instruction clearly requests advancement.
+
+Treat `这张先过` and equivalent wording as **current-asset acceptance** in Production: lock the exact selected candidate/output and move only to the next required asset within the same Production stage. Advance to the next major stage only when the current stage is actually complete or the user explicitly requests stage advancement.
 
 On a Transition Command:
 
