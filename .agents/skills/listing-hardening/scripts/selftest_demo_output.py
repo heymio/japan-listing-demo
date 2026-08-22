@@ -7,7 +7,15 @@ import importlib.util
 from pathlib import Path
 
 SKILL_DIR = Path(__file__).resolve().parents[1]
+REPO_ROOT = SKILL_DIR.parents[2]
 VALIDATOR = SKILL_DIR / "scripts" / "validate_demo_html.py"
+DEMO_OUTPUT_REF = SKILL_DIR / "references" / "demo-output.md"
+PACKAGE_SKILL = REPO_ROOT / ".agents" / "skills" / "japan-listing-demo" / "scripts" / "package_skill.py"
+OVERLAY_VALIDATOR = REPO_ROOT / ".agents" / "skills" / "japan-listing-demo" / "scripts" / "validate_overlay.py"
+
+
+def read(path: Path) -> str:
+    return path.read_text(encoding="utf-8")
 
 
 def load_validator():
@@ -97,6 +105,45 @@ def test_non_html_delivery_path_fails() -> None:
     result = validator.validate_delivery_path(Path("demo.zip"))
     assert result["status"] == "FAIL"
     assert any(".html" in message.casefold() for message in result["errors"])
+
+
+def test_hardening_contract_requires_standalone_html_delivery_and_runtime_qa() -> None:
+    assert DEMO_OUTPUT_REF.is_file(), "references/demo-output.md must exist"
+    combined = "\n".join(
+        [
+            read(SKILL_DIR / "SKILL.md"),
+            read(SKILL_DIR / "references" / "final-qa.md"),
+            read(DEMO_OUTPUT_REF),
+        ]
+    ).casefold()
+    for phrase in [
+        "single standalone html",
+        "embedded images",
+        "assets folder",
+        "carousel",
+        "mobile",
+        "390px",
+        "1440px",
+        "horizontal overflow",
+        "broken images",
+        "validate_demo_html.py",
+    ]:
+        assert phrase in combined, phrase
+    assert "if browser/runtime verification cannot be performed" in combined
+    assert "blocked" in combined
+
+
+def test_distribution_requires_demo_validator_and_reference() -> None:
+    package_text = read(PACKAGE_SKILL)
+    overlay_text = read(OVERLAY_VALIDATOR)
+    for relative in [
+        "listing-hardening/references/demo-output.md",
+        "listing-hardening/scripts/validate_demo_html.py",
+        "listing-hardening/scripts/selftest_demo_output.py",
+    ]:
+        assert relative in package_text, ("package", relative)
+    for filename in ["demo-output.md", "validate_demo_html.py", "selftest_demo_output.py"]:
+        assert filename in overlay_text, ("overlay", filename)
 
 
 def main() -> int:
