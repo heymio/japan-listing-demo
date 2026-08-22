@@ -24,8 +24,9 @@ evidence:
 evidence_mode: SOURCE_FAITHFUL
 
 product_sources:
-  required:
+  identity_required:
     - SRC-P01
+  proof_required: []
 
 benchmark:
   references:
