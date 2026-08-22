@@ -4,6 +4,7 @@
 from pathlib import Path
 
 SKILL_DIR = Path(__file__).resolve().parents[1]
+REPO_ROOT = SKILL_DIR.parents[2]
 
 
 def read(path: Path) -> str:
@@ -85,6 +86,28 @@ def test_v032_does_not_add_stage_or_creative_gate() -> None:
     assert "stage 7.25" not in text
     assert "set_level_creative_qa_gate" not in text
     assert "set-level creative qa is not a new gate" in text
+
+
+def test_v032_release_workflow_is_one_time_version_pinned_and_uploads_assets() -> None:
+    workflow = REPO_ROOT / ".github" / "workflows" / "release-v0.3.2.yml"
+    assert workflow.is_file(), "release-v0.3.2.yml must exist before merge/release"
+    text = read(workflow)
+    folded = text.casefold()
+    for phrase in [
+        "branches: [main]",
+        "contents: write",
+        'test "$version" = "0.3.2"',
+        "package_skill.py",
+        "package_codex_bundle.py",
+        "sha256sum",
+        "gh release view",
+        "gh release create",
+        '--target "$github_sha"',
+        "japan-listing-demo.skill.zip",
+        "japan-listing-demo-codex-bundle.zip",
+        "sha256sums.txt",
+    ]:
+        assert phrase in folded, phrase
 
 
 def main() -> int:
