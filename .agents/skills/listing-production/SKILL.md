@@ -86,13 +86,14 @@ Asset-level quality does not guarantee page-level quality. Use the structured se
 
 This is a creative review layer, not a new formal Stage or Hardening gate.
 
-Before Production Freeze, record a final whole-set/contact-sheet review for the **current authoritative asset set** in the Asset Ledger:
+Before Production Freeze, record a final whole-set/contact-sheet review for the **current authoritative asset set and exact current outputs** in the Asset Ledger:
 
 - `status`: `CLEAR` after review, or `USER_ACCEPTED` when the user explicitly accepts the set despite a non-blocking creative review concern;
 - `reviewed_asset_ids`: exact current required Asset-ID set;
+- `reviewed_output_refs`: exact mapping from every current required Asset ID to the `current_output_ref` that was visually reviewed;
 - `visual_review_ref`: reference to the reviewed final set/contact sheet.
 
-A missing or stale whole-set review keeps Production Freeze not ready for Hardening. This does not add a user checkpoint after every asset; intermediate set QA stays automatic and only surfaces when it finds a material issue.
+A missing or stale whole-set review keeps Production Freeze not ready for Hardening. If any approved output changes after the review, the prior whole-set review becomes stale and the updated set must be reviewed again. This does not add a user checkpoint after every asset; intermediate set QA stays automatic and only surfaces when it finds a material issue.
 
 ## Scope Delta
 
@@ -129,4 +130,4 @@ If the current asset lacks a required fact, business decision, product-identity 
 
 Stage 8 completion is measured against the complete required `asset_set` in Production Handoff. Priority proof coverage does not make a partial batch complete.
 
-Before Production Freeze, the complete current set must also have a current final whole-set visual review record as defined above. This remains Production creative readiness, not a new Hardening gate.
+Before Production Freeze, the complete current set must also have a current final whole-set visual review record bound to the exact reviewed output refs as defined above. This remains Production creative readiness, not a new Hardening gate.
