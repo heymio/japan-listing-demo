@@ -32,6 +32,7 @@ class DemoHTMLParser(HTMLParser):
         self._capture_style = False
         self._capture_script = False
         self.images: list[dict[str, str]] = []
+        self.srcsets: list[tuple[str, str]] = []
         self.script_srcs: list[str] = []
         self.stylesheet_hrefs: list[str] = []
         self.resource_refs: list[tuple[str, str, str]] = []
@@ -66,6 +67,9 @@ class DemoHTMLParser(HTMLParser):
 
         if tag == "img":
             self.images.append(values)
+
+        if tag in {"img", "source"} and values.get("srcset"):
+            self.srcsets.append((tag, values["srcset"]))
 
         for attr in RESOURCE_ATTRS.get(tag, ()):
             value = values.get(attr)
@@ -104,6 +108,44 @@ def _is_embedded_image(value: str) -> bool:
     return value.strip().casefold().startswith("data:image/")
 
 
+def _srcset_urls(value: str) -> list[str]:
+    """Extract candidate URLs while treating the first comma in a data URI as data syntax.
+
+    Image data URIs used by the Demo are expected to be compact (normally
+    base64), so a later comma is the candidate separator. Descriptors such as
+    `1x`, `2x`, or `640w` are skipped.
+    """
+    urls: list[str] = []
+    index = 0
+    length = len(value)
+    while index < length:
+        while index < length and (value[index].isspace() or value[index] == ","):
+            index += 1
+        if index >= length:
+            break
+
+        start = index
+        if value[index:index + 5].casefold() == "data:":
+            data_comma = value.find(",", index)
+            if data_comma < 0:
+                urls.append(value[start:].strip())
+                break
+            index = data_comma + 1
+            while index < length and not value[index].isspace() and value[index] != ",":
+                index += 1
+            urls.append(value[start:index].strip())
+        else:
+            while index < length and not value[index].isspace() and value[index] != ",":
+                index += 1
+            urls.append(value[start:index].strip())
+
+        while index < length and value[index] != ",":
+            index += 1
+        if index < length and value[index] == ",":
+            index += 1
+    return [url for url in urls if url]
+
+
 def _css_urls(style_text: str) -> list[str]:
     return [
         match.group(2).strip()
@@ -134,9 +176,13 @@ def validate_html_text(text: str) -> dict[str, object]:
             errors.append("Every <img> must have an embedded data:image source.")
         elif not _is_embedded_image(src):
             errors.append(f"Image source must be embedded as data:image; external/local image dependency found: {src}")
-        srcset = image.get("srcset", "").strip()
-        if srcset and "data:image/" not in srcset.casefold():
-            errors.append("Image srcset must be embedded; external/local image dependency found.")
+
+    for tag, srcset in parser.srcsets:
+        candidates = _srcset_urls(srcset)
+        if not candidates or any(not _is_embedded_image(candidate) for candidate in candidates):
+            errors.append(
+                f"<{tag}> srcset must contain only embedded data:image candidates; external/local srcset dependency found."
+            )
 
     if parser.script_srcs:
         errors.append("All JavaScript must be inline; <script src> dependencies are not allowed.")
@@ -160,7 +206,8 @@ def validate_html_text(text: str) -> dict[str, object]:
     if not viewport_ok:
         errors.append("Mobile validation requires a viewport meta tag with width=device-width.")
 
-    if not re.search(r"@media\s*\([^)]*(?:max-width|min-width)[^)]*\)", style_text, flags=re.I):
+    responsive_css_ok = bool(re.search(r"@media\s*\([^)]*(?:max-width|min-width)[^)]*\)", style_text, flags=re.I))
+    if not responsive_css_ok:
         errors.append("Mobile validation requires responsive CSS with an explicit @media width breakpoint.")
 
     if parser.images and not re.search(r"max-width\s*:\s*100%", style_text, flags=re.I):
@@ -191,9 +238,9 @@ def validate_html_text(text: str) -> dict[str, object]:
         "errors": errors,
         "checks": {
             "single_file_dependencies": "PASS" if not any("dependency" in item.casefold() or "inline" in item.casefold() for item in errors) else "FAIL",
-            "embedded_images": "PASS" if not any("image" in item.casefold() and "embedded" in item.casefold() for item in errors) else "FAIL",
+            "embedded_images": "PASS" if not any(("image" in item.casefold() or "srcset" in item.casefold()) and "embedded" in item.casefold() for item in errors) else "FAIL",
             "carousel_contract": "PASS" if carousel_structure_ok and carousel_wiring_ok else "FAIL",
-            "mobile_contract": "PASS" if viewport_ok and bool(re.search(r"@media\s*\([^)]*(?:max-width|min-width)[^)]*\)", style_text, flags=re.I)) else "FAIL",
+            "mobile_contract": "PASS" if viewport_ok and responsive_css_ok else "FAIL",
         },
     }
 
