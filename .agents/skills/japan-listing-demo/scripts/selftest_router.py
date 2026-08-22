@@ -88,32 +88,37 @@ def test_v032_does_not_add_stage_or_creative_gate() -> None:
     assert "set-level creative qa is not a new gate" in text
 
 
-def test_v032_release_workflow_is_one_time_version_pinned_and_uploads_assets() -> None:
+def test_v033_release_consumes_successful_exact_sha_with_least_privilege() -> None:
     # Repository-level release automation is intentionally not bundled into the
-    # one-install compatibility archive. Only assert it when running from the
-    # real Git checkout where .github/workflows is part of the source tree.
+    # one-install compatibility archive. Only assert it in a real Git checkout.
     if not (REPO_ROOT / ".git").exists():
         return
 
-    workflow = REPO_ROOT / ".github" / "workflows" / "release-v0.3.2.yml"
-    assert workflow.is_file(), "release-v0.3.2.yml must exist before merge/release"
-    text = read(workflow)
-    folded = text.casefold()
+    old = REPO_ROOT / ".github" / "workflows" / "release-v0.3.2.yml"
+    workflow = REPO_ROOT / ".github" / "workflows" / "release-validated.yml"
+    assert not old.exists()
+    assert workflow.is_file()
+    text = read(workflow).casefold()
     for phrase in [
-        "branches: [main]",
+        "workflow_run:",
+        "validate japan-listing-demo skill",
+        "conclusion == 'success'",
+        "github.event.workflow_run.head_sha",
+        "persist-credentials: false",
+        "contents: read",
         "contents: write",
-        'test "$version" = "0.3.2"',
         "package_skill.py",
         "package_codex_bundle.py",
         "sha256sum",
         "gh release view",
         "gh release create",
-        '--target "$github_sha"',
+        '--target "$validated_sha"',
         "japan-listing-demo.skill.zip",
         "japan-listing-demo-codex-bundle.zip",
         "sha256sums.txt",
     ]:
-        assert phrase in folded, phrase
+        assert phrase in text, phrase
+    assert "release-v0.3.2" not in text
 
 
 def main() -> int:
