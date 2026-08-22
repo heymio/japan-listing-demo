@@ -16,9 +16,11 @@ REQUIRED_TOP_LEVEL = {
     "objective",
     "strategy_context",
     "evidence",
+    "evidence_mode",
     "product_sources",
     "benchmark",
     "composition",
+    "set_context",
     "output",
     "must_preserve",
     "must_not_generate",
@@ -62,18 +64,17 @@ def validate_asset_packet(packet: dict) -> list[str]:
     errors.extend(f"missing field: {name}" for name in missing)
 
     evidence_mode = packet.get("evidence_mode")
-    if evidence_mode is not None and evidence_mode not in EVIDENCE_MODES:
+    if evidence_mode not in EVIDENCE_MODES:
         errors.append("evidence_mode must be SOURCE_FAITHFUL, CREATIVE_MOCK, or PROOF_VISUAL")
 
     set_context = packet.get("set_context")
-    if set_context is not None:
-        if not isinstance(set_context, dict):
-            errors.append("set_context must be a mapping")
-        else:
-            if not isinstance(set_context.get("page_visual_direction"), dict):
-                errors.append("set_context.page_visual_direction must be a mapping")
-            if not isinstance(set_context.get("nearest_neighbors"), list):
-                errors.append("set_context.nearest_neighbors must be a list")
+    if not isinstance(set_context, dict):
+        errors.append("set_context must be a mapping")
+    else:
+        if not isinstance(set_context.get("page_visual_direction"), dict):
+            errors.append("set_context.page_visual_direction must be a mapping")
+        if not isinstance(set_context.get("nearest_neighbors"), list):
+            errors.append("set_context.nearest_neighbors must be a list")
     return errors
 
 
@@ -81,7 +82,7 @@ def project_generation_context(packet: dict) -> dict:
     errors = validate_asset_packet(packet)
     if errors:
         raise ValueError("; ".join(errors))
-    return {key: packet[key] for key in PROJECTION_KEYS if key in packet}
+    return {key: packet[key] for key in PROJECTION_KEYS}
 
 
 def _direction_index(handoff: dict[str, Any]) -> dict[str, dict[str, Any]]:
@@ -167,33 +168,89 @@ def evidence_mode_for_asset(handoff: dict[str, Any], asset_id: str) -> str:
     raise ValueError(f"asset {asset_id} is not present in asset_set")
 
 
+def _source_ids(sources: dict[str, Any], key: str) -> list[str] | None:
+    values = sources.get(key, [])
+    if not isinstance(values, list) or any(not isinstance(value, str) or not value for value in values):
+        return None
+    return values
+
+
 def evaluate_source_readiness(packet: dict[str, Any], available_source_ids: set[str]) -> dict[str, Any]:
     """Apply evidence-mode semantics before image production.
 
-    Creative Mock can remain creatively usable when a proof-grade source is
-    unavailable, but its evidence entitlement is explicitly reduced. Proof and
-    source-faithful roles block rather than inventing factual product evidence.
+    Product identity sources and proof-grade sources are intentionally separate.
+    Creative Mock may tolerate missing proof-grade evidence, but it may never
+    proceed without the authoritative product-identity source needed to keep the
+    product itself commercially faithful.
     """
     mode = packet.get("evidence_mode")
     if mode not in EVIDENCE_MODES:
-        return {"status": "BLOCKED", "missing_source_ids": [], "reason": "invalid evidence_mode"}
-    sources = packet.get("product_sources")
-    required = sources.get("required", []) if isinstance(sources, dict) else []
-    if not isinstance(required, list) or any(not isinstance(value, str) or not value for value in required):
-        return {"status": "BLOCKED", "missing_source_ids": [], "reason": "invalid required source list"}
-    missing = [source_id for source_id in required if source_id not in available_source_ids]
-    if not missing:
-        return {"status": "READY", "missing_source_ids": [], "reason": "required sources available"}
-    if mode == "CREATIVE_MOCK":
         return {
-            "status": "READY_WITH_LIMITATION",
-            "missing_source_ids": missing,
-            "reason": "creative mock may proceed; missing details are not Product Truth or proof",
+            "status": "BLOCKED",
+            "missing_source_ids": [],
+            "missing_identity_source_ids": [],
+            "missing_proof_source_ids": [],
+            "reason": "invalid evidence_mode",
         }
+    sources = packet.get("product_sources")
+    if not isinstance(sources, dict):
+        return {
+            "status": "BLOCKED",
+            "missing_source_ids": [],
+            "missing_identity_source_ids": [],
+            "missing_proof_source_ids": [],
+            "reason": "invalid product_sources mapping",
+        }
+
+    # Legacy `required` is treated as identity-required for safety.
+    identity_key = "identity_required" if "identity_required" in sources else "required"
+    identity_required = _source_ids(sources, identity_key)
+    proof_required = _source_ids(sources, "proof_required")
+    if identity_required is None or proof_required is None:
+        return {
+            "status": "BLOCKED",
+            "missing_source_ids": [],
+            "missing_identity_source_ids": [],
+            "missing_proof_source_ids": [],
+            "reason": "invalid source requirement list",
+        }
+
+    missing_identity = [source_id for source_id in identity_required if source_id not in available_source_ids]
+    missing_proof = [source_id for source_id in proof_required if source_id not in available_source_ids]
+    missing_all = missing_identity + [source_id for source_id in missing_proof if source_id not in missing_identity]
+
+    if missing_identity:
+        return {
+            "status": "BLOCKED",
+            "missing_source_ids": missing_all,
+            "missing_identity_source_ids": missing_identity,
+            "missing_proof_source_ids": missing_proof,
+            "reason": "authoritative product identity source required for every evidence mode",
+        }
+
+    if missing_proof:
+        if mode == "CREATIVE_MOCK":
+            return {
+                "status": "READY_WITH_LIMITATION",
+                "missing_source_ids": missing_proof,
+                "missing_identity_source_ids": [],
+                "missing_proof_source_ids": missing_proof,
+                "reason": "creative mock may proceed; missing proof details are not Product Truth or proof",
+            }
+        return {
+            "status": "BLOCKED",
+            "missing_source_ids": missing_proof,
+            "missing_identity_source_ids": [],
+            "missing_proof_source_ids": missing_proof,
+            "reason": "authoritative proof source required for this evidence mode",
+        }
+
     return {
-        "status": "BLOCKED",
-        "missing_source_ids": missing,
-        "reason": "authoritative source required for this evidence mode",
+        "status": "READY",
+        "missing_source_ids": [],
+        "missing_identity_source_ids": [],
+        "missing_proof_source_ids": [],
+        "reason": "required identity/proof sources available",
     }
 
 
