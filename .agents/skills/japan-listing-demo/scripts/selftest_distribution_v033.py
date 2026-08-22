@@ -42,6 +42,7 @@ def test_release_self_validates_exact_main_sha_before_publish() -> None:
     for phrase in [
         "push:",
         "branches: [main]",
+        "pull_request:",
         "github.sha",
         "persist-credentials: false",
         "contents: read",
@@ -61,8 +62,18 @@ def test_release_self_validates_exact_main_sha_before_publish() -> None:
     assert "contents: write" not in build_block, "validation/build job must not receive contents write"
     publish_block = folded.split("\n  publish:", 1)[1]
     assert "contents: write" in publish_block
+    assert "github.event_name == 'push'" in publish_block
     assert "current_main" in folded and "validated_sha" in folded
     assert "test \"$current_main\" = \"$validated_sha\"" in folded
+
+
+def test_missing_tag_404_cannot_be_misread_as_tag_sha() -> None:
+    text = read(REPO_ROOT / ".github" / "workflows" / "release-validated.yml")
+    folded = text.casefold()
+    assert 'if tag_sha="$(gh api ' in folded
+    tag_lines = [line for line in folded.splitlines() if "tag_sha=" in line and "gh api" in line]
+    assert len(tag_lines) == 1, tag_lines
+    assert "|| true" not in tag_lines[0], tag_lines[0]
 
 
 def test_release_checksums_use_download_local_basenames() -> None:
