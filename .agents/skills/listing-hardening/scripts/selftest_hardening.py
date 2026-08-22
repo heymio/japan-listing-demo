@@ -24,6 +24,10 @@ def load(path: Path, name: str):
 legacy = load(LEGACY_PATH, "listing_hardening_selftest_legacy")
 validator = load(VALIDATOR_PATH, "listing_hardening_v033_validator")
 
+# Preserve the fixture helper API consumed by cross-layer adversarial tests.
+minimal_valid_state = legacy.minimal_valid_state
+verified_pre_demo_evidence = legacy.verified_pre_demo_evidence
+
 MIGRATED = {
     "test_pre_demo_audit_remains_mandatory_when_required",
     "test_delivery_state_v02_requires_complete_production_freeze_before_pre_demo",
