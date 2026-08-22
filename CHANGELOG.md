@@ -1,5 +1,20 @@
 # Changelog
 
+## 0.3.3 — Fail-Closed Hard Verification
+
+- Made Delivery State 0.2 **fail closed** for Demo delivery: pre-Demo hardening and evidence audit are mandatory, cannot be disabled by caller-authored `pre_9_required=false`, and an empty required asset set cannot pass.
+- Changed required-asset derivation from override semantics to a union across locked module plan, implementation, Asset-to-Slot Contract, and still-required blocked/revision state so a required asset cannot disappear from final completeness checks.
+- Reworked **Production Freeze** to bind each required Asset ID to its exact selected `candidate_id` and `output_ref`. Freeze now fails when blocked assets, revision-pending assets, stale Set-level QA, missing exact output bindings, duplicate output refs, or `ready_for_hardening=false` are present.
+- Added executable canonical **`FRONTEND_FIDELITY_GATE`** and **`DEMO_RUNTIME_GATE`**. Channel-native fidelity requires evidence plus matching user approval; final runtime evidence is bound to the exact Demo SHA and checks 1440px/390px layouts, zero network requests, broken images, clipping, overflow, and both carousel directions when present.
+- Tightened physical image validation. PNG now requires a complete IHDR/IDAT/IEND structure with valid chunk CRCs and a decompressible IDAT stream; JPEG/WebP receive additional structural completeness checks.
+- Extended `PROOF_VISUAL` audit contracts with explicit claim/fact/authoritative-source bindings. A proof visual cannot become final-consumable without trusted semantic claim review covering the exact bound claims.
+- Split standalone Demo verification into **static preflight** and **browser runtime proof**. Static validation rejects external SVG/image references and inline-style external URLs; JavaScript keyword presence alone no longer counts as hard interaction verification.
+- Replaced the old main-push v0.3.2 release workflow with an **exact validated-SHA release pipeline**. Repository code executes only in a read-only build job; only the separate publish job receives contents-write permission, and both jobs verify the validated SHA is still current `main`.
+- Made both distribution ZIPs deterministic, sorted, fixed-timestamp/fixed-permission, and symlink-safe. The one-install compatibility ZIP now runs a package-local validator after extraction; the Codex bundle includes repository metadata required by `validate_overlay.py` and validates itself after extraction.
+- Fixed release checksums to contain download-local basenames instead of `dist/...` paths.
+- Updated copyable CLI examples to `python3` for macOS-friendly execution.
+- Clarified Chinese continuation semantics: `先这样` no longer unconditionally advances stages; `这张先过` accepts and locks the exact current asset within Production rather than acting as a major-stage transition.
+
 ## 0.3.2 — Production UX & Set-level Creative QA
 
 - Added a lightweight **Page Visual System** to the Stage 7 Production Handoff so each final asset carries deliberate scene, composition, tone, product-scale, and proof-form direction without adding a new numbered Stage or Gate.
