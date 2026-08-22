@@ -289,6 +289,19 @@ def test_v032_scope_delta_removed_asset_cannot_remain_current() -> None:
     assert any("removed" in error.casefold() and "G2" in error for error in errors)
 
 
+def test_v032_scope_revision_rejects_boolean() -> None:
+    text = valid_v032_handoff() + """  scope_revision: true
+  scope_delta:
+    added: []
+    removed: []
+    changed: []
+    reason:
+      - test revision typing
+"""
+    errors = validate_production_handoff(text)
+    assert any("scope_revision" in error and "positive integer" in error for error in errors)
+
+
 def test_recent_account_capability_is_reused() -> None:
     from account_capability import resolve_capability
 
