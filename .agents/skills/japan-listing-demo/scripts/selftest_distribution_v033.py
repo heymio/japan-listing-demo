@@ -32,34 +32,50 @@ def test_version_and_changelog_are_v033() -> None:
     assert "## 0.3.3" in read(REPO_ROOT / "CHANGELOG.md")
 
 
-def test_release_is_triggered_only_by_successful_validation_sha() -> None:
+def test_release_self_validates_exact_main_sha_before_publish() -> None:
     old = REPO_ROOT / ".github" / "workflows" / "release-v0.3.2.yml"
     workflow = REPO_ROOT / ".github" / "workflows" / "release-validated.yml"
     assert not old.exists(), "fixed v0.3.2 push release workflow must be removed"
     assert workflow.is_file()
-    text = read(workflow).casefold()
+    text = read(workflow)
+    folded = text.casefold()
     for phrase in [
-        "workflow_run:",
-        "validate japan-listing-demo skill",
-        "conclusion == 'success'",
-        "github.event.workflow_run.head_sha",
+        "push:",
+        "branches: [main]",
+        "github.sha",
         "persist-credentials: false",
         "contents: read",
         "contents: write",
+        "Pillow",
+        "playwright install --with-deps chromium",
+        "selftest_fail_closed_v033.py",
+        "selftest_demo_runtime_v033.py",
+        "selftest_image_decode_v033.py",
+        "validate_overlay.py",
+        "package_skill.py",
+        "package_codex_bundle.py",
+        "gh release create",
     ]:
-        assert phrase in text, phrase
-    assert "push:\n    branches: [main]" not in text
-    build_block = text.split("publish:", 1)[0]
-    assert "contents: write" not in build_block, "build job must not receive contents write"
+        assert phrase.casefold() in folded, phrase
+    build_block = folded.split("\n  publish:", 1)[0]
+    assert "contents: write" not in build_block, "validation/build job must not receive contents write"
+    publish_block = folded.split("\n  publish:", 1)[1]
+    assert "contents: write" in publish_block
+    assert "current_main" in folded and "validated_sha" in folded
+    assert "test \"$current_main\" = \"$validated_sha\"" in folded
 
 
 def test_release_checksums_use_download_local_basenames() -> None:
     text = read(REPO_ROOT / ".github" / "workflows" / "release-validated.yml")
-    assert "cd dist" in text or "(cd dist" in text
-    checksum_lines = [line.strip() for line in text.splitlines() if "sha256sum" in line or "SHA256SUMS" in line]
-    joined = "\n".join(checksum_lines)
-    assert "dist/japan-listing-demo.skill.zip" not in joined
-    assert "dist/japan-listing-demo-codex-bundle.zip" not in joined
+    start = text.index("- name: Create download-local checksums and release metadata")
+    end = text.index("- uses: actions/upload-artifact@v4", start)
+    block = text[start:end]
+    assert "(cd dist && sha256sum" in block
+    assert "japan-listing-demo.skill.zip" in block
+    assert "japan-listing-demo-codex-bundle.zip" in block
+    assert "dist/japan-listing-demo.skill.zip" not in block
+    assert "dist/japan-listing-demo-codex-bundle.zip" not in block
+    assert "> SHA256SUMS.txt" in block
 
 
 def test_packagers_are_deterministic_symlink_safe_and_self_validating() -> None:

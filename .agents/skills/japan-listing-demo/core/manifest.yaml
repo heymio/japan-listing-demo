@@ -149,7 +149,7 @@ historical_patches:
       - PROOF_VISUAL claim/source binding plus trusted claim review
       - static Demo preflight separated from no-network browser runtime proof
       - deterministic symlink-safe self-validating distribution archives
-      - release only from the exact successful validation SHA with least privilege
+      - release workflow self-validates the exact current main SHA in a read-only build job before a separate write-only publish job
     files:
       - ../listing-production/scripts/production_state.py
       - ../listing-hardening/scripts/validate_delivery_state.py
@@ -169,7 +169,7 @@ update_policy:
   - run adversarial fail-closed regressions plus Planning, Production, Hardening, Evidence Auditor, Router and compatibility validator self-tests
   - validate both five-Skill Codex bundle and one-install compatibility archive after extraction
   - build release ZIPs deterministically and reject symlink inputs
-  - release only the exact current main SHA after its validation workflow succeeds; repository code executes with contents-read only
+  - release only the exact current main SHA after the release workflow itself completes full hard verification in a contents-read build job; repository code never executes with contents-write
   - final merge and release still require human review and explicit approval
 
 runtime_dependencies:

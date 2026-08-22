@@ -222,7 +222,9 @@ Release assets:
 - SHA256SUMS.txt
 ```
 
-The release workflow is triggered only after `Validate japan-listing-demo skill` succeeds for an exact `main` SHA. Repository code is checked out and executed only in a `contents: read` build job. A separate publish job receives `contents: write`, re-verifies that `main` still equals the validated SHA, validates checksums, and creates the immutable tag/Release for that SHA.
+`release-validated.yml` is triggered directly by a `main` push. The exact `github.sha` from that push is the only release candidate. A `contents: read` build job checks out that SHA with persisted credentials disabled, verifies it is still current `main`, installs Pillow and Playwright/Chromium, executes the full hard-verification suite, builds both release archives twice to prove reproducibility, and emits SHA-bound release metadata plus download-local checksums.
+
+Only after the build/validation job succeeds does a separate publish job receive `contents: write`. That job does not check out or execute repository code. It re-verifies the candidate metadata, `SHA256SUMS.txt`, tag state, and that `main` still equals the validated SHA before creating the immutable tag/Release against that exact commit.
 
 Upgrade by replacing the installed bundle with the assets from the tagged Release, then verify `VERSION` and run the package-local/extracted validation appropriate to the distribution mode.
 

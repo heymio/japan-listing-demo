@@ -88,7 +88,7 @@ def test_v032_does_not_add_stage_or_creative_gate() -> None:
     assert "set-level creative qa is not a new gate" in text
 
 
-def test_v033_release_consumes_successful_exact_sha_with_least_privilege() -> None:
+def test_v033_release_self_validates_exact_sha_with_least_privilege() -> None:
     # Repository-level release automation is intentionally not bundled into the
     # one-install compatibility archive. Only assert it in a real Git checkout.
     if not (REPO_ROOT / ".git").exists():
@@ -100,13 +100,17 @@ def test_v033_release_consumes_successful_exact_sha_with_least_privilege() -> No
     assert workflow.is_file()
     text = read(workflow).casefold()
     for phrase in [
-        "workflow_run:",
-        "validate japan-listing-demo skill",
-        "conclusion == 'success'",
-        "github.event.workflow_run.head_sha",
+        "push:",
+        "branches: [main]",
+        "github.sha",
         "persist-credentials: false",
         "contents: read",
         "contents: write",
+        "pillow",
+        "playwright install --with-deps chromium",
+        "selftest_fail_closed_v033.py",
+        "selftest_demo_runtime_v033.py",
+        "selftest_image_decode_v033.py",
         "package_skill.py",
         "package_codex_bundle.py",
         "sha256sum",
@@ -118,6 +122,11 @@ def test_v033_release_consumes_successful_exact_sha_with_least_privilege() -> No
         "sha256sums.txt",
     ]:
         assert phrase in text, phrase
+    build_block = text.split("\n  publish:", 1)[0]
+    publish_block = text.split("\n  publish:", 1)[1]
+    assert "contents: write" not in build_block
+    assert "contents: write" in publish_block
+    assert "test \"$current_main\" = \"$validated_sha\"" in text
     assert "release-v0.3.2" not in text
 
 
