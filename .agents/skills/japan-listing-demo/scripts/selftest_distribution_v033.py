@@ -40,40 +40,38 @@ def test_release_self_validates_exact_main_sha_before_publish() -> None:
     text = read(workflow)
     folded = text.casefold()
     for phrase in [
-        "push:",
-        "branches: [main]",
-        "pull_request:",
-        "github.sha",
-        "persist-credentials: false",
-        "contents: read",
-        "contents: write",
-        "Pillow",
-        "playwright install --with-deps chromium",
-        "selftest_fail_closed_v033.py",
-        "selftest_demo_runtime_v033.py",
-        "selftest_image_decode_v033.py",
-        "validate_overlay.py",
-        "package_skill.py",
-        "package_codex_bundle.py",
-        "gh release create",
+        "push:", "branches: [main]", "pull_request:", "github.sha",
+        "persist-credentials: false", "contents: read", "contents: write",
+        "Pillow", "playwright install --with-deps chromium",
+        "selftest_fail_closed_v033.py", "selftest_demo_runtime_v033.py",
+        "selftest_image_decode_v033.py", "validate_overlay.py",
+        "package_skill.py", "package_codex_bundle.py", "gh release create",
     ]:
         assert phrase.casefold() in folded, phrase
     build_block = folded.split("\n  publish:", 1)[0]
-    assert "contents: write" not in build_block, "validation/build job must not receive contents write"
     publish_block = folded.split("\n  publish:", 1)[1]
+    assert "contents: write" not in build_block
     assert "contents: write" in publish_block
     assert "github.event_name == 'push'" in publish_block
-    assert "current_main" in folded and "validated_sha" in folded
     assert "test \"$current_main\" = \"$validated_sha\"" in folded
 
 
 def test_missing_tag_404_cannot_be_misread_as_tag_sha() -> None:
-    text = read(REPO_ROOT / ".github" / "workflows" / "release-validated.yml")
-    folded = text.casefold()
+    folded = read(REPO_ROOT / ".github" / "workflows" / "release-validated.yml").casefold()
     assert 'if tag_sha="$(gh api ' in folded
     tag_lines = [line for line in folded.splitlines() if "tag_sha=" in line and "gh api" in line]
     assert len(tag_lines) == 1, tag_lines
     assert "|| true" not in tag_lines[0], tag_lines[0]
+
+
+def test_publish_release_commands_are_repo_explicit() -> None:
+    folded = read(REPO_ROOT / ".github" / "workflows" / "release-validated.yml").casefold()
+    publish = folded.split("\n  publish:", 1)[1]
+    assert 'gh release view "$tag" --repo "$github_repository"' in publish
+    create_start = publish.index('gh release create "$tag"')
+    create_block = publish[create_start:]
+    assert '--repo "$github_repository"' in create_block
+    assert "actions/checkout" not in publish, "publish job must not require a git checkout"
 
 
 def test_release_checksums_use_download_local_basenames() -> None:
@@ -114,8 +112,7 @@ def test_symlink_to_external_file_is_actually_rejected() -> None:
         root.mkdir()
         outside = Path(directory) / "outside-secret.txt"
         outside.write_text("must never enter a package", encoding="utf-8")
-        link = root / "leak.txt"
-        link.symlink_to(outside)
+        (root / "leak.txt").symlink_to(outside)
         try:
             common.reject_symlinks(root)
         except ValueError as exc:
@@ -127,19 +124,14 @@ def test_symlink_to_external_file_is_actually_rejected() -> None:
 def test_ci_executes_real_decoder_and_no_network_browser() -> None:
     workflow = read(REPO_ROOT / ".github" / "workflows" / "validate-japan-listing-demo.yml")
     for phrase in [
-        "Pillow",
-        "playwright",
-        "playwright install --with-deps chromium",
-        "selftest_image_decode_v033.py",
-        "selftest_demo_runtime_v033.py",
-        "persist-credentials: false",
+        "Pillow", "playwright", "playwright install --with-deps chromium",
+        "selftest_image_decode_v033.py", "selftest_demo_runtime_v033.py", "persist-credentials: false",
     ]:
         assert phrase in workflow, phrase
 
 
 def test_manifest_declares_hard_verification_runtime_dependencies() -> None:
-    manifest = read(MAIN_SKILL / "core" / "manifest.yaml")
-    folded = manifest.casefold()
+    folded = read(MAIN_SKILL / "core" / "manifest.yaml").casefold()
     assert "runtime_dependency: none" not in folded
     for phrase in ["runtime_dependencies:", "Pillow", "playwright", "chromium", "UNVERIFIED/BLOCKED"]:
         assert phrase.casefold() in folded, phrase
@@ -147,8 +139,7 @@ def test_manifest_declares_hard_verification_runtime_dependencies() -> None:
 
 def test_docs_use_python3_for_copyable_commands() -> None:
     for relative in ["README.md", "docs/install.md", "docs/team-gpt-setup.md"]:
-        text = read(REPO_ROOT / relative)
-        offenders = re.findall(r"(?m)^\s*python\s+[^3]", text)
+        offenders = re.findall(r"(?m)^\s*python\s+[^3]", read(REPO_ROOT / relative))
         assert not offenders, (relative, offenders)
 
 
