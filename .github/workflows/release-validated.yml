@@ -1,9 +1,7 @@
 name: Release validated japan-listing-demo
 
 on:
-  workflow_run:
-    workflows: ["Validate japan-listing-demo skill"]
-    types: [completed]
+  push:
     branches: [main]
 
 permissions:
@@ -11,7 +9,6 @@ permissions:
 
 jobs:
   build:
-    if: ${{ github.event.workflow_run.conclusion == 'success' }}
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -22,42 +19,70 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          ref: ${{ github.event.workflow_run.head_sha }}
+          ref: ${{ github.sha }}
           persist-credentials: false
 
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
 
-      - name: Verify exact validated SHA is still current main
+      - name: Pin release candidate to exact current main SHA
         id: meta
         env:
           GH_TOKEN: ${{ github.token }}
-          VALIDATED_SHA: ${{ github.event.workflow_run.head_sha }}
+          VALIDATED_SHA: ${{ github.sha }}
         shell: bash
         run: |
           set -euo pipefail
-          CURRENT_MAIN="$(gh api "repos/${GITHUB_REPOSITORY}/git/ref/heads/main" --jq '.object.sha')"
           echo "validated_sha=$VALIDATED_SHA" >> "$GITHUB_OUTPUT"
+          CURRENT_MAIN="$(gh api "repos/${GITHUB_REPOSITORY}/git/ref/heads/main" --jq '.object.sha')"
           if [ "$CURRENT_MAIN" != "$VALIDATED_SHA" ]; then
             echo "publish=false" >> "$GITHUB_OUTPUT"
-            echo "Validated SHA is stale; current main is $CURRENT_MAIN"
+            echo "Push SHA is stale; current main is $CURRENT_MAIN"
             exit 0
           fi
+
           VERSION="$(cat VERSION)"
           if [ "$VERSION" != "0.3.3" ]; then
             echo "publish=false" >> "$GITHUB_OUTPUT"
-            echo "Validated release workflow is inactive for VERSION=$VERSION"
+            echo "v0.3.3 release workflow is inactive for VERSION=$VERSION"
             exit 0
           fi
+
           TAG="v$VERSION"
           echo "tag=$TAG" >> "$GITHUB_OUTPUT"
           if gh release view "$TAG" >/dev/null 2>&1; then
             echo "publish=false" >> "$GITHUB_OUTPUT"
-            echo "Release $TAG already exists."
+            echo "Release $TAG already exists; publication is idempotent."
             exit 0
           fi
           echo "publish=true" >> "$GITHUB_OUTPUT"
+
+      - name: Install hard-verification runtime dependencies
+        if: steps.meta.outputs.publish == 'true'
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 -m pip install --disable-pip-version-check --no-input Pillow playwright
+          python3 -m playwright install --with-deps chromium
+
+      - name: Validate exact release SHA
+        if: steps.meta.outputs.publish == 'true'
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 .agents/skills/japan-listing-demo/scripts/selftest_fail_closed_v033.py
+          python3 .agents/skills/listing-planning/scripts/selftest_planning.py
+          python3 .agents/skills/listing-production/scripts/selftest_production.py
+          python3 .agents/skills/listing-hardening/scripts/selftest_hardening.py
+          python3 .agents/skills/listing-hardening/scripts/selftest_demo_output.py
+          python3 .agents/skills/listing-hardening/scripts/selftest_demo_runtime_v033.py
+          python3 .agents/skills/listing-evidence-auditor/scripts/selftest_auditor.py
+          python3 .agents/skills/listing-evidence-auditor/scripts/selftest_image_decode_v033.py
+          python3 .agents/skills/japan-listing-demo/scripts/selftest_router.py
+          python3 .agents/skills/japan-listing-demo/scripts/selftest_project_state_validator.py
+          python3 .agents/skills/japan-listing-demo/scripts/selftest_distribution_v033.py
+          python3 .agents/skills/japan-listing-demo/scripts/validate_overlay.py
 
       - name: Build deterministic release archives
         if: steps.meta.outputs.publish == 'true'
@@ -65,7 +90,17 @@ jobs:
         run: |
           set -euo pipefail
           python3 .agents/skills/japan-listing-demo/scripts/package_skill.py
+          COMPAT_FIRST="$(sha256sum dist/japan-listing-demo.skill.zip | awk '{print $1}')"
+          python3 .agents/skills/japan-listing-demo/scripts/package_skill.py
+          COMPAT_SECOND="$(sha256sum dist/japan-listing-demo.skill.zip | awk '{print $1}')"
+          test "$COMPAT_FIRST" = "$COMPAT_SECOND"
+
           python3 scripts/package_codex_bundle.py
+          CODEX_FIRST="$(sha256sum dist/japan-listing-demo-codex-bundle.zip | awk '{print $1}')"
+          python3 scripts/package_codex_bundle.py
+          CODEX_SECOND="$(sha256sum dist/japan-listing-demo-codex-bundle.zip | awk '{print $1}')"
+          test "$CODEX_FIRST" = "$CODEX_SECOND"
+
           python3 -m zipfile -l dist/japan-listing-demo.skill.zip >/dev/null
           python3 -m zipfile -l dist/japan-listing-demo-codex-bundle.zip >/dev/null
 
@@ -104,6 +139,7 @@ jobs:
     if: needs.build.outputs.publish == 'true'
     runs-on: ubuntu-latest
     permissions:
+      actions: read
       contents: write
     steps:
       - uses: actions/download-artifact@v4
@@ -111,7 +147,7 @@ jobs:
           name: release-candidate-${{ needs.build.outputs.tag }}-${{ needs.build.outputs.validated_sha }}
           path: release
 
-      - name: Verify candidate still targets exact current main SHA
+      - name: Verify exact candidate and publish immutable Release
         env:
           GH_TOKEN: ${{ github.token }}
           VALIDATED_SHA: ${{ needs.build.outputs.validated_sha }}
@@ -123,6 +159,7 @@ jobs:
           META_TAG="$(jq -r '.tag' release/RELEASE_METADATA.json)"
           test "$META_SHA" = "$VALIDATED_SHA"
           test "$META_TAG" = "$TAG"
+
           CURRENT_MAIN="$(gh api "repos/${GITHUB_REPOSITORY}/git/ref/heads/main" --jq '.object.sha')"
           test "$CURRENT_MAIN" = "$VALIDATED_SHA"
           (cd release && sha256sum -c SHA256SUMS.txt)
