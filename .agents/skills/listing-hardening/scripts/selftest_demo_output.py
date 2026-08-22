@@ -80,6 +80,30 @@ def test_external_asset_dependencies_fail() -> None:
     assert "script" in folded and "inline" in folded
 
 
+def test_mixed_external_img_srcset_fails() -> None:
+    validator = load_validator()
+    html = valid_demo_html().replace(
+        'src="data:image/png;base64,iVBORw0KGgo=">',
+        'src="data:image/png;base64,iVBORw0KGgo=" srcset="data:image/png;base64,iVBORw0KGgo= 1x, assets/hero@2x.png 2x">',
+        1,
+    )
+    result = validator.validate_html_text(html)
+    assert result["status"] == "FAIL"
+    assert any("srcset" in message.casefold() for message in result["errors"])
+
+
+def test_external_source_srcset_fails() -> None:
+    validator = load_validator()
+    html = valid_demo_html().replace(
+        '<img alt="Demo one" src="data:image/png;base64,iVBORw0KGgo=">',
+        '<picture><source srcset="assets/hero.webp 1x"><img alt="Demo one" src="data:image/png;base64,iVBORw0KGgo="></picture>',
+        1,
+    )
+    result = validator.validate_html_text(html)
+    assert result["status"] == "FAIL"
+    assert any("srcset" in message.casefold() for message in result["errors"])
+
+
 def test_carousel_requires_controls_slides_and_inline_wiring() -> None:
     validator = load_validator()
     html = valid_demo_html().replace("addEventListener('click'", "noop('click'")
