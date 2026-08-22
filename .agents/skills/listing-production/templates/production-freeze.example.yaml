@@ -1,18 +1,32 @@
 production_freeze:
   expected_assets: 3
+  required_asset_ids:
+    - AMZ-G1
+    - AMZ-G2
+    - AMZ-A1
   user_approved_assets:
     - AMZ-G1
   blocked_assets: []
   revision_pending:
     - AMZ-G2
     - AMZ-A1
-  approved_output_refs:
-    - file:amz-g1
+  approved_outputs:
+    AMZ-G1:
+      candidate_id: AMZ-G1-v2
+      output_ref: file:amz-g1-v2
   set_qa_status: MISSING
   ready_for_hardening: false
 
-# For a v0.3.2 handoff with Page Visual System, Production Freeze becomes ready
-# only after the Asset Ledger records a current final whole-set review, for example:
+# v0.3.3 Production Freeze is fail-closed.
+# It becomes ready only when:
+# - expected_assets is positive and equals the current required Asset-ID set;
+# - user_approved_assets exactly equals that required set;
+# - blocked_assets and revision_pending are empty;
+# - approved_outputs has one exact candidate_id/output_ref binding per required Asset ID;
+# - the current final whole-set/contact-sheet review is CLEAR or USER_ACCEPTED;
+# - ready_for_hardening is true.
+#
+# Example final Set QA:
 # set_qa:
 #   status: CLEAR
 #   reviewed_asset_ids:
@@ -20,9 +34,10 @@ production_freeze:
 #     - AMZ-G2
 #     - AMZ-A1
 #   reviewed_output_refs:
-#     AMZ-G1: file:amz-g1
-#     AMZ-G2: file:amz-g2
-#     AMZ-A1: file:amz-a1
+#     AMZ-G1: file:amz-g1-v2
+#     AMZ-G2: file:amz-g2-v1
+#     AMZ-A1: file:amz-a1-v3
 #   visual_review_ref: contact-sheet:final-v1
-# If any current_output_ref changes after this review, set_qa becomes STALE and
-# the updated final set must be reviewed again before Production Freeze can pass.
+#
+# If any current_output_ref changes after this review, the Set QA becomes STALE
+# and the updated final set must be reviewed again before Freeze can be ready.

@@ -9,8 +9,16 @@
   },
   "production_freeze": {
     "expected_assets": 2,
+    "required_asset_ids": ["G1", "A1"],
     "user_approved_assets": ["G1", "A1"],
-    "approved_output_refs": ["file:g1", "file:a1"]
+    "blocked_assets": [],
+    "revision_pending": [],
+    "approved_outputs": {
+      "G1": {"candidate_id": "G1-v2", "output_ref": "file:g1-v2"},
+      "A1": {"candidate_id": "A1-v1", "output_ref": "file:a1-v1"}
+    },
+    "set_qa_status": "CLEAR",
+    "ready_for_hardening": true
   },
   "audit_checkpoints": {
     "post_6_5_required": false,
@@ -22,6 +30,15 @@
   "locked_module_plan": {},
   "asset_slot_contract": [],
   "implementation": {},
-  "frontend_fidelity": {},
+  "frontend_fidelity": {
+    "mode": "CHANNEL_NATIVE",
+    "evidence_refs": [],
+    "approval_id": null
+  },
+  "demo": {
+    "path": "demo/final.html",
+    "sha256": null
+  },
+  "demo_runtime_evidence": {},
   "delivery_parity": {}
 }

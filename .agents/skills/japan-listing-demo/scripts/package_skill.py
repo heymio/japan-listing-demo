@@ -1,14 +1,13 @@
 #!/usr/bin/env python3
-"""Package one-install compatibility ZIP with embedded creative-first stage Skills."""
+"""Build the deterministic one-install compatibility package for japan-listing-demo."""
 
 from __future__ import annotations
 
-import json
 import subprocess
 import sys
 import tempfile
 from pathlib import Path
-from zipfile import ZIP_DEFLATED, ZipFile
+from zipfile import ZipFile
 
 MAIN_SKILL = Path(__file__).resolve().parents[1]
 REPO_ROOT = MAIN_SKILL.parents[2]
@@ -16,6 +15,9 @@ SKILLS_ROOT = REPO_ROOT / ".agents" / "skills"
 DIST_DIR = REPO_ROOT / "dist"
 OUTPUT = DIST_DIR / "japan-listing-demo.skill.zip"
 PREFIX = Path("japan-listing-demo")
+
+sys.path.insert(0, str(REPO_ROOT / "scripts"))
+from package_common import collect_files, reject_symlinks, write_deterministic_zip  # noqa: E402
 
 INTERNAL_SKILL_NAMES = [
     "listing-planning",
@@ -31,10 +33,7 @@ MAIN_FILES = [
     "references/exception-routing.md",
     "data/channel-policy-limits.json",
     "core/manifest.yaml",
-    "scripts/selftest_router.py",
-    "scripts/selftest_project_state_validator.py",
-    "evals/creative-first-hardening.md",
-    "evals/team-golden-path.md",
+    "scripts/validate_install.py",
 ]
 
 LIMITATION_MEMBER = "japan-listing-demo/SINGLE_CONTEXT_LIMITATION.txt"
@@ -45,11 +44,20 @@ LIMITATION_TEXT = (
     "HUMAN_REVIEW_REQUIRED unless resolved by human or genuinely independent review.\n"
 )
 
+NORMAL_POLICY_BLOCK = '''SCRIPT_DIR = Path(__file__).resolve().parent
+REPO_ROOT = SCRIPT_DIR.parents[3]
+DEFAULT_POLICY_PATH = REPO_ROOT / ".agents" / "skills" / "japan-listing-demo" / "data" / "channel-policy-limits.json"'''
+EMBEDDED_POLICY_BLOCK = '''SCRIPT_DIR = Path(__file__).resolve().parent
+EMBEDDED_MAIN_SKILL = SCRIPT_DIR.parents[2]
+DEFAULT_POLICY_PATH = EMBEDDED_MAIN_SKILL / "data" / "channel-policy-limits.json"'''
+HARDENING_POLICY_SOURCE = "scripts/_delivery_state_core.py"
+
 EMBEDDED_SHIM = '''#!/usr/bin/env python3
 """Compatibility shim for the embedded listing-hardening validator."""
 from __future__ import annotations
 import importlib.util
 from pathlib import Path
+from typing import Any
 HERE = Path(__file__).resolve()
 MAIN_SKILL = HERE.parents[1]
 TARGET = MAIN_SKILL / "internal-skills" / "listing-hardening" / "scripts" / "validate_delivery_state.py"
@@ -59,19 +67,26 @@ if SPEC is None or SPEC.loader is None:
 MODULE = importlib.util.module_from_spec(SPEC)
 SPEC.loader.exec_module(MODULE)
 canonical_hash = MODULE.canonical_hash
-validate_state = MODULE.validate_state
+CANONICAL_VALIDATE_STATE = MODULE.validate_state
+
+def _recompute(result: dict[str, Any]) -> None:
+    statuses = {gate.get("status") for gate in result.get("gates", {}).values() if isinstance(gate, dict)}
+    result["overall_status"] = "FAIL" if "FAIL" in statuses else ("UNVERIFIED" if "UNVERIFIED" in statuses else "PASS")
+
+def validate_state(state: Any, policy: dict[str, Any] | None = None) -> dict[str, Any]:
+    result = CANONICAL_VALIDATE_STATE(state, policy)
+    if (isinstance(state, dict) and state.get("schema_version") == "0.1"
+            and isinstance(state.get("audit_checkpoints"), dict)
+            and state["audit_checkpoints"].get("pre_9_required") is True
+            and result.get("gates", {}).get("SCHEMA_GATE", {}).get("status") == "PASS"):
+        result["gates"]["PRE_DEMO_ASSET_GATE"] = MODULE._core._pre_demo_asset_gate(state)
+        _recompute(result)
+    return result
+MODULE.validate_state = validate_state
 main = MODULE.main
 if __name__ == "__main__":
     raise SystemExit(main())
 '''
-
-NORMAL_POLICY_BLOCK = '''SCRIPT_DIR = Path(__file__).resolve().parent
-REPO_ROOT = SCRIPT_DIR.parents[3]
-DEFAULT_POLICY_PATH = REPO_ROOT / ".agents" / "skills" / "japan-listing-demo" / "data" / "channel-policy-limits.json"'''
-EMBEDDED_POLICY_BLOCK = '''SCRIPT_DIR = Path(__file__).resolve().parent
-EMBEDDED_MAIN_SKILL = SCRIPT_DIR.parents[2]
-DEFAULT_POLICY_PATH = EMBEDDED_MAIN_SKILL / "data" / "channel-policy-limits.json"'''
-HARDENING_POLICY_SOURCE = "scripts/_delivery_state_core.py"
 
 REQUIRED_MEMBERS = {
     "japan-listing-demo/SKILL.md",
@@ -80,45 +95,45 @@ REQUIRED_MEMBERS = {
     "japan-listing-demo/references/exception-routing.md",
     "japan-listing-demo/data/channel-policy-limits.json",
     "japan-listing-demo/scripts/validate_project_state.py",
+    "japan-listing-demo/scripts/validate_install.py",
     "japan-listing-demo/internal-skills/listing-planning/SKILL.md",
-    "japan-listing-demo/internal-skills/listing-planning/scripts/account_capability.py",
+    "japan-listing-demo/internal-skills/listing-planning/scripts/validate_planning_contracts.py",
     "japan-listing-demo/internal-skills/listing-production/SKILL.md",
-    "japan-listing-demo/internal-skills/listing-production/scripts/project_asset_packet.py",
     "japan-listing-demo/internal-skills/listing-production/scripts/production_state.py",
-    "japan-listing-demo/internal-skills/listing-production/scripts/set_level_qa.py",
-    "japan-listing-demo/internal-skills/listing-production/scripts/cleanup_policy.py",
+    "japan-listing-demo/internal-skills/listing-production/scripts/production_state_legacy.py",
     "japan-listing-demo/internal-skills/listing-hardening/SKILL.md",
-    "japan-listing-demo/internal-skills/listing-hardening/references/demo-output.md",
     "japan-listing-demo/internal-skills/listing-hardening/scripts/validate_delivery_state.py",
     "japan-listing-demo/internal-skills/listing-hardening/scripts/_delivery_state_core.py",
     "japan-listing-demo/internal-skills/listing-hardening/scripts/validate_demo_html.py",
-    "japan-listing-demo/internal-skills/listing-hardening/scripts/selftest_demo_output.py",
+    "japan-listing-demo/internal-skills/listing-hardening/scripts/validate_demo_html_legacy.py",
+    "japan-listing-demo/internal-skills/listing-hardening/scripts/validate_demo_runtime.py",
     "japan-listing-demo/internal-skills/listing-evidence-auditor/SKILL.md",
     "japan-listing-demo/internal-skills/listing-evidence-auditor/scripts/fingerprint_assets.py",
+    "japan-listing-demo/internal-skills/listing-evidence-auditor/scripts/fingerprint_assets_legacy.py",
+    "japan-listing-demo/internal-skills/listing-evidence-auditor/scripts/reconcile_evidence.py",
+    "japan-listing-demo/internal-skills/listing-evidence-auditor/scripts/reconcile_evidence_legacy.py",
     LIMITATION_MEMBER,
 }
 
 
-def add_internal_skill(archive: ZipFile, name: str) -> None:
+def exclude_dev_test(relative: Path) -> bool:
+    return relative.name.startswith("selftest_") or relative.name.startswith("selftest-")
+
+
+def add_internal_entries(entries: list[tuple[str, bytes]], name: str) -> None:
     source_root = SKILLS_ROOT / name
     if not source_root.is_dir():
         raise SystemExit(f"FAIL: missing internal Skill source: {name}")
-    patched_policy_source = False
-    for path in sorted(source_root.rglob("*")):
-        if not path.is_file() or "__pycache__" in path.parts:
-            continue
+    for path in collect_files(source_root, exclude=exclude_dev_test):
         relative = path.relative_to(source_root).as_posix()
-        target = PREFIX / "internal-skills" / name / path.relative_to(source_root)
+        target = (PREFIX / "internal-skills" / name / path.relative_to(source_root)).as_posix()
+        data = path.read_bytes()
         if name == "listing-hardening" and relative == HARDENING_POLICY_SOURCE:
-            text = path.read_text(encoding="utf-8")
+            text = data.decode("utf-8")
             if NORMAL_POLICY_BLOCK not in text:
                 raise SystemExit("FAIL: hardening core policy block changed; update compatibility patch")
-            archive.writestr(target.as_posix(), text.replace(NORMAL_POLICY_BLOCK, EMBEDDED_POLICY_BLOCK))
-            patched_policy_source = True
-        else:
-            archive.write(path, target)
-    if name == "listing-hardening" and not patched_policy_source:
-        raise SystemExit(f"FAIL: missing hardening compatibility policy source: {HARDENING_POLICY_SOURCE}")
+            data = text.replace(NORMAL_POLICY_BLOCK, EMBEDDED_POLICY_BLOCK).encode("utf-8")
+        entries.append((target, data))
 
 
 def smoke_test_archive(output: Path) -> None:
@@ -127,60 +142,54 @@ def smoke_test_archive(output: Path) -> None:
         with ZipFile(output) as archive:
             archive.extractall(tmp)
         root = tmp / "japan-listing-demo"
-        state = {
-            "schema_version": "0.1",
-            "channel": {"id": "amazon-jp", "enhanced_content": {"tier": "premium", "declared_max_modules": 7}},
-            "approval_events": [],
-            "assets": [],
-            "locked_module_plan": {},
-            "asset_slot_contract": [],
-            "implementation": {},
-            "audit_checkpoints": {"post_6_5_required": False, "pre_9_required": False},
-        }
-        state_path = tmp / "state.json"
-        state_path.write_text(json.dumps(state), encoding="utf-8")
-        commands = [
-            [sys.executable, str(root / "scripts" / "selftest_router.py")],
-            [sys.executable, str(root / "internal-skills" / "listing-planning" / "scripts" / "selftest_planning.py")],
-            [sys.executable, str(root / "internal-skills" / "listing-production" / "scripts" / "selftest_production.py")],
-            [sys.executable, str(root / "scripts" / "selftest_project_state_validator.py")],
-            [sys.executable, str(root / "scripts" / "validate_project_state.py"), str(state_path), "--json"],
-        ]
-        for command in commands:
-            result = subprocess.run(command, cwd=root, capture_output=True, text=True)
-            if result.returncode != 0:
-                print(result.stdout)
-                print(result.stderr, file=sys.stderr)
-                raise SystemExit(f"FAIL: compatibility archive smoke test failed: {' '.join(command)}")
+        result = subprocess.run(
+            [sys.executable, str(root / "scripts" / "validate_install.py")],
+            cwd=root,
+            capture_output=True,
+            text=True,
+        )
+        if result.returncode != 0:
+            print(result.stdout)
+            print(result.stderr, file=sys.stderr)
+            raise SystemExit("FAIL: extracted compatibility package validation failed")
+        print(result.stdout.strip())
 
 
 def main() -> None:
-    for relative in MAIN_FILES:
-        if not (MAIN_SKILL / relative).is_file():
-            raise SystemExit(f"FAIL: missing main router file: {relative}")
+    reject_symlinks(MAIN_SKILL)
+    for name in INTERNAL_SKILL_NAMES:
+        reject_symlinks(SKILLS_ROOT / name)
 
-    DIST_DIR.mkdir(parents=True, exist_ok=True)
-    with ZipFile(OUTPUT, "w", ZIP_DEFLATED) as archive:
-        for relative in MAIN_FILES:
-            archive.write(MAIN_SKILL / relative, PREFIX / relative)
-        archive.writestr((PREFIX / "scripts" / "validate_project_state.py").as_posix(), EMBEDDED_SHIM)
-        for name in INTERNAL_SKILL_NAMES:
-            add_internal_skill(archive, name)
-        archive.writestr(LIMITATION_MEMBER, LIMITATION_TEXT)
+    entries: list[tuple[str, bytes]] = []
+    for relative in MAIN_FILES:
+        path = MAIN_SKILL / relative
+        if not path.is_file() or path.is_symlink():
+            raise SystemExit(f"FAIL: missing/unsafe main router file: {relative}")
+        entries.append(((PREFIX / relative).as_posix(), path.read_bytes()))
+
+    entries.append(((PREFIX / "scripts" / "validate_project_state.py").as_posix(), EMBEDDED_SHIM.encode("utf-8")))
+    for name in INTERNAL_SKILL_NAMES:
+        add_internal_entries(entries, name)
+    entries.append((LIMITATION_MEMBER, LIMITATION_TEXT.encode("utf-8")))
+
+    try:
+        write_deterministic_zip(OUTPUT, entries)
+    except ValueError as exc:
+        raise SystemExit(f"FAIL: {exc}") from exc
 
     with ZipFile(OUTPUT) as archive:
         members = set(archive.namelist())
         missing = sorted(REQUIRED_MEMBERS - members)
         if missing:
             raise SystemExit(f"FAIL: compatibility package is missing: {', '.join(missing)}")
+        if any("/selftest_" in name for name in members):
+            raise SystemExit("FAIL: repository-only selftests leaked into one-install package")
         note = archive.read(LIMITATION_MEMBER).decode("utf-8")
         if "HUMAN_REVIEW_REQUIRED" not in note or "listing-evidence-auditor" not in note:
-            raise SystemExit("FAIL: compatibility archive is missing semantic-audit limitation text")
-        if any("core/workflow.md" in name or "references/delivery-integrity.md" in name for name in members):
-            raise SystemExit("FAIL: legacy monolithic runtime content leaked into compatibility archive")
+            raise SystemExit("FAIL: compatibility archive semantic-audit limitation missing")
 
     smoke_test_archive(OUTPUT)
-    print(f"PASS: one-install compatibility package contains {len(members)} files with four embedded internal Skills")
+    print(f"PASS: deterministic one-install package contains {len(members)} runtime files")
     print(OUTPUT)
 
 

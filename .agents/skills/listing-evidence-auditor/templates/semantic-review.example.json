@@ -6,6 +6,15 @@
       "actual_role": "gallery-native",
       "role_status": "ROLE_MATCH",
       "notes": "The artifact visually behaves as a gallery-native image and does not contain enhanced-content board framing."
+    },
+    "P01": {
+      "asset_id": "P01",
+      "review_source": "human",
+      "actual_role": "proof-visual",
+      "role_status": "ROLE_MATCH",
+      "claim_status": "CLAIM_MATCH",
+      "reviewed_claim_ids": ["CLAIM-01"],
+      "notes": "The displayed proof statement matches the authoritative source bound to CLAIM-01."
     }
   }
 }
