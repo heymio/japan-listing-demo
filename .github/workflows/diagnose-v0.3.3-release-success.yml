@@ -1,0 +1,21 @@
+name: Diagnose v0.3.3 release success
+
+on:
+  pull_request:
+
+permissions:
+  actions: read
+  contents: read
+
+jobs:
+  diagnose:
+    runs-on: ubuntu-latest
+    steps:
+      - name: List recent main release workflow runs
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          gh api "repos/${GITHUB_REPOSITORY}/actions/workflows/release-validated.yml/runs?branch=main&per_page=3" \
+            --jq '.workflow_runs[] | [.id,.event,.head_sha,.status,(.conclusion // "null"),.run_number,.html_url] | @tsv'
