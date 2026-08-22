@@ -54,12 +54,18 @@ set_qa:
     - G1
     - G2
     - A1
+  reviewed_output_refs:
+    G1: file:g1
+    G2: file:g2
+    A1: file:a1
   visual_review_ref: contact-sheet:final-v1
 ```
 
 Requirements:
 
 - `reviewed_asset_ids` exactly matches the current authoritative required set;
+- `reviewed_output_refs` contains exactly one entry for every current required Asset ID and each value equals that asset's exact current `current_output_ref`;
+- if any selected/final output changes after the whole-set review, the previous `set_qa` becomes `STALE` and the current set must be reviewed again;
 - `visual_review_ref` identifies the final contact sheet/set that was visually reviewed;
 - `CLEAR` means the final set review found no material creative issue;
 - `USER_ACCEPTED` is allowed only when the user explicitly accepts the current set despite a non-blocking creative concern;
