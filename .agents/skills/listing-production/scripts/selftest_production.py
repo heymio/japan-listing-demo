@@ -23,9 +23,22 @@ def base_packet() -> dict:
         "objective": {"shopper_task": "understand the core purchase reason", "primary_message": "Compact performance"},
         "strategy_context": {"consumer_barrier": "small can feel basic", "core_tension": "compact vs capability", "proof_principle": "show spatial proof"},
         "evidence": {"allowed": ["confirmed size"], "forbidden": ["unsupported superlative"]},
-        "product_sources": {"required": ["SRC-P01"]},
+        "evidence_mode": "SOURCE_FAITHFUL",
+        "product_sources": {"identity_required": ["SRC-P01"], "proof_required": []},
         "benchmark": {"references": ["BENCH-01"], "learn_from": ["product prominence"], "reuse_asset": False},
         "composition": {"product_role": "hero", "environment": "residential", "information_density": "low", "one_image_focus": True},
+        "set_context": {
+            "page_visual_direction": {
+                "asset_id": "AMZ-G1",
+                "visual_role": "hero-positioning",
+                "scene_family": "clean-stage",
+                "composition_family": "centered",
+                "tone": "bright",
+                "product_scale": "large",
+                "proof_form": "product",
+            },
+            "nearest_neighbors": [],
+        },
         "output": {"aspect_ratio": "1:1", "final_role": "Amazon Gallery", "quantity": 1},
         "must_preserve": ["product geometry"],
         "must_not_generate": ["workflow diagram", "fictional product structure"],
@@ -91,6 +104,15 @@ def test_production_has_small_status_vocabulary() -> None:
 
 def test_one_job_packet_passes() -> None:
     assert validate_asset_packet(base_packet()) == []
+
+
+def test_v032_packet_requires_evidence_mode_and_set_context() -> None:
+    packet = base_packet()
+    packet.pop("evidence_mode")
+    packet.pop("set_context")
+    errors = validate_asset_packet(packet)
+    assert any("evidence_mode" in error for error in errors)
+    assert any("set_context" in error for error in errors)
 
 
 def test_multiple_asset_ids_fail_one_job_rule() -> None:
@@ -182,32 +204,35 @@ def test_minimal_set_context_includes_current_direction_and_neighbors() -> None:
 
 def test_generation_context_carries_evidence_mode_and_minimal_set_context() -> None:
     packet = base_packet()
-    packet["evidence_mode"] = "CREATIVE_MOCK"
-    packet["set_context"] = {
-        "page_visual_direction": visual_handoff()["page_visual_system"]["asset_directions"][1],
-        "nearest_neighbors": [visual_handoff()["page_visual_system"]["asset_directions"][0]],
-    }
     projected = project_generation_context(packet)
-    assert projected["evidence_mode"] == "CREATIVE_MOCK"
-    assert projected["set_context"]["page_visual_direction"]["scene_family"] == "daylight-study"
+    assert projected["evidence_mode"] == "SOURCE_FAITHFUL"
+    assert projected["set_context"]["page_visual_direction"]["scene_family"] == "clean-stage"
 
 
-def test_evidence_mode_controls_missing_source_behavior() -> None:
+def test_evidence_mode_distinguishes_identity_from_proof_sources() -> None:
     from project_asset_packet import evaluate_source_readiness
 
     packet = base_packet()
-    packet["product_sources"] = {"required": ["SRC-P01"]}
-
+    packet["product_sources"] = {
+        "identity_required": ["SRC-ID"],
+        "proof_required": ["SRC-PROOF"],
+    }
     packet["evidence_mode"] = "CREATIVE_MOCK"
-    mock = evaluate_source_readiness(packet, available_source_ids=set())
-    assert mock["status"] == "READY_WITH_LIMITATION"
+
+    missing_identity = evaluate_source_readiness(packet, available_source_ids={"SRC-PROOF"})
+    assert missing_identity["status"] == "BLOCKED"
+    assert missing_identity["missing_identity_source_ids"] == ["SRC-ID"]
+
+    missing_proof = evaluate_source_readiness(packet, available_source_ids={"SRC-ID"})
+    assert missing_proof["status"] == "READY_WITH_LIMITATION"
+    assert missing_proof["missing_proof_source_ids"] == ["SRC-PROOF"]
 
     packet["evidence_mode"] = "PROOF_VISUAL"
-    proof = evaluate_source_readiness(packet, available_source_ids=set())
+    proof = evaluate_source_readiness(packet, available_source_ids={"SRC-ID"})
     assert proof["status"] == "BLOCKED"
 
     packet["evidence_mode"] = "SOURCE_FAITHFUL"
-    faithful = evaluate_source_readiness(packet, available_source_ids=set())
+    faithful = evaluate_source_readiness(packet, available_source_ids={"SRC-ID"})
     assert faithful["status"] == "BLOCKED"
 
 
@@ -234,6 +259,32 @@ def test_user_selected_candidate_cannot_be_silently_replaced() -> None:
         assert "reopen" in str(exc).casefold()
     else:
         raise AssertionError("selected candidate must not be silently replaced")
+
+
+def test_selected_candidate_lock_blocks_new_candidate_until_reopen() -> None:
+    from production_state import add_candidate, select_candidate
+
+    ledger = add_candidate({}, "A05-01", "A05-01-v1", "file:v1")
+    ledger = select_candidate(ledger, "A05-01", "A05-01-v1")
+    try:
+        add_candidate(ledger, "A05-01", "A05-01-v2", "file:v2")
+    except ValueError as exc:
+        assert "reopen" in str(exc).casefold()
+    else:
+        raise AssertionError("locked asset must reject new candidate before explicit reopen")
+
+
+def test_selected_candidate_lock_blocks_status_change_until_reopen() -> None:
+    from production_state import add_candidate, select_candidate
+
+    ledger = add_candidate({}, "A05-01", "A05-01-v1", "file:v1")
+    ledger = select_candidate(ledger, "A05-01", "A05-01-v1")
+    try:
+        set_creative_status(ledger, "A05-01", "REVISE")
+    except ValueError as exc:
+        assert "reopen" in str(exc).casefold()
+    else:
+        raise AssertionError("locked asset status must not change before explicit reopen")
 
 
 def test_reopen_preserves_candidate_history() -> None:
@@ -308,6 +359,42 @@ def test_adjacent_same_message_role_triggers_review() -> None:
     assert any(issue["type"] == "message_role_redundancy" for issue in result["issues"])
 
 
+def test_removed_asset_keeps_scope_plan_and_visual_system_aligned() -> None:
+    from production_state import apply_scope_delta
+
+    handoff = visual_handoff()
+    updated = apply_scope_delta(handoff, {
+        "added": [], "removed": ["G3"], "changed": [],
+        "reason": ["message merged into G2"],
+    })
+    assert [row["asset_id"] for row in updated["asset_set"]] == ["G1", "G2", "A1"]
+    assert updated["page_plan"]["gallery"] == ["G1", "G2"]
+    assert [row["asset_id"] for row in updated["page_visual_system"]["asset_directions"]] == ["G1", "G2", "A1"]
+
+
+def test_scope_delta_add_or_change_requires_revised_planning_handoff() -> None:
+    from production_state import apply_scope_delta
+
+    handoff = visual_handoff()
+    for delta in [
+        {
+            "added": [{"asset_id": "G4", "evidence_mode": "CREATIVE_MOCK"}],
+            "removed": [], "changed": [], "reason": ["new shopper task"],
+        },
+        {
+            "added": [], "removed": [],
+            "changed": [{"asset_id": "G2", "evidence_mode": "PROOF_VISUAL"}],
+            "reason": ["role changed"],
+        },
+    ]:
+        try:
+            apply_scope_delta(handoff, delta)
+        except ValueError as exc:
+            assert "planning" in str(exc).casefold() or "handoff" in str(exc).casefold()
+        else:
+            raise AssertionError("added/changed scope must require a revised Planning handoff")
+
+
 def test_removed_asset_no_longer_counts_toward_progress_or_freeze() -> None:
     from production_state import apply_scope_delta
 
@@ -325,6 +412,28 @@ def test_removed_asset_no_longer_counts_toward_progress_or_freeze() -> None:
     assert progress == {"expected": 2, "approved": 2, "remaining": 0, "complete": True}
     assert freeze["ready_for_hardening"] is True
     assert ledger["assets"]["G1"]["status"] == "USER_APPROVED"
+
+
+def test_v032_freeze_requires_current_set_level_visual_review() -> None:
+    handoff = visual_handoff()
+    ledger = {
+        "assets": {
+            asset_id: {"status": "USER_APPROVED", "current_output_ref": f"file:{asset_id.lower()}"}
+            for asset_id in ["G1", "G2", "G3", "A1"]
+        }
+    }
+    pending = build_production_freeze(handoff, ledger)
+    assert pending["ready_for_hardening"] is False
+    assert pending["set_qa_status"] == "MISSING"
+
+    ledger["set_qa"] = {
+        "status": "CLEAR",
+        "reviewed_asset_ids": ["G1", "G2", "G3", "A1"],
+        "visual_review_ref": "contact-sheet:final-v1",
+    }
+    ready = build_production_freeze(handoff, ledger)
+    assert ready["ready_for_hardening"] is True
+    assert ready["set_qa_status"] == "CLEAR"
 
 
 def test_scope_delta_rejects_unknown_removed_asset() -> None:
