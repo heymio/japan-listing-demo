@@ -112,11 +112,12 @@ It is artifact-first: a request for one final Gallery or enhanced-content asset 
 
 v0.3.2 adds production safeguards learned from the Light Bars team pilot without adding a new Stage or Hardening gate:
 
-- one-job Asset Packets receive only the current visual direction plus nearest same-region neighbor summaries;
-- Evidence Mode controls whether missing source evidence blocks a visual or merely limits a Creative Mock's evidence entitlement;
+- every v0.3.2 one-job Asset Packet requires the current Evidence Mode plus Page Visual System direction and nearest same-region neighbor summaries;
+- product-identity sources are separated from proof-grade sources: a Creative Mock may tolerate missing proof evidence, but never missing evidence required to keep the product identity faithful;
 - set-level Creative QA checks scene, composition, tone/brightness, product scale, proof form, and adjacent message-role repetition;
-- exact candidate Selection Lock preserves the user's chosen output until explicit reopen;
-- Scope Delta makes asset-set additions/removals/changes explicit and recomputes Production Freeze from the current authoritative set;
+- the final current asset set must have a recorded whole-set/contact-sheet visual review before Production Freeze is ready;
+- exact candidate Selection Lock protects the selected output, candidate history, and creative status until explicit reopen;
+- Production may apply removal-only Scope Delta while keeping `asset_set`, `page_plan`, and `page_visual_system` aligned; additions or role/message/evidence changes return to Planning for a revised handoff;
 - Smallest Sufficient Cleanup avoids broad regeneration when one targeted change can restore the page.
 
 Production still uses:
@@ -135,6 +136,10 @@ Production still uses:
 `listing-hardening` owns final file identity, evidence audit, role/scope integrity, transform authorization, module origin, slot integrity, frontend fidelity, demo assembly, delivery parity, and Final QA.
 
 Stage 8.5 runs the mandatory full final-asset audit through `listing-evidence-auditor` before final channel-native Demo Assembly.
+
+The final user-facing Demo delivery contract is one **standalone `.html` file**: images/resources are physically embedded as `data:` URIs, CSS/JS are inline, and no adjacent `assets/` directory or Demo ZIP is required. The static validator rejects local/external image dependencies, mixed/external `srcset`, session-only literal `blob:` resources, external CSS/JS, missing responsive CSS, and unverifiable carousel wiring.
+
+Static validation is necessary but not sufficient. Final runtime QA still opens the Demo in a browser at 1440px desktop and 390px mobile, verifies carousel controls in both directions, and checks horizontal overflow, broken images, and clipped controls/copy. If browser/runtime validation cannot be performed, mobile/carousel QA remains `BLOCKED` rather than being self-declared PASS.
 
 Delivery State 0.2 keeps two separate questions explicit:
 
@@ -200,7 +205,7 @@ dist/japan-listing-demo.skill.zip
 
 This archive keeps one user-facing Skill and embeds the four internal stage/audit Skills under `japan-listing-demo/internal-skills/`. It remains a **single-context** package, so embedded auditor loading does not claim independent semantic review. `SINGLE_CONTEXT_LIMITATION.txt` documents that boundary.
 
-Both package modes include the v0.3.2 account-capability resolver, candidate/scope state helpers, set-level QA, and cleanup policy.
+Both package modes include the v0.3.2 account-capability resolver, candidate/scope state helpers, set-level QA, cleanup policy, and standalone Demo validator/reference.
 
 ## Validation
 
@@ -208,6 +213,7 @@ Both package modes include the v0.3.2 account-capability resolver, candidate/sco
 python .agents/skills/listing-planning/scripts/selftest_planning.py
 python .agents/skills/listing-production/scripts/selftest_production.py
 python .agents/skills/listing-hardening/scripts/selftest_hardening.py
+python .agents/skills/listing-hardening/scripts/selftest_demo_output.py
 python .agents/skills/listing-evidence-auditor/scripts/selftest_auditor.py
 python .agents/skills/japan-listing-demo/scripts/selftest_router.py
 python .agents/skills/japan-listing-demo/scripts/selftest_project_state_validator.py
