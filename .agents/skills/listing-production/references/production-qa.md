@@ -43,10 +43,34 @@ Run lightweight set review without adding a new formal gate:
 
 When a set issue is found, use the Smallest Sufficient Intervention rather than automatically regenerating the whole cluster.
 
+## Final whole-set record
+
+For a v0.3.2 handoff with `page_visual_system`, Production Freeze requires evidence that the **current final set** was actually reviewed together. Store this in the Asset Ledger as `set_qa`:
+
+```yaml
+set_qa:
+  status: CLEAR
+  reviewed_asset_ids:
+    - G1
+    - G2
+    - A1
+  visual_review_ref: contact-sheet:final-v1
+```
+
+Requirements:
+
+- `reviewed_asset_ids` exactly matches the current authoritative required set;
+- `visual_review_ref` identifies the final contact sheet/set that was visually reviewed;
+- `CLEAR` means the final set review found no material creative issue;
+- `USER_ACCEPTED` is allowed only when the user explicitly accepts the current set despite a non-blocking creative concern;
+- missing, stale, `REVIEW`, or `REVISE` set state keeps Production Freeze not ready.
+
+This is Production creative readiness, not a new numbered Stage or Hardening gate.
+
 ## Result
 
 For one asset, use `REVIEW`, `REVISE`, or `USER_APPROVED` in the creative Asset Ledger.
 
-For set-level structured QA, use `CLEAR`, `REVIEW`, or `REVISE`. These are creative-quality statuses only; they are **not** Hardening gates.
+For set-level structured QA, use `CLEAR`, `REVIEW`, or `REVISE`. A final explicit whole-set acceptance may use `USER_ACCEPTED` as described above. These are creative-quality statuses only; they are **not** Hardening gates.
 
 Creative QA does not perform physical-file verification or final delivery hardening.
