@@ -176,10 +176,11 @@ jobs:
             exit 0
           fi
 
-          TAG_SHA="$(gh api "repos/${GITHUB_REPOSITORY}/git/ref/tags/${TAG}" --jq '.object.sha' 2>/dev/null || true)"
-          if [ -n "$TAG_SHA" ] && [ "$TAG_SHA" != "$VALIDATED_SHA" ]; then
-            echo "Existing tag $TAG points to unexpected SHA $TAG_SHA" >&2
-            exit 1
+          if TAG_SHA="$(gh api "repos/${GITHUB_REPOSITORY}/git/ref/tags/${TAG}" --jq '.object.sha' 2>/dev/null)"; then
+            if [ "$TAG_SHA" != "$VALIDATED_SHA" ]; then
+              echo "Existing tag $TAG points to unexpected SHA $TAG_SHA" >&2
+              exit 1
+            fi
           fi
 
           gh release create "$TAG" \
